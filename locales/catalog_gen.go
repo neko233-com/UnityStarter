@@ -34,11 +34,11 @@ type Messages struct{ locale string }
 // source language.
 func In(locale string) Messages { return Messages{locale} }
 
-// AppTitle says "Unity Starter"
+// AppTitle says "UnityStarter"
 // in the language the app shows.
 func AppTitle() string { return In(i18n.Locale()).AppTitle() }
 
-// AppTitle says "Unity Starter"
+// AppTitle says "UnityStarter"
 // in the language of msgs.
 func (msgs Messages) AppTitle() string {
 	return Catalog.Format(msgs.locale, "appTitle", nil)
@@ -564,11 +564,11 @@ func (msgs Messages) LinkScriptingHint() string {
 	return Catalog.Format(msgs.locale, "linkScriptingHint", nil)
 }
 
-// LinkRepo says "Unity Starter on GitHub"
+// LinkRepo says "UnityStarter on GitHub"
 // in the language the app shows.
 func LinkRepo() string { return In(i18n.Locale()).LinkRepo() }
 
-// LinkRepo says "Unity Starter on GitHub"
+// LinkRepo says "UnityStarter on GitHub"
 // in the language of msgs.
 func (msgs Messages) LinkRepo() string {
 	return Catalog.Format(msgs.locale, "linkRepo", nil)
@@ -654,11 +654,11 @@ func (msgs Messages) Diagnostics() string {
 	return Catalog.Format(msgs.locale, "diagnostics", nil)
 }
 
-// IssueTitle says "Unity Starter: "
+// IssueTitle says "UnityStarter: "
 // in the language the app shows.
 func IssueTitle() string { return In(i18n.Locale()).IssueTitle() }
 
-// IssueTitle says "Unity Starter: "
+// IssueTitle says "UnityStarter: "
 // in the language of msgs.
 func (msgs Messages) IssueTitle() string {
 	return Catalog.Format(msgs.locale, "issueTitle", nil)
@@ -674,11 +674,11 @@ func (msgs Messages) IssueBody(diagnostics string) string {
 	return Catalog.Format(msgs.locale, "issueBody", map[string]any{"diagnostics": diagnostics})
 }
 
-// CliHelp says "Unity Starter, a hub for Unity and Tuanjie.\n\nUsage:\n  unitystarter projects [--query text]           list projects\n  …"
+// CliHelp says "UnityStarter, a hub for Unity and Tuanjie.\n\nUsage:\n  unitystarter projects [--query text]           list projects\n  u…"
 // in the language the app shows.
 func CliHelp() string { return In(i18n.Locale()).CliHelp() }
 
-// CliHelp says "Unity Starter, a hub for Unity and Tuanjie.\n\nUsage:\n  unitystarter projects [--query text]           list projects\n  …"
+// CliHelp says "UnityStarter, a hub for Unity and Tuanjie.\n\nUsage:\n  unitystarter projects [--query text]           list projects\n  u…"
 // in the language of msgs.
 func (msgs Messages) CliHelp() string {
 	return Catalog.Format(msgs.locale, "cliHelp", nil)
@@ -846,11 +846,11 @@ func (msgs Messages) CliHubsHeading() string {
 	return Catalog.Format(msgs.locale, "cliHubsHeading", nil)
 }
 
-// CliVersion says "Unity Starter {version}"
+// CliVersion says "UnityStarter {version}"
 // in the language the app shows.
 func CliVersion(version string) string { return In(i18n.Locale()).CliVersion(version) }
 
-// CliVersion says "Unity Starter {version}"
+// CliVersion says "UnityStarter {version}"
 // in the language of msgs.
 func (msgs Messages) CliVersion(version string) string {
 	return Catalog.Format(msgs.locale, "cliVersion", map[string]any{"version": version})

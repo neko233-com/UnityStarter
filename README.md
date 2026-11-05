@@ -1,4 +1,4 @@
-# Unity Starter
+# UnityStarter
 
 Unity 国际版 Hub + 团结引擎 Hub 的合体替代品：无广告、无遥测，原生 Go 界面（[mygo](https://github.com/egoist/mygo) 原生 UI），同时可作为 CLI 使用。
 

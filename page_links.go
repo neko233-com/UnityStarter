@@ -177,7 +177,7 @@ func (a *app) feedbackPage(c *ui.Context) {
 // the paths of the projects.
 func (a *app) diagnostics() string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "Unity Starter %s (%s/%s)\n", appVersion, runtime.GOOS, runtime.GOARCH)
+	fmt.Fprintf(&b, "UnityStarter %s (%s/%s)\n", appVersion, runtime.GOOS, runtime.GOARCH)
 	fmt.Fprintf(&b, "Locale: %s\n", i18n.Locale())
 	fmt.Fprintf(&b, "Editors: %d\n", len(a.editors))
 	for _, e := range a.editors {

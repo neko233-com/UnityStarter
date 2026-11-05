@@ -1,5 +1,5 @@
 {
-  "appTitle": "Unity Starter",
+  "appTitle": "UnityStarter",
   "sidebarProjects": "Projects",
   "sidebarInstalls": "Installs",
   "sidebarSettings": "Settings",
@@ -52,7 +52,7 @@
   "linkDocsUnityHint": "The international manual.",
   "linkScripting": "Scripting API",
   "linkScriptingHint": "The Unity scripting reference.",
-  "linkRepo": "Unity Starter on GitHub",
+  "linkRepo": "UnityStarter on GitHub",
   "linkRepoHint": "Source, releases and issues.",
   "licensesFound": "Licenses on this computer",
   "licensesNone": "No license file found.",
@@ -64,12 +64,12 @@
   "actionReportIssue": "Report on GitHub",
   "copied": "Copied.",
   "diagnostics": "Diagnostics",
-  "issueTitle": "Unity Starter: ",
+  "issueTitle": "UnityStarter: ",
   "issueBody": "What happened, and what you expected:\n\n\n---\n{diagnostics}",
   "@issueBody": {
-    "placeholders": { "diagnostics": { "type": "String", "example": "Unity Starter 0.1.0" } }
+    "placeholders": { "diagnostics": { "type": "String", "example": "UnityStarter 0.1.0" } }
   },
-  "cliHelp": "Unity Starter, a hub for Unity and Tuanjie.\n\nUsage:\n  unitystarter projects [--query text]           list projects\n  unitystarter editors                         list installed editors\n  unitystarter open <path|name>                open a project in its editor\n  unitystarter new <folder> [--editor version] create a project\n  unitystarter hub status                      show the hubs taken over\n  unitystarter version                         print the version\n\nFlags:\n  --json   print JSON\n  --lang   en or zh-Hans\n\nWith no command, the window opens.",
+  "cliHelp": "UnityStarter, a hub for Unity and Tuanjie.\n\nUsage:\n  unitystarter projects [--query text]           list projects\n  unitystarter editors                         list installed editors\n  unitystarter open <path|name>                open a project in its editor\n  unitystarter new <folder> [--editor version] create a project\n  unitystarter hub status                      show the hubs taken over\n  unitystarter version                         print the version\n\nFlags:\n  --json   print JSON\n  --lang   en or zh-Hans\n\nWith no command, the window opens.",
   "cliUnknownCommand": "Unknown command: {name}",
   "@cliUnknownCommand": {
     "placeholders": { "name": { "type": "String", "example": "list" } }
@@ -113,7 +113,7 @@
   "cliProjectsHeading": "Projects:",
   "cliEditorsHeading": "Editors:",
   "cliHubsHeading": "Hubs:",
-  "cliVersion": "Unity Starter {version}",
+  "cliVersion": "UnityStarter {version}",
   "@cliVersion": {
     "placeholders": { "version": { "type": "String", "example": "0.1.0" } }
   },
