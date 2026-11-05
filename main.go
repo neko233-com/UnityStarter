@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
@@ -10,6 +11,11 @@ import (
 )
 
 func main() {
+	// A command runs without a window; the window opens with none.
+	if args := os.Args[1:]; len(args) > 0 {
+		os.Exit(runCLI(args, os.Stdout, scanAll))
+	}
+
 	a := newApp()
 	mygo.App.WhenReady(func() {
 		a.load()

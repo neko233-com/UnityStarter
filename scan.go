@@ -54,12 +54,22 @@ type prefs struct {
 	NoHubSync bool `json:"noHubSync"`
 }
 
-func prefsPath() string {
-	dir, err := mygo.App.Path(mygo.PathUserData)
-	if err != nil {
-		dir = "."
+// userDataDir is where the app keeps its settings, whether the window runs or
+// the command line does.
+func userDataDir() string {
+	if mygo.App.IsReady() {
+		if dir, err := mygo.App.Path(mygo.PathUserData); err == nil {
+			return dir
+		}
 	}
-	return filepath.Join(dir, "settings.json")
+	if dir, err := os.UserConfigDir(); err == nil {
+		return filepath.Join(dir, "Unity Starter")
+	}
+	return "."
+}
+
+func prefsPath() string {
+	return filepath.Join(userDataDir(), "settings.json")
 }
 
 func loadPrefs() prefs {

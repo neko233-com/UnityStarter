@@ -74,6 +74,788 @@ func (msgs Messages) SidebarSettings() string {
 	return Catalog.Format(msgs.locale, "sidebarSettings", nil)
 }
 
+// SidebarWorkspace says "Workspace"
+// in the language the app shows.
+func SidebarWorkspace() string { return In(i18n.Locale()).SidebarWorkspace() }
+
+// SidebarWorkspace says "Workspace"
+// in the language of msgs.
+func (msgs Messages) SidebarWorkspace() string {
+	return Catalog.Format(msgs.locale, "sidebarWorkspace", nil)
+}
+
+// SidebarServices says "Services"
+// in the language the app shows.
+func SidebarServices() string { return In(i18n.Locale()).SidebarServices() }
+
+// SidebarServices says "Services"
+// in the language of msgs.
+func (msgs Messages) SidebarServices() string {
+	return Catalog.Format(msgs.locale, "sidebarServices", nil)
+}
+
+// SidebarHelp says "Help"
+// in the language the app shows.
+func SidebarHelp() string { return In(i18n.Locale()).SidebarHelp() }
+
+// SidebarHelp says "Help"
+// in the language of msgs.
+func (msgs Messages) SidebarHelp() string {
+	return Catalog.Format(msgs.locale, "sidebarHelp", nil)
+}
+
+// PageStore says "Asset Store"
+// in the language the app shows.
+func PageStore() string { return In(i18n.Locale()).PageStore() }
+
+// PageStore says "Asset Store"
+// in the language of msgs.
+func (msgs Messages) PageStore() string {
+	return Catalog.Format(msgs.locale, "pageStore", nil)
+}
+
+// PageStoreHint says "Official stores, opened in your browser."
+// in the language the app shows.
+func PageStoreHint() string { return In(i18n.Locale()).PageStoreHint() }
+
+// PageStoreHint says "Official stores, opened in your browser."
+// in the language of msgs.
+func (msgs Messages) PageStoreHint() string {
+	return Catalog.Format(msgs.locale, "pageStoreHint", nil)
+}
+
+// PagePublish says "Publishing"
+// in the language the app shows.
+func PagePublish() string { return In(i18n.Locale()).PagePublish() }
+
+// PagePublish says "Publishing"
+// in the language of msgs.
+func (msgs Messages) PagePublish() string {
+	return Catalog.Format(msgs.locale, "pagePublish", nil)
+}
+
+// PagePublishHint says "Where to release a game made with either engine."
+// in the language the app shows.
+func PagePublishHint() string { return In(i18n.Locale()).PagePublishHint() }
+
+// PagePublishHint says "Where to release a game made with either engine."
+// in the language of msgs.
+func (msgs Messages) PagePublishHint() string {
+	return Catalog.Format(msgs.locale, "pagePublishHint", nil)
+}
+
+// PageLicense says "Plans and licenses"
+// in the language the app shows.
+func PageLicense() string { return In(i18n.Locale()).PageLicense() }
+
+// PageLicense says "Plans and licenses"
+// in the language of msgs.
+func (msgs Messages) PageLicense() string {
+	return Catalog.Format(msgs.locale, "pageLicense", nil)
+}
+
+// PageLicenseHint says "Licenses found on this computer, and where to manage them."
+// in the language the app shows.
+func PageLicenseHint() string { return In(i18n.Locale()).PageLicenseHint() }
+
+// PageLicenseHint says "Licenses found on this computer, and where to manage them."
+// in the language of msgs.
+func (msgs Messages) PageLicenseHint() string {
+	return Catalog.Format(msgs.locale, "pageLicenseHint", nil)
+}
+
+// PageDocs says "Documentation"
+// in the language the app shows.
+func PageDocs() string { return In(i18n.Locale()).PageDocs() }
+
+// PageDocs says "Documentation"
+// in the language of msgs.
+func (msgs Messages) PageDocs() string {
+	return Catalog.Format(msgs.locale, "pageDocs", nil)
+}
+
+// PageDocsHint says "The engines' manuals, and this app's own."
+// in the language the app shows.
+func PageDocsHint() string { return In(i18n.Locale()).PageDocsHint() }
+
+// PageDocsHint says "The engines' manuals, and this app's own."
+// in the language of msgs.
+func (msgs Messages) PageDocsHint() string {
+	return Catalog.Format(msgs.locale, "pageDocsHint", nil)
+}
+
+// PageFeedback says "Feedback"
+// in the language the app shows.
+func PageFeedback() string { return In(i18n.Locale()).PageFeedback() }
+
+// PageFeedback says "Feedback"
+// in the language of msgs.
+func (msgs Messages) PageFeedback() string {
+	return Catalog.Format(msgs.locale, "pageFeedback", nil)
+}
+
+// PageFeedbackHint says "Report a problem with this app, with what it finds on this computer."
+// in the language the app shows.
+func PageFeedbackHint() string { return In(i18n.Locale()).PageFeedbackHint() }
+
+// PageFeedbackHint says "Report a problem with this app, with what it finds on this computer."
+// in the language of msgs.
+func (msgs Messages) PageFeedbackHint() string {
+	return Catalog.Format(msgs.locale, "pageFeedbackHint", nil)
+}
+
+// GroupStores says "Stores"
+// in the language the app shows.
+func GroupStores() string { return In(i18n.Locale()).GroupStores() }
+
+// GroupStores says "Stores"
+// in the language of msgs.
+func (msgs Messages) GroupStores() string {
+	return Catalog.Format(msgs.locale, "groupStores", nil)
+}
+
+// GroupLearning says "Learning and community"
+// in the language the app shows.
+func GroupLearning() string { return In(i18n.Locale()).GroupLearning() }
+
+// GroupLearning says "Learning and community"
+// in the language of msgs.
+func (msgs Messages) GroupLearning() string {
+	return Catalog.Format(msgs.locale, "groupLearning", nil)
+}
+
+// GroupChannels says "Channels"
+// in the language the app shows.
+func GroupChannels() string { return In(i18n.Locale()).GroupChannels() }
+
+// GroupChannels says "Channels"
+// in the language of msgs.
+func (msgs Messages) GroupChannels() string {
+	return Catalog.Format(msgs.locale, "groupChannels", nil)
+}
+
+// GroupServices says "Publishing services"
+// in the language the app shows.
+func GroupServices() string { return In(i18n.Locale()).GroupServices() }
+
+// GroupServices says "Publishing services"
+// in the language of msgs.
+func (msgs Messages) GroupServices() string {
+	return Catalog.Format(msgs.locale, "groupServices", nil)
+}
+
+// GroupEngineDocs says "Engine manuals"
+// in the language the app shows.
+func GroupEngineDocs() string { return In(i18n.Locale()).GroupEngineDocs() }
+
+// GroupEngineDocs says "Engine manuals"
+// in the language of msgs.
+func (msgs Messages) GroupEngineDocs() string {
+	return Catalog.Format(msgs.locale, "groupEngineDocs", nil)
+}
+
+// GroupProjectDocs says "This project"
+// in the language the app shows.
+func GroupProjectDocs() string { return In(i18n.Locale()).GroupProjectDocs() }
+
+// GroupProjectDocs says "This project"
+// in the language of msgs.
+func (msgs Messages) GroupProjectDocs() string {
+	return Catalog.Format(msgs.locale, "groupProjectDocs", nil)
+}
+
+// GroupLicenses says "License management"
+// in the language the app shows.
+func GroupLicenses() string { return In(i18n.Locale()).GroupLicenses() }
+
+// GroupLicenses says "License management"
+// in the language of msgs.
+func (msgs Messages) GroupLicenses() string {
+	return Catalog.Format(msgs.locale, "groupLicenses", nil)
+}
+
+// LinkAssetStoreTuanjie says "Tuanjie Asset Store"
+// in the language the app shows.
+func LinkAssetStoreTuanjie() string { return In(i18n.Locale()).LinkAssetStoreTuanjie() }
+
+// LinkAssetStoreTuanjie says "Tuanjie Asset Store"
+// in the language of msgs.
+func (msgs Messages) LinkAssetStoreTuanjie() string {
+	return Catalog.Format(msgs.locale, "linkAssetStoreTuanjie", nil)
+}
+
+// LinkAssetStoreTuanjieHint says "Assets, tools and services for the Tuanjie engine."
+// in the language the app shows.
+func LinkAssetStoreTuanjieHint() string { return In(i18n.Locale()).LinkAssetStoreTuanjieHint() }
+
+// LinkAssetStoreTuanjieHint says "Assets, tools and services for the Tuanjie engine."
+// in the language of msgs.
+func (msgs Messages) LinkAssetStoreTuanjieHint() string {
+	return Catalog.Format(msgs.locale, "linkAssetStoreTuanjieHint", nil)
+}
+
+// LinkAssetStoreUnity says "Unity Asset Store"
+// in the language the app shows.
+func LinkAssetStoreUnity() string { return In(i18n.Locale()).LinkAssetStoreUnity() }
+
+// LinkAssetStoreUnity says "Unity Asset Store"
+// in the language of msgs.
+func (msgs Messages) LinkAssetStoreUnity() string {
+	return Catalog.Format(msgs.locale, "linkAssetStoreUnity", nil)
+}
+
+// LinkAssetStoreUnityHint says "The international store."
+// in the language the app shows.
+func LinkAssetStoreUnityHint() string { return In(i18n.Locale()).LinkAssetStoreUnityHint() }
+
+// LinkAssetStoreUnityHint says "The international store."
+// in the language of msgs.
+func (msgs Messages) LinkAssetStoreUnityHint() string {
+	return Catalog.Format(msgs.locale, "linkAssetStoreUnityHint", nil)
+}
+
+// LinkLearnHint says "Courses and tutorials, in Chinese."
+// in the language the app shows.
+func LinkLearnHint() string { return In(i18n.Locale()).LinkLearnHint() }
+
+// LinkLearnHint says "Courses and tutorials, in Chinese."
+// in the language of msgs.
+func (msgs Messages) LinkLearnHint() string {
+	return Catalog.Format(msgs.locale, "linkLearnHint", nil)
+}
+
+// LinkCommunity says "Developer community"
+// in the language the app shows.
+func LinkCommunity() string { return In(i18n.Locale()).LinkCommunity() }
+
+// LinkCommunity says "Developer community"
+// in the language of msgs.
+func (msgs Messages) LinkCommunity() string {
+	return Catalog.Format(msgs.locale, "linkCommunity", nil)
+}
+
+// LinkCommunityHint says "Articles and answers from Unity China."
+// in the language the app shows.
+func LinkCommunityHint() string { return In(i18n.Locale()).LinkCommunityHint() }
+
+// LinkCommunityHint says "Articles and answers from Unity China."
+// in the language of msgs.
+func (msgs Messages) LinkCommunityHint() string {
+	return Catalog.Format(msgs.locale, "linkCommunityHint", nil)
+}
+
+// LinkGamePublishing says "Tuanjie game publishing"
+// in the language the app shows.
+func LinkGamePublishing() string { return In(i18n.Locale()).LinkGamePublishing() }
+
+// LinkGamePublishing says "Tuanjie game publishing"
+// in the language of msgs.
+func (msgs Messages) LinkGamePublishing() string {
+	return Catalog.Format(msgs.locale, "linkGamePublishing", nil)
+}
+
+// LinkGamePublishingHint says "Publish, promote and run a game in China."
+// in the language the app shows.
+func LinkGamePublishingHint() string { return In(i18n.Locale()).LinkGamePublishingHint() }
+
+// LinkGamePublishingHint says "Publish, promote and run a game in China."
+// in the language of msgs.
+func (msgs Messages) LinkGamePublishingHint() string {
+	return Catalog.Format(msgs.locale, "linkGamePublishingHint", nil)
+}
+
+// LinkMiniGame says "Mini game center"
+// in the language the app shows.
+func LinkMiniGame() string { return In(i18n.Locale()).LinkMiniGame() }
+
+// LinkMiniGame says "Mini game center"
+// in the language of msgs.
+func (msgs Messages) LinkMiniGame() string {
+	return Catalog.Format(msgs.locale, "linkMiniGame", nil)
+}
+
+// LinkMiniGameHint says "Hosts mini games on the Tuanjie runtime."
+// in the language the app shows.
+func LinkMiniGameHint() string { return In(i18n.Locale()).LinkMiniGameHint() }
+
+// LinkMiniGameHint says "Hosts mini games on the Tuanjie runtime."
+// in the language of msgs.
+func (msgs Messages) LinkMiniGameHint() string {
+	return Catalog.Format(msgs.locale, "linkMiniGameHint", nil)
+}
+
+// LinkUOS says "Game cloud services (UOS)"
+// in the language the app shows.
+func LinkUOS() string { return In(i18n.Locale()).LinkUOS() }
+
+// LinkUOS says "Game cloud services (UOS)"
+// in the language of msgs.
+func (msgs Messages) LinkUOS() string {
+	return Catalog.Format(msgs.locale, "linkUOS", nil)
+}
+
+// LinkUOSHint says "Accounts, storage, multiplayer and server hosting."
+// in the language the app shows.
+func LinkUOSHint() string { return In(i18n.Locale()).LinkUOSHint() }
+
+// LinkUOSHint says "Accounts, storage, multiplayer and server hosting."
+// in the language of msgs.
+func (msgs Messages) LinkUOSHint() string {
+	return Catalog.Format(msgs.locale, "linkUOSHint", nil)
+}
+
+// LinkCloudRender says "Cloud rendering"
+// in the language the app shows.
+func LinkCloudRender() string { return In(i18n.Locale()).LinkCloudRender() }
+
+// LinkCloudRender says "Cloud rendering"
+// in the language of msgs.
+func (msgs Messages) LinkCloudRender() string {
+	return Catalog.Format(msgs.locale, "linkCloudRender", nil)
+}
+
+// LinkCloudRenderHint says "Render a build on the cloud."
+// in the language the app shows.
+func LinkCloudRenderHint() string { return In(i18n.Locale()).LinkCloudRenderHint() }
+
+// LinkCloudRenderHint says "Render a build on the cloud."
+// in the language of msgs.
+func (msgs Messages) LinkCloudRenderHint() string {
+	return Catalog.Format(msgs.locale, "linkCloudRenderHint", nil)
+}
+
+// LinkPartner says "Partner program"
+// in the language the app shows.
+func LinkPartner() string { return In(i18n.Locale()).LinkPartner() }
+
+// LinkPartner says "Partner program"
+// in the language of msgs.
+func (msgs Messages) LinkPartner() string {
+	return Catalog.Format(msgs.locale, "linkPartner", nil)
+}
+
+// LinkPartnerHint says "Programs for studios and publishers."
+// in the language the app shows.
+func LinkPartnerHint() string { return In(i18n.Locale()).LinkPartnerHint() }
+
+// LinkPartnerHint says "Programs for studios and publishers."
+// in the language of msgs.
+func (msgs Messages) LinkPartnerHint() string {
+	return Catalog.Format(msgs.locale, "linkPartnerHint", nil)
+}
+
+// LinkLicenseTuanjie says "Tuanjie licenses"
+// in the language the app shows.
+func LinkLicenseTuanjie() string { return In(i18n.Locale()).LinkLicenseTuanjie() }
+
+// LinkLicenseTuanjie says "Tuanjie licenses"
+// in the language of msgs.
+func (msgs Messages) LinkLicenseTuanjie() string {
+	return Catalog.Format(msgs.locale, "linkLicenseTuanjie", nil)
+}
+
+// LinkLicenseTuanjieHint says "Manage Tuanjie seats and activations."
+// in the language the app shows.
+func LinkLicenseTuanjieHint() string { return In(i18n.Locale()).LinkLicenseTuanjieHint() }
+
+// LinkLicenseTuanjieHint says "Manage Tuanjie seats and activations."
+// in the language of msgs.
+func (msgs Messages) LinkLicenseTuanjieHint() string {
+	return Catalog.Format(msgs.locale, "linkLicenseTuanjieHint", nil)
+}
+
+// LinkLicenseUnity says "Unity licenses"
+// in the language the app shows.
+func LinkLicenseUnity() string { return In(i18n.Locale()).LinkLicenseUnity() }
+
+// LinkLicenseUnity says "Unity licenses"
+// in the language of msgs.
+func (msgs Messages) LinkLicenseUnity() string {
+	return Catalog.Format(msgs.locale, "linkLicenseUnity", nil)
+}
+
+// LinkLicenseUnityHint says "Manage Unity subscriptions and activations."
+// in the language the app shows.
+func LinkLicenseUnityHint() string { return In(i18n.Locale()).LinkLicenseUnityHint() }
+
+// LinkLicenseUnityHint says "Manage Unity subscriptions and activations."
+// in the language of msgs.
+func (msgs Messages) LinkLicenseUnityHint() string {
+	return Catalog.Format(msgs.locale, "linkLicenseUnityHint", nil)
+}
+
+// LinkAccount says "Unity ID"
+// in the language the app shows.
+func LinkAccount() string { return In(i18n.Locale()).LinkAccount() }
+
+// LinkAccount says "Unity ID"
+// in the language of msgs.
+func (msgs Messages) LinkAccount() string {
+	return Catalog.Format(msgs.locale, "linkAccount", nil)
+}
+
+// LinkAccountHint says "Sign in, teams and organizations."
+// in the language the app shows.
+func LinkAccountHint() string { return In(i18n.Locale()).LinkAccountHint() }
+
+// LinkAccountHint says "Sign in, teams and organizations."
+// in the language of msgs.
+func (msgs Messages) LinkAccountHint() string {
+	return Catalog.Format(msgs.locale, "linkAccountHint", nil)
+}
+
+// LinkDocsTuanjie says "Tuanjie manual"
+// in the language the app shows.
+func LinkDocsTuanjie() string { return In(i18n.Locale()).LinkDocsTuanjie() }
+
+// LinkDocsTuanjie says "Tuanjie manual"
+// in the language of msgs.
+func (msgs Messages) LinkDocsTuanjie() string {
+	return Catalog.Format(msgs.locale, "linkDocsTuanjie", nil)
+}
+
+// LinkDocsTuanjieHint says "The Tuanjie user manual."
+// in the language the app shows.
+func LinkDocsTuanjieHint() string { return In(i18n.Locale()).LinkDocsTuanjieHint() }
+
+// LinkDocsTuanjieHint says "The Tuanjie user manual."
+// in the language of msgs.
+func (msgs Messages) LinkDocsTuanjieHint() string {
+	return Catalog.Format(msgs.locale, "linkDocsTuanjieHint", nil)
+}
+
+// LinkDocsUnity says "Unity manual"
+// in the language the app shows.
+func LinkDocsUnity() string { return In(i18n.Locale()).LinkDocsUnity() }
+
+// LinkDocsUnity says "Unity manual"
+// in the language of msgs.
+func (msgs Messages) LinkDocsUnity() string {
+	return Catalog.Format(msgs.locale, "linkDocsUnity", nil)
+}
+
+// LinkDocsUnityHint says "The international manual."
+// in the language the app shows.
+func LinkDocsUnityHint() string { return In(i18n.Locale()).LinkDocsUnityHint() }
+
+// LinkDocsUnityHint says "The international manual."
+// in the language of msgs.
+func (msgs Messages) LinkDocsUnityHint() string {
+	return Catalog.Format(msgs.locale, "linkDocsUnityHint", nil)
+}
+
+// LinkScripting says "Scripting API"
+// in the language the app shows.
+func LinkScripting() string { return In(i18n.Locale()).LinkScripting() }
+
+// LinkScripting says "Scripting API"
+// in the language of msgs.
+func (msgs Messages) LinkScripting() string {
+	return Catalog.Format(msgs.locale, "linkScripting", nil)
+}
+
+// LinkScriptingHint says "The Unity scripting reference."
+// in the language the app shows.
+func LinkScriptingHint() string { return In(i18n.Locale()).LinkScriptingHint() }
+
+// LinkScriptingHint says "The Unity scripting reference."
+// in the language of msgs.
+func (msgs Messages) LinkScriptingHint() string {
+	return Catalog.Format(msgs.locale, "linkScriptingHint", nil)
+}
+
+// LinkRepo says "Unity Starter on GitHub"
+// in the language the app shows.
+func LinkRepo() string { return In(i18n.Locale()).LinkRepo() }
+
+// LinkRepo says "Unity Starter on GitHub"
+// in the language of msgs.
+func (msgs Messages) LinkRepo() string {
+	return Catalog.Format(msgs.locale, "linkRepo", nil)
+}
+
+// LinkRepoHint says "Source, releases and issues."
+// in the language the app shows.
+func LinkRepoHint() string { return In(i18n.Locale()).LinkRepoHint() }
+
+// LinkRepoHint says "Source, releases and issues."
+// in the language of msgs.
+func (msgs Messages) LinkRepoHint() string {
+	return Catalog.Format(msgs.locale, "linkRepoHint", nil)
+}
+
+// LicensesFound says "Licenses on this computer"
+// in the language the app shows.
+func LicensesFound() string { return In(i18n.Locale()).LicensesFound() }
+
+// LicensesFound says "Licenses on this computer"
+// in the language of msgs.
+func (msgs Messages) LicensesFound() string {
+	return Catalog.Format(msgs.locale, "licensesFound", nil)
+}
+
+// LicensesNone says "No license file found."
+// in the language the app shows.
+func LicensesNone() string { return In(i18n.Locale()).LicensesNone() }
+
+// LicensesNone says "No license file found."
+// in the language of msgs.
+func (msgs Messages) LicensesNone() string {
+	return Catalog.Format(msgs.locale, "licensesNone", nil)
+}
+
+// LicensesFiles says "{count, plural, one {# file} other {# files}}"
+// in the language the app shows.
+func LicensesFiles(count int) string { return In(i18n.Locale()).LicensesFiles(count) }
+
+// LicensesFiles says "{count, plural, one {# file} other {# files}}"
+// in the language of msgs.
+func (msgs Messages) LicensesFiles(count int) string {
+	return Catalog.Format(msgs.locale, "licensesFiles", map[string]any{"count": count})
+}
+
+// ActionCopy says "Copy"
+// in the language the app shows.
+func ActionCopy() string { return In(i18n.Locale()).ActionCopy() }
+
+// ActionCopy says "Copy"
+// in the language of msgs.
+func (msgs Messages) ActionCopy() string {
+	return Catalog.Format(msgs.locale, "actionCopy", nil)
+}
+
+// ActionReportIssue says "Report on GitHub"
+// in the language the app shows.
+func ActionReportIssue() string { return In(i18n.Locale()).ActionReportIssue() }
+
+// ActionReportIssue says "Report on GitHub"
+// in the language of msgs.
+func (msgs Messages) ActionReportIssue() string {
+	return Catalog.Format(msgs.locale, "actionReportIssue", nil)
+}
+
+// Copied says "Copied."
+// in the language the app shows.
+func Copied() string { return In(i18n.Locale()).Copied() }
+
+// Copied says "Copied."
+// in the language of msgs.
+func (msgs Messages) Copied() string {
+	return Catalog.Format(msgs.locale, "copied", nil)
+}
+
+// Diagnostics says "Diagnostics"
+// in the language the app shows.
+func Diagnostics() string { return In(i18n.Locale()).Diagnostics() }
+
+// Diagnostics says "Diagnostics"
+// in the language of msgs.
+func (msgs Messages) Diagnostics() string {
+	return Catalog.Format(msgs.locale, "diagnostics", nil)
+}
+
+// IssueTitle says "Unity Starter: "
+// in the language the app shows.
+func IssueTitle() string { return In(i18n.Locale()).IssueTitle() }
+
+// IssueTitle says "Unity Starter: "
+// in the language of msgs.
+func (msgs Messages) IssueTitle() string {
+	return Catalog.Format(msgs.locale, "issueTitle", nil)
+}
+
+// IssueBody says "What happened, and what you expected:\n\n\n---\n{diagnostics}"
+// in the language the app shows.
+func IssueBody(diagnostics string) string { return In(i18n.Locale()).IssueBody(diagnostics) }
+
+// IssueBody says "What happened, and what you expected:\n\n\n---\n{diagnostics}"
+// in the language of msgs.
+func (msgs Messages) IssueBody(diagnostics string) string {
+	return Catalog.Format(msgs.locale, "issueBody", map[string]any{"diagnostics": diagnostics})
+}
+
+// CliHelp says "Unity Starter, a hub for Unity and Tuanjie.\n\nUsage:\n  unitystarter projects [--query text]           list projects\n  …"
+// in the language the app shows.
+func CliHelp() string { return In(i18n.Locale()).CliHelp() }
+
+// CliHelp says "Unity Starter, a hub for Unity and Tuanjie.\n\nUsage:\n  unitystarter projects [--query text]           list projects\n  …"
+// in the language of msgs.
+func (msgs Messages) CliHelp() string {
+	return Catalog.Format(msgs.locale, "cliHelp", nil)
+}
+
+// CliUnknownCommand says "Unknown command: {name}"
+// in the language the app shows.
+func CliUnknownCommand(name string) string { return In(i18n.Locale()).CliUnknownCommand(name) }
+
+// CliUnknownCommand says "Unknown command: {name}"
+// in the language of msgs.
+func (msgs Messages) CliUnknownCommand(name string) string {
+	return Catalog.Format(msgs.locale, "cliUnknownCommand", map[string]any{"name": name})
+}
+
+// CliUsageHint says "Run \"unitystarter help\" for the commands."
+// in the language the app shows.
+func CliUsageHint() string { return In(i18n.Locale()).CliUsageHint() }
+
+// CliUsageHint says "Run \"unitystarter help\" for the commands."
+// in the language of msgs.
+func (msgs Messages) CliUsageHint() string {
+	return Catalog.Format(msgs.locale, "cliUsageHint", nil)
+}
+
+// CliNoProjects says "No projects found."
+// in the language the app shows.
+func CliNoProjects() string { return In(i18n.Locale()).CliNoProjects() }
+
+// CliNoProjects says "No projects found."
+// in the language of msgs.
+func (msgs Messages) CliNoProjects() string {
+	return Catalog.Format(msgs.locale, "cliNoProjects", nil)
+}
+
+// CliNoEditors says "No editors found."
+// in the language the app shows.
+func CliNoEditors() string { return In(i18n.Locale()).CliNoEditors() }
+
+// CliNoEditors says "No editors found."
+// in the language of msgs.
+func (msgs Messages) CliNoEditors() string {
+	return Catalog.Format(msgs.locale, "cliNoEditors", nil)
+}
+
+// CliNotFound says "No project matches {target}."
+// in the language the app shows.
+func CliNotFound(target string) string { return In(i18n.Locale()).CliNotFound(target) }
+
+// CliNotFound says "No project matches {target}."
+// in the language of msgs.
+func (msgs Messages) CliNotFound(target string) string {
+	return Catalog.Format(msgs.locale, "cliNotFound", map[string]any{"target": target})
+}
+
+// CliAmbiguous says "{count} projects match {target}; give one of their paths."
+// in the language the app shows.
+func CliAmbiguous(count int, target string) string {
+	return In(i18n.Locale()).CliAmbiguous(count, target)
+}
+
+// CliAmbiguous says "{count} projects match {target}; give one of their paths."
+// in the language of msgs.
+func (msgs Messages) CliAmbiguous(count int, target string) string {
+	return Catalog.Format(msgs.locale, "cliAmbiguous", map[string]any{"count": count, "target": target})
+}
+
+// CliOpened says "Opened {path}"
+// in the language the app shows.
+func CliOpened(path string) string { return In(i18n.Locale()).CliOpened(path) }
+
+// CliOpened says "Opened {path}"
+// in the language of msgs.
+func (msgs Messages) CliOpened(path string) string {
+	return Catalog.Format(msgs.locale, "cliOpened", map[string]any{"path": path})
+}
+
+// CliCreated says "Created {path}"
+// in the language the app shows.
+func CliCreated(path string) string { return In(i18n.Locale()).CliCreated(path) }
+
+// CliCreated says "Created {path}"
+// in the language of msgs.
+func (msgs Messages) CliCreated(path string) string {
+	return Catalog.Format(msgs.locale, "cliCreated", map[string]any{"path": path})
+}
+
+// CliNoEditor says "No editor installed."
+// in the language the app shows.
+func CliNoEditor() string { return In(i18n.Locale()).CliNoEditor() }
+
+// CliNoEditor says "No editor installed."
+// in the language of msgs.
+func (msgs Messages) CliNoEditor() string {
+	return Catalog.Format(msgs.locale, "cliNoEditor", nil)
+}
+
+// CliNoEditorFor says "No editor for {version}."
+// in the language the app shows.
+func CliNoEditorFor(version string) string { return In(i18n.Locale()).CliNoEditorFor(version) }
+
+// CliNoEditorFor says "No editor for {version}."
+// in the language of msgs.
+func (msgs Messages) CliNoEditorFor(version string) string {
+	return Catalog.Format(msgs.locale, "cliNoEditorFor", map[string]any{"version": version})
+}
+
+// CliNotAProject says "{path} is not a project."
+// in the language the app shows.
+func CliNotAProject(path string) string { return In(i18n.Locale()).CliNotAProject(path) }
+
+// CliNotAProject says "{path} is not a project."
+// in the language of msgs.
+func (msgs Messages) CliNotAProject(path string) string {
+	return Catalog.Format(msgs.locale, "cliNotAProject", map[string]any{"path": path})
+}
+
+// CliNotEmpty says "{path} is not empty."
+// in the language the app shows.
+func CliNotEmpty(path string) string { return In(i18n.Locale()).CliNotEmpty(path) }
+
+// CliNotEmpty says "{path} is not empty."
+// in the language of msgs.
+func (msgs Messages) CliNotEmpty(path string) string {
+	return Catalog.Format(msgs.locale, "cliNotEmpty", map[string]any{"path": path})
+}
+
+// CliHubNone says "No hub found."
+// in the language the app shows.
+func CliHubNone() string { return In(i18n.Locale()).CliHubNone() }
+
+// CliHubNone says "No hub found."
+// in the language of msgs.
+func (msgs Messages) CliHubNone() string {
+	return Catalog.Format(msgs.locale, "cliHubNone", nil)
+}
+
+// CliProjectsHeading says "Projects:"
+// in the language the app shows.
+func CliProjectsHeading() string { return In(i18n.Locale()).CliProjectsHeading() }
+
+// CliProjectsHeading says "Projects:"
+// in the language of msgs.
+func (msgs Messages) CliProjectsHeading() string {
+	return Catalog.Format(msgs.locale, "cliProjectsHeading", nil)
+}
+
+// CliEditorsHeading says "Editors:"
+// in the language the app shows.
+func CliEditorsHeading() string { return In(i18n.Locale()).CliEditorsHeading() }
+
+// CliEditorsHeading says "Editors:"
+// in the language of msgs.
+func (msgs Messages) CliEditorsHeading() string {
+	return Catalog.Format(msgs.locale, "cliEditorsHeading", nil)
+}
+
+// CliHubsHeading says "Hubs:"
+// in the language the app shows.
+func CliHubsHeading() string { return In(i18n.Locale()).CliHubsHeading() }
+
+// CliHubsHeading says "Hubs:"
+// in the language of msgs.
+func (msgs Messages) CliHubsHeading() string {
+	return Catalog.Format(msgs.locale, "cliHubsHeading", nil)
+}
+
+// CliVersion says "Unity Starter {version}"
+// in the language the app shows.
+func CliVersion(version string) string { return In(i18n.Locale()).CliVersion(version) }
+
+// CliVersion says "Unity Starter {version}"
+// in the language of msgs.
+func (msgs Messages) CliVersion(version string) string {
+	return Catalog.Format(msgs.locale, "cliVersion", map[string]any{"version": version})
+}
+
 // ProjectsTitle says "Projects"
 // in the language the app shows.
 func ProjectsTitle() string { return In(i18n.Locale()).ProjectsTitle() }

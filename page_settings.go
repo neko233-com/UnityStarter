@@ -169,11 +169,19 @@ func hubMode(h hub) string {
 	return locales.HubModeImport()
 }
 
+// hubModeCode names the mode for scripts, whatever the app's language.
+func hubModeCode(h hub) string {
+	if h.writable() {
+		return "two-way"
+	}
+	return "import-only"
+}
+
 func (a *app) aboutSection(c *ui.Context) {
 	t := c.Theme()
 	version := mygo.App.Version()
 	if version == "" {
-		version = "0.1.0"
+		version = appVersion
 	}
 	ui.Column(c).Gap(6).Children(func() {
 		a.sectionTitle(c, locales.SettingsAbout(), locales.SettingsAboutText())

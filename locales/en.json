@@ -3,6 +3,120 @@
   "sidebarProjects": "Projects",
   "sidebarInstalls": "Installs",
   "sidebarSettings": "Settings",
+  "sidebarWorkspace": "Workspace",
+  "sidebarServices": "Services",
+  "sidebarHelp": "Help",
+  "pageStore": "Asset Store",
+  "pageStoreHint": "Official stores, opened in your browser.",
+  "pagePublish": "Publishing",
+  "pagePublishHint": "Where to release a game made with either engine.",
+  "pageLicense": "Plans and licenses",
+  "pageLicenseHint": "Licenses found on this computer, and where to manage them.",
+  "pageDocs": "Documentation",
+  "pageDocsHint": "The engines' manuals, and this app's own.",
+  "pageFeedback": "Feedback",
+  "pageFeedbackHint": "Report a problem with this app, with what it finds on this computer.",
+  "groupStores": "Stores",
+  "groupLearning": "Learning and community",
+  "groupChannels": "Channels",
+  "groupServices": "Publishing services",
+  "groupEngineDocs": "Engine manuals",
+  "groupProjectDocs": "This project",
+  "groupLicenses": "License management",
+  "linkAssetStoreTuanjie": "Tuanjie Asset Store",
+  "linkAssetStoreTuanjieHint": "Assets, tools and services for the Tuanjie engine.",
+  "linkAssetStoreUnity": "Unity Asset Store",
+  "linkAssetStoreUnityHint": "The international store.",
+  "linkLearnHint": "Courses and tutorials, in Chinese.",
+  "linkCommunity": "Developer community",
+  "linkCommunityHint": "Articles and answers from Unity China.",
+  "linkGamePublishing": "Tuanjie game publishing",
+  "linkGamePublishingHint": "Publish, promote and run a game in China.",
+  "linkMiniGame": "Mini game center",
+  "linkMiniGameHint": "Hosts mini games on the Tuanjie runtime.",
+  "linkUOS": "Game cloud services (UOS)",
+  "linkUOSHint": "Accounts, storage, multiplayer and server hosting.",
+  "linkCloudRender": "Cloud rendering",
+  "linkCloudRenderHint": "Render a build on the cloud.",
+  "linkPartner": "Partner program",
+  "linkPartnerHint": "Programs for studios and publishers.",
+  "linkLicenseTuanjie": "Tuanjie licenses",
+  "linkLicenseTuanjieHint": "Manage Tuanjie seats and activations.",
+  "linkLicenseUnity": "Unity licenses",
+  "linkLicenseUnityHint": "Manage Unity subscriptions and activations.",
+  "linkAccount": "Unity ID",
+  "linkAccountHint": "Sign in, teams and organizations.",
+  "linkDocsTuanjie": "Tuanjie manual",
+  "linkDocsTuanjieHint": "The Tuanjie user manual.",
+  "linkDocsUnity": "Unity manual",
+  "linkDocsUnityHint": "The international manual.",
+  "linkScripting": "Scripting API",
+  "linkScriptingHint": "The Unity scripting reference.",
+  "linkRepo": "Unity Starter on GitHub",
+  "linkRepoHint": "Source, releases and issues.",
+  "licensesFound": "Licenses on this computer",
+  "licensesNone": "No license file found.",
+  "licensesFiles": "{count, plural, one {# file} other {# files}}",
+  "@licensesFiles": {
+    "placeholders": { "count": { "type": "int", "example": "3" } }
+  },
+  "actionCopy": "Copy",
+  "actionReportIssue": "Report on GitHub",
+  "copied": "Copied.",
+  "diagnostics": "Diagnostics",
+  "issueTitle": "Unity Starter: ",
+  "issueBody": "What happened, and what you expected:\n\n\n---\n{diagnostics}",
+  "@issueBody": {
+    "placeholders": { "diagnostics": { "type": "String", "example": "Unity Starter 0.1.0" } }
+  },
+  "cliHelp": "Unity Starter, a hub for Unity and Tuanjie.\n\nUsage:\n  unitystarter projects [--query text]           list projects\n  unitystarter editors                         list installed editors\n  unitystarter open <path|name>                open a project in its editor\n  unitystarter new <folder> [--editor version] create a project\n  unitystarter hub status                      show the hubs taken over\n  unitystarter version                         print the version\n\nFlags:\n  --json   print JSON\n  --lang   en or zh-Hans\n\nWith no command, the window opens.",
+  "cliUnknownCommand": "Unknown command: {name}",
+  "@cliUnknownCommand": {
+    "placeholders": { "name": { "type": "String", "example": "list" } }
+  },
+  "cliUsageHint": "Run \"unitystarter help\" for the commands.",
+  "cliNoProjects": "No projects found.",
+  "cliNoEditors": "No editors found.",
+  "cliNotFound": "No project matches {target}.",
+  "@cliNotFound": {
+    "placeholders": { "target": { "type": "String", "example": "demo" } }
+  },
+  "cliAmbiguous": "{count} projects match {target}; give one of their paths.",
+  "@cliAmbiguous": {
+    "placeholders": {
+      "count": { "type": "int", "example": "2" },
+      "target": { "type": "String", "example": "demo" }
+    }
+  },
+  "cliOpened": "Opened {path}",
+  "@cliOpened": {
+    "placeholders": { "path": { "type": "String", "example": "D:\\Games\\demo" } }
+  },
+  "cliCreated": "Created {path}",
+  "@cliCreated": {
+    "placeholders": { "path": { "type": "String", "example": "D:\\Games\\demo" } }
+  },
+  "cliNoEditor": "No editor installed.",
+  "cliNoEditorFor": "No editor for {version}.",
+  "@cliNoEditorFor": {
+    "placeholders": { "version": { "type": "String", "example": "2022.3.51f1" } }
+  },
+  "cliNotAProject": "{path} is not a project.",
+  "@cliNotAProject": {
+    "placeholders": { "path": { "type": "String", "example": "D:\\Games\\demo" } }
+  },
+  "cliNotEmpty": "{path} is not empty.",
+  "@cliNotEmpty": {
+    "placeholders": { "path": { "type": "String", "example": "D:\\Games\\demo" } }
+  },
+  "cliHubNone": "No hub found.",
+  "cliProjectsHeading": "Projects:",
+  "cliEditorsHeading": "Editors:",
+  "cliHubsHeading": "Hubs:",
+  "cliVersion": "Unity Starter {version}",
+  "@cliVersion": {
+    "placeholders": { "version": { "type": "String", "example": "0.1.0" } }
+  },
   "projectsTitle": "Projects",
   "projectsCount": "{count, plural, =0 {No projects yet} one {# project} other {# projects}}",
   "@projectsCount": {

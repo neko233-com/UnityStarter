@@ -79,6 +79,18 @@ func TestView(t *testing.T) {
 	if !tt.HasText(locales.SettingsLanguage()) {
 		t.Errorf("texts %q after choosing settings", tt.Texts())
 	}
+	if err := tt.Click(locales.PageStore()); err != nil {
+		t.Fatal(err)
+	}
+	if !tt.HasText(locales.LinkAssetStoreTuanjie()) {
+		t.Errorf("texts %q after choosing the store", tt.Texts())
+	}
+	if err := tt.Click(locales.PageFeedback()); err != nil {
+		t.Fatal(err)
+	}
+	if !tt.HasText(locales.Diagnostics()) {
+		t.Errorf("texts %q after choosing feedback", tt.Texts())
+	}
 }
 
 // SNAPSHOT=1 go test -run TestSnapshot draws the pages to PNG files, to look
@@ -89,7 +101,7 @@ func TestSnapshot(t *testing.T) {
 		t.Skip("set SNAPSHOT to a directory to draw the pages")
 	}
 	a := fixture()
-	for _, page := range []string{pageProjects, pageInstalls, pageSettings} {
+	for _, page := range []string{pageProjects, pageInstalls, pageStore, pagePublish, pageLicense, pageDocs, pageFeedback, pageSettings} {
 		a.page = page
 		tt := ui.NewTester(a.view, 1180, 760)
 		tt.Frame()

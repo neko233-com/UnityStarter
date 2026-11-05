@@ -16,7 +16,16 @@ import (
 const (
 	pageProjects = "/projects"
 	pageInstalls = "/installs"
+	pageStore    = "/store"
+	pagePublish  = "/publish"
+	pageLicense  = "/license"
+	pageDocs     = "/docs"
+	pageFeedback = "/feedback"
 	pageSettings = "/settings"
+
+	// appVersion is what the CLI prints and what the window shows when MyGo
+	// does not know the packaged version.
+	appVersion = "0.1.0"
 )
 
 // app is the state of the window: what was found on this machine, the page
@@ -39,6 +48,9 @@ type app struct {
 
 	list     ui.ListState
 	installs ui.ListState
+
+	// diagCopied says the diagnostics were just copied, beside their button.
+	diagCopied bool
 
 	newOpen   bool
 	newDir    string
@@ -96,11 +108,22 @@ func (a *app) view(c *ui.Context) {
 		ui.Column(c).Fill().Width(240).Background(t.Surface).Children(func() {
 			ui.Text(c, locales.AppTitle()).FontSize(16).Bold().Padding(22, 16, 8, 16)
 			ui.Sidebar(c, &a.page, func() {
-				ui.SidebarItem(c, pageProjects, iconProjects, locales.SidebarProjects()).Children(func() {
-					ui.Badge(c, fmt.Sprint(len(a.projects)))
+				ui.SidebarSection(c, locales.SidebarWorkspace(), nil, func() {
+					ui.SidebarItem(c, pageProjects, iconProjects, locales.SidebarProjects()).Children(func() {
+						ui.Badge(c, fmt.Sprint(len(a.projects)))
+					})
+					ui.SidebarItem(c, pageInstalls, iconInstalls, locales.SidebarInstalls()).Children(func() {
+						ui.Badge(c, fmt.Sprint(len(a.editors)))
+					})
 				})
-				ui.SidebarItem(c, pageInstalls, iconInstalls, locales.SidebarInstalls()).Children(func() {
-					ui.Badge(c, fmt.Sprint(len(a.editors)))
+				ui.SidebarSection(c, locales.SidebarServices(), nil, func() {
+					ui.SidebarItem(c, pageStore, iconStore, locales.PageStore())
+					ui.SidebarItem(c, pagePublish, iconPublish, locales.PagePublish())
+					ui.SidebarItem(c, pageLicense, iconLicense, locales.PageLicense())
+				})
+				ui.SidebarSection(c, locales.SidebarHelp(), nil, func() {
+					ui.SidebarItem(c, pageDocs, iconDocs, locales.PageDocs())
+					ui.SidebarItem(c, pageFeedback, iconFeedback, locales.PageFeedback())
 				})
 				ui.SidebarItem(c, pageSettings, iconSettings, locales.SidebarSettings())
 			}).Grow(1)
@@ -109,6 +132,16 @@ func (a *app) view(c *ui.Context) {
 			switch a.page {
 			case pageInstalls:
 				a.installsPage(c)
+			case pageStore:
+				a.storePage(c)
+			case pagePublish:
+				a.publishPage(c)
+			case pageLicense:
+				a.licensePage(c)
+			case pageDocs:
+				a.docsPage(c)
+			case pageFeedback:
+				a.feedbackPage(c)
 			case pageSettings:
 				a.settingsPage(c)
 			default:
