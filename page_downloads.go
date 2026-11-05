@@ -122,6 +122,8 @@ func (a *app) downloadGroup(c *ui.Context, title, engine string, entries []downl
 					ui.Text(c, e.Version).FontSize(14).Bold()
 					if e.LTS {
 						ui.Badge(c, "LTS")
+					} else if e.Stream == "ALPHA" || e.Stream == "BETA" {
+						ui.Badge(c, e.Stream)
 					}
 					if installed[engine+" "+e.Version] {
 						ui.Badge(c, locales.DownloadsInstalled())

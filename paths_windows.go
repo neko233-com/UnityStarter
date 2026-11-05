@@ -38,6 +38,14 @@ func defaultEditorRoots() []string {
 	return roots
 }
 
+// Versions installed by older releases remain discoverable.
+func legacyInstallRoots() []string {
+	if local := os.Getenv("LOCALAPPDATA"); local != "" {
+		return []string{filepath.Join(local, "Programs", "UnityStarter", "Editors")}
+	}
+	return nil
+}
+
 // defaultProjectRoots are the folders each hub lists projects from.
 func defaultProjectRoots() []string {
 	var roots []string
@@ -76,7 +84,7 @@ func readPathJSON(path string) []string {
 // editors are installed.
 func defaultInstallRoot() string {
 	if local := os.Getenv("LOCALAPPDATA"); local != "" {
-		return filepath.Join(local, "Programs", "UnityStarter", "Editors")
+		return filepath.Join(local, "UnityStarter", "Editors")
 	}
 	return filepath.Join(os.TempDir(), "UnityStarter", "Editors")
 }

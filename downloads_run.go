@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
@@ -61,7 +63,7 @@ func (a *app) startDownload(e downloadEntry) {
 	logger.Printf("download: %s %s from %s", e.Engine, e.Version, e.URL)
 	go func() {
 		last := time.Now()
-		err := downloadFile(ctx, e.URL, job.Path, func(done, total int64) {
+		err := downloadFileVerified(ctx, e.URL, job.Path, e.Integrity, func(done, total int64) {
 			if time.Since(last) < 150*time.Millisecond {
 				return
 			}
@@ -90,6 +92,16 @@ func (a *app) startDownload(e downloadEntry) {
 // moves it there once complete, so that an interrupted download leaves no
 // half an installer behind.
 func downloadFile(ctx context.Context, from, to string, progress func(done, total int64)) error {
+	return downloadFileVerified(ctx, from, to, "", progress)
+}
+
+func downloadFileVerified(ctx context.Context, from, to, integrity string, progress func(done, total int64)) error {
+	if integrity != "" && !strings.HasPrefix(integrity, "md5-") {
+		return fmt.Errorf("unsupported installer integrity: %s", integrity)
+	}
+	if handled, err := parallelDownload(ctx, from, to, integrity, progress); handled {
+		return err
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, from, nil)
 	if err != nil {
 		return err
@@ -105,13 +117,15 @@ func downloadFile(ctx context.Context, from, to string, progress func(done, tota
 	if err := os.MkdirAll(filepath.Dir(to), 0o755); err != nil {
 		return err
 	}
-	part := to + ".part"
-	file, err := os.Create(part)
+	file, err := os.CreateTemp(filepath.Dir(to), "."+filepath.Base(to)+"-*.part")
 	if err != nil {
 		return err
 	}
+	part := file.Name()
+	defer os.Remove(part)
 	total := resp.ContentLength
 	var done int64
+	digest := md5.New() // Unity's release API supplies an MD5 integrity value.
 	buf := make([]byte, 1<<20)
 	for {
 		n, readErr := resp.Body.Read(buf)
@@ -122,6 +136,7 @@ func downloadFile(ctx context.Context, from, to string, progress func(done, tota
 				return err
 			}
 			done += int64(n)
+			_, _ = digest.Write(buf[:n])
 			progress(done, total)
 		}
 		if readErr == io.EOF {
@@ -136,6 +151,10 @@ func downloadFile(ctx context.Context, from, to string, progress func(done, tota
 	if err := file.Close(); err != nil {
 		os.Remove(part)
 		return err
+	}
+	if integrity != "" && "md5-"+base64.StdEncoding.EncodeToString(digest.Sum(nil)) != integrity {
+		os.Remove(part)
+		return fmt.Errorf("installer integrity mismatch")
 	}
 	return os.Rename(part, to)
 }
@@ -156,14 +175,24 @@ func (a *app) installJob(job *downloadJob) {
 		return
 	}
 	dest := filepath.Join(a.installRoot(), job.Entry.Version)
+	if err := prepareEditorInstall(dest); err != nil {
+		job.Status, job.Err = "failedInstall", err.Error()
+		return
+	}
 	args := installerArgs(job.Entry.Engine, dest)
 	job.Status = "installing"
 	win := a.win
 	logger.Printf("install: %s %s to %s", job.Entry.Engine, job.Entry.Version, dest)
 	go func() {
 		cmd := exec.Command(job.Path, args...)
-		hideWindowCmd(cmd)
+		configureInstallerCmd(cmd, job.Entry.Engine, dest)
 		err := cmd.Run()
+		if err == nil {
+			err = verifyInstalledEditor(job.Entry.Engine, dest)
+		}
+		if err == nil {
+			err = os.Remove(filepath.Join(dest, installMarker))
+		}
 		win.Update(func() {
 			if err != nil {
 				job.Status = "failedInstall"
@@ -177,4 +206,33 @@ func (a *app) installJob(job *downloadJob) {
 			a.refresh()
 		})
 	}()
+}
+
+const installMarker = ".unitystarter-installing"
+
+// Keep incomplete installs out of the editor list. An interrupted install can
+// be retried, but a pre-existing directory is never overwritten implicitly.
+func prepareEditorInstall(dest string) error {
+	if _, err := os.Stat(dest); err == nil {
+		if _, markerErr := os.Stat(filepath.Join(dest, installMarker)); markerErr != nil {
+			return fmt.Errorf("installation directory already exists: %s", dest)
+		}
+	} else if !os.IsNotExist(err) {
+		return err
+	}
+	if err := os.MkdirAll(dest, 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(dest, installMarker), []byte("Installation incomplete; retry from UnityStarter.\n"), 0o644)
+}
+
+func verifyInstalledEditor(engine, dest string) error {
+	name := "Unity.exe"
+	if engine == kindTuanjie {
+		name = "Tuanjie.exe"
+	}
+	if info, err := os.Stat(filepath.Join(dest, "Editor", name)); err != nil || info.IsDir() {
+		return fmt.Errorf("installer finished but %s was not found in %s", name, dest)
+	}
+	return nil
 }

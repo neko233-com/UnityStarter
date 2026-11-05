@@ -26,8 +26,8 @@ const (
 	urlCloudRendering    = "https://cloudrendering.unity.cn/hub-home"
 	urlPartner           = "https://partner.u3d.cn/hub"
 	urlLicenseTuanjie    = "https://license.tuanjie.cn"
-	urlLicenseUnity      = "https://license.unity.cn"
-	urlUnityID           = "https://id.unity.cn"
+	urlLicenseUnity      = "https://docs.unity.com/en-us/hub/manage-license"
+	urlUnityID           = "https://id.unity.com"
 	urlDocsTuanjie       = "https://docs.unity.cn/cn/tuanjiemanual/Manual/index.html"
 	urlDocsUnity         = "https://docs.unity3d.com/Manual/index.html"
 	urlScriptingAPI      = "https://docs.unity3d.com/ScriptReference/"
@@ -120,6 +120,7 @@ func (a *app) licensePage(c *ui.Context) {
 	}, func() {
 		ui.Column(c).Gap(4).Children(func() {
 			ui.Text(c, locales.LicensesFound()).FontSize(14).Bold()
+			ui.Text(c, locales.LicensesStatusHint()).FontSize(12).TextColor(t.TextMuted)
 			if len(found) == 0 {
 				ui.Text(c, locales.LicensesNone()).FontSize(12).TextColor(t.TextMuted)
 			}
@@ -149,6 +150,16 @@ func (a *app) docsPage(c *ui.Context) {
 		})
 		a.linkGroup(c, locales.GroupProjectDocs(), []link{
 			{locales.LinkRepo(), locales.LinkRepoHint(), urlRepo},
+		})
+	}, nil)
+}
+
+func (a *app) learnPage(c *ui.Context) {
+	a.linksPage(c, locales.PageLearn(), locales.PageLearnHint(), func() {
+		a.linkGroup(c, locales.GroupLearning(), []link{
+			{"Unity Learn", locales.LinkUnityLearnHint(), "https://learn.unity.com/"},
+			{"Unity 中文课堂", locales.LinkLearnHint(), urlLearn},
+			{locales.LinkCommunity(), locales.LinkCommunityHint(), urlCommunity},
 		})
 	}, nil)
 }

@@ -35,6 +35,8 @@ func defaultEditorRoots() []string {
 	return roots
 }
 
+func legacyInstallRoots() []string { return nil }
+
 func defaultProjectRoots() []string {
 	var roots []string
 	for _, hub := range hubConfigDirs() {

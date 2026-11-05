@@ -7,37 +7,38 @@ Windows 10/11 x64，单文件约 10 MB。
 ## 功能
 
 - **项目**：扫描磁盘与两个 Hub 的项目列表；行内显示引擎、渲染管线（URP/HDRP/内置）、Git / SVN / Lore 分支与未提交状态，可一键打开仓库地址；搜索、收藏、双击打开、手动添加、新建项目。
-- **安装与下载**：识别 Unity / 团结引擎已安装的编辑器（默认目录、Hub 的 `secondaryInstallPath.json`、自定义目录），多套版本并存管理；下载页直接列出 Unity 国际版（`services.api.unity.com` → `download.unity3d.com`）与团结引擎（`tuanjie.cn`）的官方安装包，不跳转、不换源，应用内下载 + 静默安装（参数与 Unity Hub 一致）。
+- **安装与下载**：识别 Unity / 团结引擎已安装的编辑器（默认目录、Hub 的 `secondaryInstallPath.json`、自定义目录），多套版本并存管理；下载页直接列出 Unity 国际版（`services.api.unity.com` → `download.unity3d.com`）与团结引擎（`tuanjie.cn`）的官方安装包，不跳转、不换源，应用内下载 + 静默安装。官方服务器支持时使用最多 6 个连接并行下载，Unity 的下载包按官方提供的校验值验证；不支持分段时使用单连接。
 - **接管 Hub（双向）**：读取并写回 Hub 自己的文件。
   - Unity Hub：项目表 `projects-v1.json`、收藏 `favoriteProjects.json`，新增项目与收藏会写入 Hub，Hub 侧改动实时同步回来。
   - 团结引擎 Hub：收藏与目录双向；它的项目清单不存在可写文件，项目来自磁盘扫描。
   - 写入保留 Hub 原有字段，临时文件 + rename 原子替换；Hub 运行时可能用内存状态覆盖，下一次 Hub 写文件时本程序会重新导入。
 - **服务页**：资源商店、游戏发行、付费与许可、技术文档、问题反馈，链接取自两个 Hub 的 `cloudConfig.json`；许可页列出本机授权文件，反馈页一键生成带诊断信息的 GitHub Issue。
 - **多语言**：默认跟随系统语言，内置 English 与简体中文，窗口与 CLI 共用文案。
+- **工作台**：深色主题、收藏项目和官方学习资源；下载列表标记 LTS、Alpha 和 Beta。
 
 ## 安装
 
 从 [Releases](https://github.com/neko233-com/UnityStarter/releases) 下载：
 
-- `unitystarter-setup-<version>-amd64.exe`：安装到 `%LOCALAPPDATA%\Programs\UnityStarter`，带开始菜单与桌面快捷方式。
-- `UnityStarter.exe`：免安装，直接运行。
+- `unitystarter-setup-<version>-amd64.exe`：安装到 `%LOCALAPPDATA%\Programs\UnityStarter`，带开始菜单与桌面快捷方式，并把 **`unitystarter`** 注册到用户 PATH（`…\UnityStarter\bin`）、App Paths 与开始菜单（Win 搜索 `unitystarter` / `UnityStarter` 均可找到）。
+- `UnityStarter.exe`：免安装，直接运行；若需命令行别名，可执行 `_tools\register-cli.ps1 -InstallDir <目录>`。
 
 ## CLI
 
-同一个 `UnityStarter.exe`，带参数时不打开窗口：
+安装包安装后，在**新开的**终端里可直接用 `unitystarter`（底层仍是同一 `UnityStarter.exe`）。带参数时不打开窗口：
 
 ```sh
-UnityStarter.exe projects [--query 文本] [--json]
-UnityStarter.exe editors [--json]
-UnityStarter.exe open <路径|名称>
-UnityStarter.exe new <目录> [--editor 版本]
-UnityStarter.exe hub status [--json]
-UnityStarter.exe hub sync [--json]
-UnityStarter.exe releases [--json]
-UnityStarter.exe install <版本> [--simulate]
-UnityStarter.exe update [--json]
-UnityStarter.exe version
-UnityStarter.exe help
+unitystarter projects [--query 文本] [--json]
+unitystarter editors [--json]
+unitystarter open <路径|名称>
+unitystarter new <目录> [--editor 版本]
+unitystarter hub status [--json]
+unitystarter hub sync [--json]
+unitystarter releases [--json]
+unitystarter install <版本> [--simulate]
+unitystarter update [--json]
+unitystarter version
+unitystarter help
 ```
 
 - `--json`：稳定字段（`name`/`path`/`version`/`engine`/`hub`/`favorite`/`editor`，Hub 的 `mode` 为 `two-way`/`import-only`）。
@@ -49,7 +50,7 @@ UnityStarter.exe help
 
 设置页打开「演示模式」，下载页的按钮变成「模拟安装」：只创建 `<安装目录>\<版本>\Editor\Unity.exe` 的占位结构与标记文件，安装页会立刻出现该版本并标为「模拟」，可一键移除。用于验证下载→安装→项目匹配整条链路，不需要真的拉 3.8 GB。
 
-CLI 同样可用：`UnityStarter.exe install 6000.0.85f2 --simulate`。
+CLI 同样可用：`unitystarter install 6000.0.85f2 --simulate`。
 
 ## 数据与日志
 
@@ -76,6 +77,9 @@ CI 见 `.github/workflows/ci.yml`：format、vet、test，构建产物上传；�
 - 团结引擎 Hub 的项目清单不可写，新增的团结项目不会出现在团结 Hub 里（收藏与目录会同步）。
 - 资源商店与发行页只打开官方站点，官方没有开放商店/发行 API。
 - 发布包未做代码签名，Windows 可能提示未知发布者。
+- Unity Alpha / Beta 属于预览版本，兼容性和稳定性与正式版不同。
+- 新安装的编辑器默认保存在 `%LOCALAPPDATA%\UnityStarter\Editors`，独立于应用安装目录。旧版本若将编辑器放在应用目录的 `Editors` 中，卸载器会阻止卸载，先将其移到应用目录之外即可。
+- 安装中断的编辑器不会显示为已安装；可从下载页重新尝试安装。已有编辑器目录不会被自动覆盖。
 
 ## 许可
 

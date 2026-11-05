@@ -455,6 +455,7 @@ func cliReleases(opts cliOptions, scanFn func(prefs) scanResult, out io.Writer) 
 			Version   string `json:"version"`
 			Engine    string `json:"engine"`
 			LTS       bool   `json:"lts"`
+			Stream    string `json:"stream,omitempty"`
 			Size      int64  `json:"size"`
 			Date      string `json:"date,omitempty"`
 			URL       string `json:"url"`
@@ -466,7 +467,7 @@ func cliReleases(opts cliOptions, scanFn func(prefs) scanResult, out io.Writer) 
 			if !e.Date.IsZero() {
 				date = e.Date.Format("2006-01-02")
 			}
-			list = append(list, releaseJSON{e.Version, e.Engine, e.LTS, e.Size, date, e.URL, installed[e.Engine+" "+e.Version]})
+			list = append(list, releaseJSON{e.Version, e.Engine, e.LTS, e.Stream, e.Size, date, e.URL, installed[e.Engine+" "+e.Version]})
 		}
 		return writeJSON(out, list)
 	}
@@ -542,7 +543,7 @@ func downloadAndInstall(entry downloadEntry, root string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Hour)
 	defer cancel()
 	last := -1
-	err := downloadFile(ctx, entry.URL, path, func(done, total int64) {
+	err := downloadFileVerified(ctx, entry.URL, path, entry.Integrity, func(done, total int64) {
 		if total <= 0 {
 			return
 		}
@@ -557,9 +558,18 @@ func downloadAndInstall(entry downloadEntry, root string) error {
 		return err
 	}
 	dest := filepath.Join(root, entry.Version)
+	if err := prepareEditorInstall(dest); err != nil {
+		return err
+	}
 	cmd := exec.Command(path, installerArgs(entry.Engine, dest)...)
-	hideWindowCmd(cmd)
-	return cmd.Run()
+	configureInstallerCmd(cmd, entry.Engine, dest)
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+	if err := verifyInstalledEditor(entry.Engine, dest); err != nil {
+		return err
+	}
+	return os.Remove(filepath.Join(dest, installMarker))
 }
 
 func rememberInstallRoot(settings *prefs, root string) {

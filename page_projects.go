@@ -13,7 +13,12 @@ import (
 )
 
 func (a *app) projectsPage(c *ui.Context) {
-	a.header(c, locales.ProjectsTitle(), locales.ProjectsCount(len(a.projects)), func() {
+	items := a.filteredProjects()
+	title := locales.ProjectsTitle()
+	if a.page == pageFavorites {
+		title = locales.SidebarFavorites()
+	}
+	a.header(c, title, locales.ProjectsCount(len(items)), func() {
 		ui.SearchField(c, &a.query).Placeholder(locales.ProjectsSearch()).Width(220)
 		ui.Button(c, locales.ActionRefresh()).OnClick(a.refresh).Disabled(a.scanning)
 		ui.Button(c, locales.ActionAddProject()).OnClick(a.addProject)
@@ -21,24 +26,30 @@ func (a *app) projectsPage(c *ui.Context) {
 	})
 	ui.Divider(c)
 
-	items := a.filteredProjects()
 	a.list.Key = func(i int) any { return items[i].Path }
 	ui.List(c, &a.list, len(items), func(i int) {
 		a.projectRow(c, items[i])
 	}).Grow(1).Children(func() {
 		if len(items) == 0 {
-			a.emptyState(c, locales.ProjectsEmptyTitle(), locales.ProjectsEmptyHint())
+			if a.page == pageFavorites && strings.TrimSpace(a.query) == "" {
+				a.emptyState(c, locales.FavoritesEmptyTitle(), locales.FavoritesEmptyHint())
+			} else {
+				a.emptyState(c, locales.ProjectsEmptyTitle(), locales.ProjectsEmptyHint())
+			}
 		}
 	})
 }
 
 func (a *app) filteredProjects() []projectEntry {
 	q := strings.ToLower(strings.TrimSpace(a.query))
-	if q == "" {
+	if q == "" && a.page != pageFavorites {
 		return a.projects
 	}
 	out := make([]projectEntry, 0, len(a.projects))
 	for _, p := range a.projects {
+		if a.page == pageFavorites && !p.Favorite {
+			continue
+		}
 		if strings.Contains(strings.ToLower(p.Name), q) ||
 			strings.Contains(strings.ToLower(p.Path), q) ||
 			strings.Contains(strings.ToLower(p.Version), q) {

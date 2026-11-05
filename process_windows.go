@@ -23,3 +23,13 @@ func startDetached(exe string, args []string, dir string) error {
 
 // hideWindowCmd keeps a command's console window from flashing.
 func hideWindowCmd(cmd *exec.Cmd) { cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true} }
+
+// NSIS treats /D= as the final raw command line argument and requires the
+// Unity destination to remain unquoted, even when it contains spaces.
+func configureInstallerCmd(cmd *exec.Cmd, engine, dest string) {
+	arg := "/D=" + dest
+	if engine == kindTuanjie {
+		arg = `/D="` + dest + `"`
+	}
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CmdLine: syscall.EscapeArg(cmd.Path) + " /S " + arg}
+}

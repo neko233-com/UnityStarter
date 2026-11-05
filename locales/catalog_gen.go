@@ -44,6 +44,76 @@ func (msgs Messages) AppTitle() string {
 	return Catalog.Format(msgs.locale, "appTitle", nil)
 }
 
+// SidebarFavorites says "Favorites"
+// in the language the app shows.
+func SidebarFavorites() string { return In(i18n.Locale()).SidebarFavorites() }
+
+// SidebarFavorites says "Favorites"
+// in the language of msgs.
+func (msgs Messages) SidebarFavorites() string {
+	return Catalog.Format(msgs.locale, "sidebarFavorites", nil)
+}
+
+// PageLearn says "Learn"
+// in the language the app shows.
+func PageLearn() string { return In(i18n.Locale()).PageLearn() }
+
+// PageLearn says "Learn"
+// in the language of msgs.
+func (msgs Messages) PageLearn() string {
+	return Catalog.Format(msgs.locale, "pageLearn", nil)
+}
+
+// PageLearnHint says "Official learning and community resources."
+// in the language the app shows.
+func PageLearnHint() string { return In(i18n.Locale()).PageLearnHint() }
+
+// PageLearnHint says "Official learning and community resources."
+// in the language of msgs.
+func (msgs Messages) PageLearnHint() string {
+	return Catalog.Format(msgs.locale, "pageLearnHint", nil)
+}
+
+// LinkUnityLearnHint says "Official Unity tutorials and pathways."
+// in the language the app shows.
+func LinkUnityLearnHint() string { return In(i18n.Locale()).LinkUnityLearnHint() }
+
+// LinkUnityLearnHint says "Official Unity tutorials and pathways."
+// in the language of msgs.
+func (msgs Messages) LinkUnityLearnHint() string {
+	return Catalog.Format(msgs.locale, "linkUnityLearnHint", nil)
+}
+
+// FavoritesEmptyTitle says "No favorites yet"
+// in the language the app shows.
+func FavoritesEmptyTitle() string { return In(i18n.Locale()).FavoritesEmptyTitle() }
+
+// FavoritesEmptyTitle says "No favorites yet"
+// in the language of msgs.
+func (msgs Messages) FavoritesEmptyTitle() string {
+	return Catalog.Format(msgs.locale, "favoritesEmptyTitle", nil)
+}
+
+// FavoritesEmptyHint says "Use the star on a project to add it here."
+// in the language the app shows.
+func FavoritesEmptyHint() string { return In(i18n.Locale()).FavoritesEmptyHint() }
+
+// FavoritesEmptyHint says "Use the star on a project to add it here."
+// in the language of msgs.
+func (msgs Messages) FavoritesEmptyHint() string {
+	return Catalog.Format(msgs.locale, "favoritesEmptyHint", nil)
+}
+
+// LicensesStatusHint says "Files do not confirm validity. The Editor or Unity Hub verifies the license. Unity Personal activation requires signi…"
+// in the language the app shows.
+func LicensesStatusHint() string { return In(i18n.Locale()).LicensesStatusHint() }
+
+// LicensesStatusHint says "Files do not confirm validity. The Editor or Unity Hub verifies the license. Unity Personal activation requires signi…"
+// in the language of msgs.
+func (msgs Messages) LicensesStatusHint() string {
+	return Catalog.Format(msgs.locale, "licensesStatusHint", nil)
+}
+
 // SidebarProjects says "Projects"
 // in the language the app shows.
 func SidebarProjects() string { return In(i18n.Locale()).SidebarProjects() }
@@ -94,11 +164,11 @@ func (msgs Messages) PageDownloads() string {
 	return Catalog.Format(msgs.locale, "pageDownloads", nil)
 }
 
-// PageDownloadsHint says "Official installers, side by side: Unity from unity3d.com, Tuanjie from tuanjie.cn."
+// PageDownloadsHint says "Official Unity and Tuanjie downloads. Up to 6 connections when the server supports it."
 // in the language the app shows.
 func PageDownloadsHint() string { return In(i18n.Locale()).PageDownloadsHint() }
 
-// PageDownloadsHint says "Official installers, side by side: Unity from unity3d.com, Tuanjie from tuanjie.cn."
+// PageDownloadsHint says "Official Unity and Tuanjie downloads. Up to 6 connections when the server supports it."
 // in the language of msgs.
 func (msgs Messages) PageDownloadsHint() string {
 	return Catalog.Format(msgs.locale, "pageDownloadsHint", nil)
@@ -930,11 +1000,11 @@ func (msgs Messages) LinkRepoHint() string {
 	return Catalog.Format(msgs.locale, "linkRepoHint", nil)
 }
 
-// LicensesFound says "Licenses on this computer"
+// LicensesFound says "License files found on this computer"
 // in the language the app shows.
 func LicensesFound() string { return In(i18n.Locale()).LicensesFound() }
 
-// LicensesFound says "Licenses on this computer"
+// LicensesFound says "License files found on this computer"
 // in the language of msgs.
 func (msgs Messages) LicensesFound() string {
 	return Catalog.Format(msgs.locale, "licensesFound", nil)

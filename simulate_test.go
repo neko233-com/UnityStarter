@@ -63,3 +63,21 @@ func TestSimulateTuanjie(t *testing.T) {
 		t.Errorf("editors %v", editors)
 	}
 }
+
+func TestSimulateDoesNotOverwriteExistingEditor(t *testing.T) {
+	root := t.TempDir()
+	exe := filepath.Join(root, "7000.0.0a16", "Editor", "Unity.exe")
+	if err := os.MkdirAll(filepath.Dir(exe), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(exe, []byte("real editor"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := simulateEditorInstall(kindUnity, "7000.0.0a16", root); err == nil {
+		t.Fatal("simulation replaced an existing editor")
+	}
+	data, err := os.ReadFile(exe)
+	if err != nil || string(data) != "real editor" {
+		t.Fatalf("editor changed: %q, %v", data, err)
+	}
+}

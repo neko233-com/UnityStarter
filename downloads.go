@@ -13,17 +13,19 @@ import (
 
 // downloadEntry is an editor installer of either engine.
 type downloadEntry struct {
-	Engine  string    `json:"engine"`
-	Version string    `json:"version"`
-	Date    time.Time `json:"date"`
-	LTS     bool      `json:"lts"`
-	URL     string    `json:"url"`
-	Size    int64     `json:"size"`
+	Engine    string    `json:"engine"`
+	Version   string    `json:"version"`
+	Date      time.Time `json:"date"`
+	LTS       bool      `json:"lts"`
+	Stream    string    `json:"stream,omitempty"`
+	URL       string    `json:"url"`
+	Size      int64     `json:"size"`
+	Integrity string    `json:"integrity,omitempty"`
 }
 
 // unityReleasesURL lists the international releases from Unity's own API,
 // whose installers come from download.unity3d.com.
-var unityReleasesURL = "https://services.api.unity.com/unity/editor/release/v1/releases?limit=25&stream=LTS"
+var unityReleasesURL = "https://services.api.unity.com/unity/editor/release/v1/releases?limit=25"
 
 type unityRelease struct {
 	Version     string          `json:"version"`
@@ -37,6 +39,7 @@ type unityDownload struct {
 	Type         string `json:"type"`
 	Platform     string `json:"platform"`
 	Architecture string `json:"architecture"`
+	Integrity    string `json:"integrity"`
 	DownloadSize struct {
 		Value int64 `json:"value"`
 	} `json:"downloadSize"`
@@ -66,14 +69,15 @@ func fetchUnityReleases(ctx context.Context) ([]downloadEntry, error) {
 	}
 	var out []downloadEntry
 	for _, r := range body.Results {
-		entry := downloadEntry{Engine: kindUnity, Version: r.Version, LTS: r.Stream == "LTS"}
+		entry := downloadEntry{Engine: kindUnity, Version: r.Version, LTS: r.Stream == "LTS", Stream: r.Stream}
 		if t, err := time.Parse(time.RFC3339Nano, strings.TrimSpace(r.ReleaseDate)); err == nil {
 			entry.Date = t
 		}
 		for _, d := range r.Downloads {
-			if d.Platform == "WINDOWS" && d.Architecture == "X86_64" && strings.HasSuffix(strings.ToLower(d.URL), ".exe") {
+			if d.Platform == "WINDOWS" && d.Architecture == "X86_64" && d.Type == "EXE" && strings.HasSuffix(strings.ToLower(d.URL), ".exe") {
 				entry.URL = d.URL
 				entry.Size = d.DownloadSize.Value
+				entry.Integrity = d.Integrity
 				break
 			}
 		}

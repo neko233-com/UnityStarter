@@ -121,6 +121,23 @@ func TestView(t *testing.T) {
 	}
 }
 
+func TestFavoritesAndLearningPages(t *testing.T) {
+	a := fixture()
+	tt := ui.NewTester(a.view, 1180, 760)
+	if err := tt.Click(locales.SidebarFavorites()); err != nil {
+		t.Fatal(err)
+	}
+	if !tt.HasText("demo") || tt.HasText("cozy") {
+		t.Fatalf("favorites page: %q", tt.Texts())
+	}
+	if err := tt.Click(locales.PageLearn()); err != nil {
+		t.Fatal(err)
+	}
+	if !tt.HasText("Unity Learn") {
+		t.Fatalf("learning page: %q", tt.Texts())
+	}
+}
+
 // SNAPSHOT=1 go test -run TestSnapshot draws the pages to PNG files, to look
 // at them.
 func TestSnapshot(t *testing.T) {

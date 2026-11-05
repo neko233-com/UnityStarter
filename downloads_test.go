@@ -46,3 +46,17 @@ func TestFetchUnityReleases(t *testing.T) {
 		t.Errorf("url %s", got.URL)
 	}
 }
+
+func TestFetchUnityAlpha(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"results":[{"version":"7000.0.0a16","stream":"ALPHA","downloads":[{"url":"https://download.unity3d.com/UnitySetup64.exe","type":"EXE","platform":"WINDOWS","architecture":"X86_64","integrity":"md5-example"}]}]}`))
+	}))
+	defer server.Close()
+	previous := unityReleasesURL
+	unityReleasesURL = server.URL
+	defer func() { unityReleasesURL = previous }()
+	entries, err := fetchUnityReleases(context.Background())
+	if err != nil || len(entries) != 1 || entries[0].Stream != "ALPHA" || entries[0].Integrity != "md5-example" {
+		t.Fatalf("alpha release: %+v, %v", entries, err)
+	}
+}

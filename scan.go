@@ -145,6 +145,7 @@ func scan(p prefs) ([]editorInstall, []projectEntry, []hub) {
 	} else {
 		roots = append(roots, defaultInstallRoot())
 	}
+	roots = append(roots, legacyInstallRoots()...)
 	editors := scanEditors(roots)
 	return editors, scanProjects(p, editors, hubs), hubs
 }
@@ -167,6 +168,9 @@ func scanEditors(extraRoots []string) []editorInstall {
 			}
 			version := entry.Name()
 			dir := filepath.Join(root, version)
+			if _, err := os.Stat(filepath.Join(dir, installMarker)); err == nil {
+				continue
+			}
 			for _, name := range []string{"Unity.exe", "Tuanjie.exe", "Unity", "Tuanjie"} {
 				exe := filepath.Join(dir, "Editor", name)
 				if name == "Unity" || name == "Tuanjie" {

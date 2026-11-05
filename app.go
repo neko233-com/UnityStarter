@@ -16,18 +16,20 @@ import (
 
 const (
 	pageProjects  = "/projects"
+	pageFavorites = "/favorites"
 	pageInstalls  = "/installs"
 	pageDownloads = "/downloads"
 	pageStore     = "/store"
 	pagePublish   = "/publish"
 	pageLicense   = "/license"
 	pageDocs      = "/docs"
+	pageLearn     = "/learn"
 	pageFeedback  = "/feedback"
 	pageSettings  = "/settings"
 
 	// appVersion is what the CLI prints and what the window shows when MyGo
 	// does not know the packaged version.
-	appVersion = "1.3.0"
+	appVersion = "1.4.0"
 	// appName is the name of the executable and of the app's data folder, as
 	// mygo.json names the app; the window shows a name with a space.
 	appName = "UnityStarter"
@@ -121,11 +123,18 @@ func (a *app) save() {
 }
 
 func (a *app) view(c *ui.Context) {
+	c.SetTheme(starterTheme)
 	t := c.Theme()
 	ui.Row(c).Fill().AlignItems(ui.Stretch).Children(func() {
 		// The title across the sidebar's top, as the hubs brand theirs.
 		ui.Column(c).Fill().Width(240).Background(t.Surface).Children(func() {
-			ui.Text(c, locales.AppTitle()).FontSize(16).Bold().Padding(22, 16, 8, 16)
+			ui.Row(c).Padding(20, 16, 14, 16).Gap(10).AlignItems(ui.Center).Children(func() {
+				ui.Icon(c, iconBrand).Size(28, 28).TextColor(t.Text)
+				ui.Column(c).Gap(2).Children(func() {
+					ui.Text(c, locales.AppTitle()).FontSize(16).Bold()
+					ui.Text(c, "UNITY + TUANJIE").FontSize(10).TextColor(t.TextMuted)
+				})
+			})
 			ui.Sidebar(c, &a.page, func() {
 				ui.SidebarSection(c, locales.SidebarWorkspace(), nil, func() {
 					ui.SidebarItem(c, pageProjects, iconProjects, locales.SidebarProjects()).Children(func() {
@@ -135,6 +144,7 @@ func (a *app) view(c *ui.Context) {
 						ui.Badge(c, fmt.Sprint(len(a.editors)))
 					})
 					ui.SidebarItem(c, pageDownloads, iconDownload, locales.SidebarDownloads())
+					ui.SidebarItem(c, pageFavorites, iconFavorite, locales.SidebarFavorites())
 				})
 				ui.SidebarSection(c, locales.SidebarServices(), nil, func() {
 					ui.SidebarItem(c, pageStore, iconStore, locales.PageStore())
@@ -143,6 +153,7 @@ func (a *app) view(c *ui.Context) {
 				})
 				ui.SidebarSection(c, locales.SidebarHelp(), nil, func() {
 					ui.SidebarItem(c, pageDocs, iconDocs, locales.PageDocs())
+					ui.SidebarItem(c, pageLearn, iconLearn, locales.PageLearn())
 					ui.SidebarItem(c, pageFeedback, iconFeedback, locales.PageFeedback())
 				})
 				ui.SidebarItem(c, pageSettings, iconSettings, locales.SidebarSettings())
@@ -150,6 +161,8 @@ func (a *app) view(c *ui.Context) {
 		})
 		ui.Column(c).Grow(1).Fill().Children(func() {
 			switch a.page {
+			case pageFavorites:
+				a.projectsPage(c)
 			case pageInstalls:
 				a.installsPage(c)
 			case pageDownloads:
@@ -162,6 +175,8 @@ func (a *app) view(c *ui.Context) {
 				a.licensePage(c)
 			case pageDocs:
 				a.docsPage(c)
+			case pageLearn:
+				a.learnPage(c)
 			case pageFeedback:
 				a.feedbackPage(c)
 			case pageSettings:

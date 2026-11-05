@@ -14,6 +14,11 @@ const simulatedMarker = ".unitystarter-simulated"
 // with an executable that only exists for the app to find.
 func simulateEditorInstall(engine, version, root string) (string, error) {
 	dir := filepath.Join(root, version)
+	if _, err := os.Stat(dir); err == nil {
+		return "", fmt.Errorf("installation directory already exists: %s", dir)
+	} else if !os.IsNotExist(err) {
+		return "", err
+	}
 	editorDir := filepath.Join(dir, "Editor")
 	if err := os.MkdirAll(editorDir, 0o755); err != nil {
 		return "", err
