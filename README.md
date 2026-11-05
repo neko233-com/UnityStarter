@@ -78,6 +78,7 @@ CI 见 `.github/workflows/ci.yml`：format、vet、test，构建产物上传；�
 - 资源商店与发行页只打开官方站点，官方没有开放商店/发行 API。
 - 发布包未做代码签名，Windows 可能提示未知发布者。
 - Unity Alpha / Beta 属于预览版本，兼容性和稳定性与正式版不同。
+- Unity Personal 许可由 Unity 官方服务管理，首次激活需要在 Unity Hub 登录；本机许可文件存在不代表 Editor 已验证有效。UnityStarter 不生成或绕过许可。
 - 新安装的编辑器默认保存在 `%LOCALAPPDATA%\UnityStarter\Editors`，独立于应用安装目录。旧版本若将编辑器放在应用目录的 `Editors` 中，卸载器会阻止卸载，先将其移到应用目录之外即可。
 - 安装中断的编辑器不会显示为已安装；可从下载页重新尝试安装。已有编辑器目录不会被自动覆盖。
 

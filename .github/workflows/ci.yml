@@ -71,5 +71,6 @@ jobs:
             $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $_).Hash.ToLowerInvariant()
             "$hash  $([IO.Path]::GetFileName($_))"
           } | Set-Content -Encoding ascii dist/SHA256SUMS.txt
-          gh release create $env:RELEASE_TAG $installer $exe dist/SHA256SUMS.txt --verify-tag --title "UnityStarter $version" --generate-notes
+          $notes = '请查阅 README 中的已知限制。Unity Personal 首次激活需要在 Unity Hub 登录；SHA256SUMS.txt 可用于校验发布文件。'
+          gh release create $env:RELEASE_TAG $installer $exe dist/SHA256SUMS.txt --verify-tag --title "UnityStarter $version" --notes $notes --generate-notes
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
