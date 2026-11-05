@@ -130,10 +130,60 @@ func (a *app) downloadGroup(c *ui.Context, title, engine string, entries []downl
 				ui.Text(c, a.formatTime(e.Date)).FontSize(11).TextColor(t.TextMuted).Width(96)
 				ui.Text(c, humanSize(e.Size)).FontSize(11).TextColor(t.TextMuted).Width(80)
 				ui.Spacer(c)
-				if ui.PrimaryButton(c, locales.ActionDownload()).Clicked() {
-					_ = mygo.Shell.OpenExternal(e.URL)
-				}
+				a.downloadAction(c, e)
 			})
 		}
 	})
+}
+
+// downloadAction is the button, bar or badge a release shows for its state.
+func (a *app) downloadAction(c *ui.Context, e downloadEntry) {
+	t := c.Theme()
+	job := a.jobs[jobKey(e)]
+	installed := false
+	for _, editor := range a.editors {
+		if editor.Version == e.Version && editor.Kind == e.Engine {
+			installed = true
+			break
+		}
+	}
+	if installed && (job == nil || job.Status == "installed") {
+		ui.Badge(c, locales.DownloadsInstalled())
+		return
+	}
+	switch {
+	case job == nil:
+		if ui.PrimaryButton(c, locales.ActionDownload()).Clicked() {
+			a.startDownload(e)
+		}
+	case job.Status == "downloading":
+		fraction := 0.0
+		if job.Total > 0 {
+			fraction = float64(job.Done) / float64(job.Total)
+		}
+		ui.Progress(c, fraction).Width(150)
+		ui.Textf(c, "%d%%", int(fraction*100)).FontSize(11).TextColor(t.TextMuted).Width(40)
+		if ui.Button(c, locales.ActionCancel()).Clicked() && job.cancel != nil {
+			job.cancel()
+		}
+	case job.Status == "downloaded":
+		if ui.PrimaryButton(c, locales.ActionInstall()).Clicked() {
+			a.installJob(job)
+		}
+	case job.Status == "installing":
+		ui.Spinner(c)
+		ui.Text(c, locales.DownloadsInstalling()).FontSize(11).TextColor(t.TextMuted)
+	case job.Status == "failedDownload":
+		ui.Text(c, locales.DownloadsFailed(job.Err)).FontSize(11).TextColor(t.Danger).MaxWidth(220).Clip()
+		if ui.Button(c, locales.ActionDownload()).Clicked() {
+			a.startDownload(e)
+		}
+	case job.Status == "failedInstall":
+		ui.Text(c, locales.DownloadsInstallFailed(job.Err)).FontSize(11).TextColor(t.Danger).MaxWidth(220).Clip()
+		if ui.PrimaryButton(c, locales.ActionInstall()).Clicked() {
+			a.installJob(job)
+		}
+	default:
+		ui.Badge(c, locales.DownloadsInstalled())
+	}
 }

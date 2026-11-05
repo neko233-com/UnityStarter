@@ -67,3 +67,12 @@ func readPathJSON(path string) []string {
 	}
 	return nil
 }
+
+// defaultInstallRoot is where downloaded editors are installed.
+func defaultInstallRoot() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return filepath.Join(os.TempDir(), "UnityStarter", "Editors")
+	}
+	return filepath.Join(home, ".local", "share", "UnityStarter", "editors")
+}

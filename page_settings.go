@@ -44,6 +44,8 @@ func (a *app) settingsPage(c *ui.Context) {
 					})
 				})
 
+			a.installRootSection(c)
+
 			a.rootsSection(c, locales.SettingsPinnedProjects(), locales.SettingsPinnedProjectsHint(), a.prefs.PinnedProjects,
 				func(next []string) {
 					a.prefs.PinnedProjects = next
@@ -115,6 +117,28 @@ func (a *app) rootsSection(c *ui.Context, title, hint string, roots []string, se
 		}
 		ui.Row(c).Children(func() {
 			ui.Button(c, locales.ActionAddFolder()).OnClick(add).Width(140)
+		})
+	})
+}
+
+// installRootSection is where downloaded editors go.
+func (a *app) installRootSection(c *ui.Context) {
+	t := c.Theme()
+	root := a.installRoot()
+	ui.Column(c).Gap(8).Children(func() {
+		a.sectionTitle(c, locales.SettingsInstallRoot(), locales.SettingsInstallRootHint())
+		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
+			ui.Text(c, root).FontSize(12).TextColor(t.TextMuted).Grow(1).Clip()
+			if ui.Button(c, locales.ActionFolder()).Clicked() {
+				_ = mygo.Shell.OpenPath(root)
+			}
+			if ui.Button(c, locales.ActionChoose()).Clicked() {
+				a.pickFolder(locales.DialogChooseFolder(), func(dir string) {
+					a.prefs.InstallRoot = dir
+					a.save()
+					a.refresh()
+				})
+			}
 		})
 	})
 }

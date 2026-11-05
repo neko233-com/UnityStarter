@@ -9,6 +9,18 @@
   "downloadsUnity": "Unity (international)",
   "downloadsTuanjie": "Tuanjie engine",
   "downloadsInstalled": "Installed",
+  "downloadsInstalling": "Installing…",
+  "downloadsFailed": "Download failed: {error}",
+  "@downloadsFailed": {
+    "placeholders": { "error": { "type": "String", "example": "timeout" } }
+  },
+  "downloadsInstallFailed": "Install failed: {error}",
+  "@downloadsInstallFailed": {
+    "placeholders": { "error": { "type": "String", "example": "access denied" } }
+  },
+  "actionInstall": "Install",
+  "settingsInstallRoot": "Install folder",
+  "settingsInstallRootHint": "Downloaded editors are installed here, one folder per version.",
   "downloadsEmpty": "No releases found.",
   "downloadsLoading": "Loading releases…",
   "downloadsError": "Could not load releases: {error}",

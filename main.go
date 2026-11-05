@@ -17,6 +17,17 @@ func main() {
 	}
 
 	a := newApp()
+	// One window: starting the app again brings the running one forward.
+	if !mygo.App.RequestSingleInstanceLock() {
+		return
+	}
+	mygo.App.OnSecondInstance(func(args []string, workingDir string) {
+		if a.win == nil {
+			return
+		}
+		a.win.Show()
+		a.win.Focus()
+	})
 	mygo.App.WhenReady(func() {
 		_ = startLogging(false)
 		logger.Printf("start %s, data %s", appVersion, userDataDir())

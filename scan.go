@@ -54,6 +54,9 @@ type prefs struct {
 	ProjectRoots   []string `json:"projectRoots"`
 	EditorRoots    []string `json:"editorRoots"`
 	PinnedProjects []string `json:"pinnedProjects"`
+	// InstallRoot is where downloaded editors are installed, a folder per
+	// version.
+	InstallRoot string `json:"installRoot"`
 	// NoHubSync leaves the hubs' files as they are, only reading them.
 	NoHubSync bool `json:"noHubSync"`
 }
@@ -131,7 +134,13 @@ func savePrefsTo(path string, p prefs) error {
 // scan reads the hubs, the editors and the projects of this machine.
 func scan(p prefs) ([]editorInstall, []projectEntry, []hub) {
 	hubs := detectHubs()
-	editors := scanEditors(p.EditorRoots)
+	roots := append([]string{}, p.EditorRoots...)
+	if p.InstallRoot != "" {
+		roots = append(roots, p.InstallRoot)
+	} else {
+		roots = append(roots, defaultInstallRoot())
+	}
+	editors := scanEditors(roots)
 	return editors, scanProjects(p, editors, hubs), hubs
 }
 

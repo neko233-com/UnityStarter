@@ -134,6 +134,68 @@ func (msgs Messages) DownloadsInstalled() string {
 	return Catalog.Format(msgs.locale, "downloadsInstalled", nil)
 }
 
+// DownloadsInstalling says "Installing…"
+// in the language the app shows.
+func DownloadsInstalling() string { return In(i18n.Locale()).DownloadsInstalling() }
+
+// DownloadsInstalling says "Installing…"
+// in the language of msgs.
+func (msgs Messages) DownloadsInstalling() string {
+	return Catalog.Format(msgs.locale, "downloadsInstalling", nil)
+}
+
+// DownloadsFailed says "Download failed: {error}"
+// in the language the app shows.
+func DownloadsFailed(error string) string { return In(i18n.Locale()).DownloadsFailed(error) }
+
+// DownloadsFailed says "Download failed: {error}"
+// in the language of msgs.
+func (msgs Messages) DownloadsFailed(error string) string {
+	return Catalog.Format(msgs.locale, "downloadsFailed", map[string]any{"error": error})
+}
+
+// DownloadsInstallFailed says "Install failed: {error}"
+// in the language the app shows.
+func DownloadsInstallFailed(error string) string {
+	return In(i18n.Locale()).DownloadsInstallFailed(error)
+}
+
+// DownloadsInstallFailed says "Install failed: {error}"
+// in the language of msgs.
+func (msgs Messages) DownloadsInstallFailed(error string) string {
+	return Catalog.Format(msgs.locale, "downloadsInstallFailed", map[string]any{"error": error})
+}
+
+// ActionInstall says "Install"
+// in the language the app shows.
+func ActionInstall() string { return In(i18n.Locale()).ActionInstall() }
+
+// ActionInstall says "Install"
+// in the language of msgs.
+func (msgs Messages) ActionInstall() string {
+	return Catalog.Format(msgs.locale, "actionInstall", nil)
+}
+
+// SettingsInstallRoot says "Install folder"
+// in the language the app shows.
+func SettingsInstallRoot() string { return In(i18n.Locale()).SettingsInstallRoot() }
+
+// SettingsInstallRoot says "Install folder"
+// in the language of msgs.
+func (msgs Messages) SettingsInstallRoot() string {
+	return Catalog.Format(msgs.locale, "settingsInstallRoot", nil)
+}
+
+// SettingsInstallRootHint says "Downloaded editors are installed here, one folder per version."
+// in the language the app shows.
+func SettingsInstallRootHint() string { return In(i18n.Locale()).SettingsInstallRootHint() }
+
+// SettingsInstallRootHint says "Downloaded editors are installed here, one folder per version."
+// in the language of msgs.
+func (msgs Messages) SettingsInstallRootHint() string {
+	return Catalog.Format(msgs.locale, "settingsInstallRootHint", nil)
+}
+
 // DownloadsEmpty says "No releases found."
 // in the language the app shows.
 func DownloadsEmpty() string { return In(i18n.Locale()).DownloadsEmpty() }

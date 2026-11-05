@@ -66,6 +66,18 @@ func fixture() *app {
 	}
 	a.downloadsReady = true
 	a.downloadsSince = time.Now()
+	a.jobs = map[string]*downloadJob{
+		jobKey(a.downloads[1]): {
+			Entry:  a.downloads[1],
+			Status: "downloading",
+			Done:   120,
+			Total:  400,
+		},
+		jobKey(a.downloads[2]): {
+			Entry:  a.downloads[2],
+			Status: "downloaded",
+		},
+	}
 	return a
 }
 
