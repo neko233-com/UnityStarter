@@ -6,11 +6,21 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"time"
 )
 
-// defaultEditorRoots are where Unity Hub and Tuanjie Hub install editors,
-// next to the roots both hubs keep in their configuration.
+// hubConfigDirs are where Unity Hub and Tuanjie Hub keep their files.
+func hubConfigDirs() []string {
+	appData := os.Getenv("APPDATA")
+	if appData == "" {
+		return nil
+	}
+	return []string{
+		filepath.Join(appData, "UnityHub"),
+		filepath.Join(appData, "TuanjieHub"),
+	}
+}
+
+// defaultEditorRoots are where both hubs install editors.
 func defaultEditorRoots() []string {
 	var roots []string
 	for _, dir := range []string{os.Getenv("ProgramFiles"), os.Getenv("ProgramFiles(x86)")} {
@@ -42,44 +52,6 @@ func defaultProjectRoots() []string {
 		}
 	}
 	return roots
-}
-
-// hubProjects reads the projects Unity Hub knows, which also says when each
-// was last opened.
-func hubProjects() map[string]projectHint {
-	out := map[string]projectHint{}
-	for _, hub := range hubConfigDirs() {
-		var file struct {
-			Data map[string]struct {
-				Title        string `json:"title"`
-				LastModified int64  `json:"lastModified"`
-				Version      string `json:"version"`
-			} `json:"data"`
-		}
-		data, err := os.ReadFile(filepath.Join(hub, "projects-v1.json"))
-		if err != nil || json.Unmarshal(data, &file) != nil {
-			continue
-		}
-		for path, p := range file.Data {
-			hint := projectHint{Title: p.Title, Version: p.Version}
-			if p.LastModified > 0 {
-				hint.Modified = time.UnixMilli(p.LastModified)
-			}
-			out[path] = hint
-		}
-	}
-	return out
-}
-
-func hubConfigDirs() []string {
-	appData := os.Getenv("APPDATA")
-	if appData == "" {
-		return nil
-	}
-	return []string{
-		filepath.Join(appData, "UnityHub"),
-		filepath.Join(appData, "TuanjieHub"),
-	}
 }
 
 // readPathJSON reads a path hub configuration file: a single JSON string, or

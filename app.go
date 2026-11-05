@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"time"
@@ -27,8 +28,14 @@ type app struct {
 
 	editors  []editorInstall
 	projects []projectEntry
+	hubs     []hub
 	prefs    prefs
 	scanning bool
+
+	// hubWriteAt is when this app last wrote a hub's files, so that the
+	// change the write itself reports is not read as the hub's.
+	hubWriteAt time.Time
+	hubCancel  context.CancelFunc
 
 	list     ui.ListState
 	installs ui.ListState
@@ -60,12 +67,20 @@ func (a *app) refresh() {
 	a.scanning = true
 	settings := a.prefs
 	go func() {
-		editors, projects := scan(settings)
+		editors, projects, hubs := scan(settings)
 		a.win.Update(func() {
-			a.editors, a.projects = editors, projects
+			a.editors, a.projects, a.hubs = editors, projects, hubs
 			a.scanning = false
 		})
 	}()
+}
+
+// hubChanged runs when a hub writes the files this app shares with it.
+func (a *app) hubChanged() {
+	if time.Since(a.hubWriteAt) < 1500*time.Millisecond {
+		return
+	}
+	a.refresh()
 }
 
 func (a *app) save() {
@@ -180,6 +195,100 @@ func (a *app) addProject() {
 		}
 		a.prefs.PinnedProjects = dedupe(append(a.prefs.PinnedProjects, dir))
 		a.save()
+		a.pushToHub(dir)
 		a.refresh()
+	})
+}
+
+// hubFor is the hub a project's star and additions go to: the one that
+// lists it, else the Unity Hub, which holds a project list this app writes.
+func (a *app) hubFor(p projectEntry) (hub, bool) {
+	for _, h := range a.hubs {
+		if h.Kind == p.Hub {
+			return h, true
+		}
+	}
+	if a.prefs.NoHubSync {
+		return hub{}, false
+	}
+	for _, h := range a.hubs {
+		if h.Kind == kindUnity && h.writable() {
+			return h, true
+		}
+	}
+	return hub{}, false
+}
+
+// toggleFavorite stars a project in its hub, or unstars it.
+func (a *app) toggleFavorite(p projectEntry) {
+	h, ok := a.hubFor(p)
+	if !ok {
+		if a.prefs.NoHubSync {
+			a.alert(locales.HubSyncDisabled())
+		} else {
+			a.alert(locales.HubSyncOff())
+		}
+		return
+	}
+	on := !p.Favorite
+	if h.Kind != p.Hub {
+		if err := h.addProject(p); err != nil {
+			a.alert(locales.HubWriteFailed(err.Error()))
+			return
+		}
+	}
+	if err := h.setFavorite(p.Path, on); err != nil {
+		a.alert(locales.HubWriteFailed(err.Error()))
+		return
+	}
+	a.hubWriteAt = time.Now()
+	for i := range a.projects {
+		if a.projects[i].Path != p.Path {
+			continue
+		}
+		a.projects[i].Favorite = on
+		if a.projects[i].Hub == "" {
+			a.projects[i].Hub = h.Kind
+		}
+	}
+}
+
+// pushToHub adds a project this app added or created to the hub that owns
+// its engine, so that the hub lists it too.
+func (a *app) pushToHub(dir string) {
+	if a.prefs.NoHubSync {
+		return
+	}
+	version, info, ok := readProject(dir)
+	if !ok {
+		return
+	}
+	entry := projectEntry{Path: filepath.Clean(dir), Name: filepath.Base(dir), Version: version}
+	if info != nil {
+		entry.Modified = info.ModTime()
+	}
+	for _, h := range a.hubs {
+		if !h.writable() || h.Kind != kindOfVersion(version) {
+			continue
+		}
+		if err := h.addProject(entry); err != nil {
+			a.alert(locales.HubWriteFailed(err.Error()))
+			return
+		}
+		a.hubWriteAt = time.Now()
+	}
+}
+
+// startHubWatch follows the hubs' files while the app runs, so that a change
+// made in a hub shows here without a manual refresh.
+func (a *app) startHubWatch() {
+	hubs := detectHubs()
+	if len(hubs) == 0 {
+		return
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	a.hubCancel = cancel
+	watchHubs(ctx, hubs, func() {
+		a.win.Update(a.hubChanged)
 	})
 }

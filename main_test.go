@@ -23,6 +23,8 @@ func fixture() *app {
 			Kind:     kindUnity,
 			Modified: time.Date(2026, 1, 5, 13, 7, 0, 0, time.Local),
 			Editor:   `C:\Program Files\Unity\Hub\Editor\2022.3.51f1\Editor\Unity.exe`,
+			Hub:      kindUnity,
+			Favorite: true,
 		},
 		{
 			Path:     `D:\Code\Games\cozy`,
@@ -38,6 +40,21 @@ func fixture() *app {
 			Kind:    kindUnity,
 			Exe:     `C:\Program Files\Unity\Hub\Editor\2022.3.51f1\Editor\Unity.exe`,
 			Root:    `C:\Program Files\Unity\Hub\Editor\2022.3.51f1`,
+		},
+	}
+	a.hubs = []hub{
+		{
+			Kind:      kindUnity,
+			Dir:       `C:\Users\ada\AppData\Roaming\UnityHub`,
+			Version:   "3.3.7",
+			Registry:  `C:\Users\ada\AppData\Roaming\UnityHub\projects-v1.json`,
+			Favorites: `C:\Users\ada\AppData\Roaming\UnityHub\favoriteProjects.json`,
+		},
+		{
+			Kind:      kindTuanjie,
+			Dir:       `C:\Users\ada\AppData\Roaming\TuanjieHub`,
+			Version:   "1.4.7",
+			Favorites: `C:\Users\ada\AppData\Roaming\TuanjieHub\favoriteProjects.json`,
 		},
 	}
 	return a

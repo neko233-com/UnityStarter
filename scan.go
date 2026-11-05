@@ -37,6 +37,11 @@ type projectEntry struct {
 	// Editor is the executable of the matching editor, empty when its
 	// version is not installed.
 	Editor string
+	// Hub is the hub that lists the project, empty when it was only found
+	// on disk.
+	Hub string
+	// Favorite is the hub's star.
+	Favorite bool
 }
 
 // prefs is what the app keeps between launches.
@@ -45,6 +50,8 @@ type prefs struct {
 	ProjectRoots   []string `json:"projectRoots"`
 	EditorRoots    []string `json:"editorRoots"`
 	PinnedProjects []string `json:"pinnedProjects"`
+	// NoHubSync leaves the hubs' files as they are, only reading them.
+	NoHubSync bool `json:"noHubSync"`
 }
 
 func prefsPath() string {
@@ -75,10 +82,11 @@ func savePrefs(p prefs) error {
 	return os.WriteFile(prefsPath(), data, 0o644)
 }
 
-// scan reads the editors and the projects of this machine.
-func scan(p prefs) ([]editorInstall, []projectEntry) {
+// scan reads the hubs, the editors and the projects of this machine.
+func scan(p prefs) ([]editorInstall, []projectEntry, []hub) {
+	hubs := detectHubs()
 	editors := scanEditors(p.EditorRoots)
-	return editors, scanProjects(p, editors)
+	return editors, scanProjects(p, editors, hubs), hubs
 }
 
 func scanEditors(extraRoots []string) []editorInstall {
@@ -135,7 +143,7 @@ func scanEditors(extraRoots []string) []editorInstall {
 	return out
 }
 
-func scanProjects(p prefs, editors []editorInstall) []projectEntry {
+func scanProjects(p prefs, editors []editorInstall, hubs []hub) []projectEntry {
 	byVersion := map[string]string{}
 	kindByVersion := map[string]string{}
 	for _, e := range editors {
@@ -157,9 +165,6 @@ func scanProjects(p prefs, editors []editorInstall) []projectEntry {
 		if !ok {
 			return
 		}
-		if hint.Version != "" {
-			version = hint.Version
-		}
 		name := filepath.Base(dir)
 		if hint.Title != "" {
 			name = hint.Title
@@ -173,6 +178,9 @@ func scanProjects(p prefs, editors []editorInstall) []projectEntry {
 		if k, ok := kindByVersion[version]; ok {
 			kind = k
 		}
+		if hint.Hub != "" {
+			kind = hint.Hub
+		}
 		found[dir] = projectEntry{
 			Path:     dir,
 			Name:     name,
@@ -180,10 +188,12 @@ func scanProjects(p prefs, editors []editorInstall) []projectEntry {
 			Kind:     kind,
 			Modified: modified,
 			Editor:   byVersion[version],
+			Hub:      hint.Hub,
+			Favorite: hint.Favorite,
 		}
 	}
 
-	for dir, hint := range hubProjects() {
+	for dir, hint := range hubHints(hubs) {
 		add(dir, hint)
 	}
 	for _, root := range dedupe(append(defaultProjectRoots(), p.ProjectRoots...)) {
@@ -206,11 +216,44 @@ func scanProjects(p prefs, editors []editorInstall) []projectEntry {
 	return out
 }
 
-// projectHint is what Unity Hub knows about a project before it is read.
+// projectHint is what a hub knows about a project before it is read.
 type projectHint struct {
 	Title    string
 	Version  string
 	Modified time.Time
+	Hub      string
+	Favorite bool
+}
+
+// hubHints is what every hub lists, by project path.
+func hubHints(hubs []hub) map[string]projectHint {
+	out := map[string]projectHint{}
+	for _, h := range hubs {
+		for path, project := range h.projects() {
+			hint := out[path]
+			hint.Hub = h.Kind
+			if project.Name != "" {
+				hint.Title = project.Name
+			}
+			if !project.Modified.IsZero() {
+				hint.Modified = project.Modified
+			}
+			hint.Favorite = hint.Favorite || project.Favorite
+			out[path] = hint
+		}
+	}
+	return out
+}
+
+func cleanPaths(paths []string) []string {
+	out := make([]string, 0, len(paths))
+	for _, p := range paths {
+		if strings.TrimSpace(p) == "" {
+			continue
+		}
+		out = append(out, filepath.Clean(p))
+	}
+	return out
 }
 
 func readProject(dir string) (string, os.FileInfo, bool) {

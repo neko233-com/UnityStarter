@@ -62,6 +62,14 @@ func (a *app) projectRow(c *ui.Context, p projectEntry) {
 			ui.Text(c, locales.OpenedAt(a.formatTime(p.Modified))).FontSize(11).TextColor(t.TextMuted)
 		})
 		ui.Row(c).Gap(6).Children(func() {
+			star := "☆"
+			tip := locales.FavoriteAdd()
+			if p.Favorite {
+				star, tip = "★", locales.FavoriteRemove()
+			}
+			if ui.Button(c, star).Tooltip(tip).Width(38).Clicked() {
+				a.toggleFavorite(p)
+			}
 			if p.Editor == "" {
 				ui.Button(c, locales.ActionOpen()).Disabled(true).Tooltip(locales.EditorMissing(p.Version))
 			} else if ui.PrimaryButton(c, locales.ActionOpen()).Clicked() {
@@ -204,5 +212,6 @@ func (a *app) createProject() {
 	a.prefs.PinnedProjects = dedupe(append(a.prefs.PinnedProjects, dir))
 	a.save()
 	a.newOpen = false
+	a.pushToHub(dir)
 	a.refresh()
 }

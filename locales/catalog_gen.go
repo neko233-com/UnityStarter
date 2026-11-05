@@ -422,6 +422,156 @@ func (msgs Messages) SettingsRootsEmpty() string {
 	return Catalog.Format(msgs.locale, "settingsRootsEmpty", nil)
 }
 
+// SettingsHubs says "Hub takeover"
+// in the language the app shows.
+func SettingsHubs() string { return In(i18n.Locale()).SettingsHubs() }
+
+// SettingsHubs says "Hub takeover"
+// in the language of msgs.
+func (msgs Messages) SettingsHubs() string {
+	return Catalog.Format(msgs.locale, "settingsHubs", nil)
+}
+
+// SettingsHubsHint says "Projects and favorites of the hubs on this computer, kept in step both ways."
+// in the language the app shows.
+func SettingsHubsHint() string { return In(i18n.Locale()).SettingsHubsHint() }
+
+// SettingsHubsHint says "Projects and favorites of the hubs on this computer, kept in step both ways."
+// in the language of msgs.
+func (msgs Messages) SettingsHubsHint() string {
+	return Catalog.Format(msgs.locale, "settingsHubsHint", nil)
+}
+
+// SettingsHubsNone says "No hub found."
+// in the language the app shows.
+func SettingsHubsNone() string { return In(i18n.Locale()).SettingsHubsNone() }
+
+// SettingsHubsNone says "No hub found."
+// in the language of msgs.
+func (msgs Messages) SettingsHubsNone() string {
+	return Catalog.Format(msgs.locale, "settingsHubsNone", nil)
+}
+
+// SettingsHubSync says "Write changes back to the hubs"
+// in the language the app shows.
+func SettingsHubSync() string { return In(i18n.Locale()).SettingsHubSync() }
+
+// SettingsHubSync says "Write changes back to the hubs"
+// in the language of msgs.
+func (msgs Messages) SettingsHubSync() string {
+	return Catalog.Format(msgs.locale, "settingsHubSync", nil)
+}
+
+// SettingsHubSyncHint says "Stars and added projects are saved in the hubs' own files."
+// in the language the app shows.
+func SettingsHubSyncHint() string { return In(i18n.Locale()).SettingsHubSyncHint() }
+
+// SettingsHubSyncHint says "Stars and added projects are saved in the hubs' own files."
+// in the language of msgs.
+func (msgs Messages) SettingsHubSyncHint() string {
+	return Catalog.Format(msgs.locale, "settingsHubSyncHint", nil)
+}
+
+// HubModeBoth says "Two-way"
+// in the language the app shows.
+func HubModeBoth() string { return In(i18n.Locale()).HubModeBoth() }
+
+// HubModeBoth says "Two-way"
+// in the language of msgs.
+func (msgs Messages) HubModeBoth() string {
+	return Catalog.Format(msgs.locale, "hubModeBoth", nil)
+}
+
+// HubModeImport says "Import only"
+// in the language the app shows.
+func HubModeImport() string { return In(i18n.Locale()).HubModeImport() }
+
+// HubModeImport says "Import only"
+// in the language of msgs.
+func (msgs Messages) HubModeImport() string {
+	return Catalog.Format(msgs.locale, "hubModeImport", nil)
+}
+
+// HubUnity says "Unity Hub"
+// in the language the app shows.
+func HubUnity() string { return In(i18n.Locale()).HubUnity() }
+
+// HubUnity says "Unity Hub"
+// in the language of msgs.
+func (msgs Messages) HubUnity() string {
+	return Catalog.Format(msgs.locale, "hubUnity", nil)
+}
+
+// HubTuanjie says "Tuanjie Hub"
+// in the language the app shows.
+func HubTuanjie() string { return In(i18n.Locale()).HubTuanjie() }
+
+// HubTuanjie says "Tuanjie Hub"
+// in the language of msgs.
+func (msgs Messages) HubTuanjie() string {
+	return Catalog.Format(msgs.locale, "hubTuanjie", nil)
+}
+
+// ActionOpenConfig says "Config folder"
+// in the language the app shows.
+func ActionOpenConfig() string { return In(i18n.Locale()).ActionOpenConfig() }
+
+// ActionOpenConfig says "Config folder"
+// in the language of msgs.
+func (msgs Messages) ActionOpenConfig() string {
+	return Catalog.Format(msgs.locale, "actionOpenConfig", nil)
+}
+
+// FavoriteAdd says "Add to favorites"
+// in the language the app shows.
+func FavoriteAdd() string { return In(i18n.Locale()).FavoriteAdd() }
+
+// FavoriteAdd says "Add to favorites"
+// in the language of msgs.
+func (msgs Messages) FavoriteAdd() string {
+	return Catalog.Format(msgs.locale, "favoriteAdd", nil)
+}
+
+// FavoriteRemove says "Remove from favorites"
+// in the language the app shows.
+func FavoriteRemove() string { return In(i18n.Locale()).FavoriteRemove() }
+
+// FavoriteRemove says "Remove from favorites"
+// in the language of msgs.
+func (msgs Messages) FavoriteRemove() string {
+	return Catalog.Format(msgs.locale, "favoriteRemove", nil)
+}
+
+// HubWriteFailed says "Could not write to the hub: {error}"
+// in the language the app shows.
+func HubWriteFailed(error string) string { return In(i18n.Locale()).HubWriteFailed(error) }
+
+// HubWriteFailed says "Could not write to the hub: {error}"
+// in the language of msgs.
+func (msgs Messages) HubWriteFailed(error string) string {
+	return Catalog.Format(msgs.locale, "hubWriteFailed", map[string]any{"error": error})
+}
+
+// HubSyncOff says "This project has no hub to keep its star."
+// in the language the app shows.
+func HubSyncOff() string { return In(i18n.Locale()).HubSyncOff() }
+
+// HubSyncOff says "This project has no hub to keep its star."
+// in the language of msgs.
+func (msgs Messages) HubSyncOff() string {
+	return Catalog.Format(msgs.locale, "hubSyncOff", nil)
+}
+
+// HubSyncDisabled says "Hub sync is off."
+// in the language the app shows.
+func HubSyncDisabled() string { return In(i18n.Locale()).HubSyncDisabled() }
+
+// HubSyncDisabled says "Hub sync is off."
+// in the language of msgs.
+func (msgs Messages) HubSyncDisabled() string {
+	return Catalog.Format(msgs.locale, "hubSyncDisabled", nil)
+}
+
 // SettingsAbout says "About"
 // in the language the app shows.
 func SettingsAbout() string { return In(i18n.Locale()).SettingsAbout() }

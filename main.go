@@ -29,6 +29,12 @@ func main() {
 		mygo.App.OnLocaleChanged(func(string) {
 			a.win.SetTitle(locales.AppTitle())
 		})
+		mygo.App.OnBeforeQuit(func(*mygo.QuitEvent) {
+			if a.hubCancel != nil {
+				a.hubCancel()
+			}
+		})
+		a.startHubWatch()
 		a.refresh()
 	})
 	if err := mygo.App.Run(); err != nil {

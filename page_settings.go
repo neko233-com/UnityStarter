@@ -11,9 +11,10 @@ import (
 
 func (a *app) settingsPage(c *ui.Context) {
 	ui.Scroll(c).Grow(1).Children(func() {
-		ui.Column(c).Padding(24, 26).Gap(26).Children(func() {
+		ui.Column(c).Padding(24, 26).Gap(26).MaxWidth(780).Children(func() {
 			ui.Text(c, locales.SettingsTitle()).FontSize(24).Bold()
 			a.languageSection(c)
+			a.hubSection(c)
 
 			a.rootsSection(c, locales.SettingsProjectRoots(), locales.SettingsProjectRootsHint(), a.prefs.ProjectRoots,
 				func(next []string) {
@@ -116,6 +117,56 @@ func (a *app) rootsSection(c *ui.Context, title, hint string, roots []string, se
 			ui.Button(c, locales.ActionAddFolder()).OnClick(add).Width(140)
 		})
 	})
+}
+
+// hubSection takes over the hubs' projects and favorites, and says which of
+// them this app can write to.
+func (a *app) hubSection(c *ui.Context) {
+	t := c.Theme()
+	sync := !a.prefs.NoHubSync
+	ui.Column(c).Gap(8).Children(func() {
+		a.sectionTitle(c, locales.SettingsHubs(), locales.SettingsHubsHint())
+		if len(a.hubs) == 0 {
+			ui.Text(c, locales.SettingsHubsNone()).FontSize(12).TextColor(t.TextMuted)
+		}
+		for _, h := range a.hubs {
+			h := h
+			ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
+				ui.Text(c, hubName(h.Kind)).FontSize(13).Bold()
+				ui.Badge(c, hubMode(h))
+				if h.Version != "" {
+					ui.Text(c, h.Version).FontSize(11).TextColor(t.TextMuted)
+				}
+				ui.Text(c, h.Dir).FontSize(11).TextColor(t.TextMuted).Grow(1).Clip()
+				if ui.Button(c, locales.ActionOpenConfig()).Clicked() {
+					_ = mygo.Shell.OpenPath(h.Dir)
+				}
+			})
+		}
+		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
+			ui.Switch(c, &sync)
+			ui.Text(c, locales.SettingsHubSync()).FontSize(12)
+		})
+		ui.Text(c, locales.SettingsHubSyncHint()).FontSize(11).TextColor(t.TextMuted)
+	})
+	if sync == a.prefs.NoHubSync {
+		a.prefs.NoHubSync = !sync
+		a.save()
+	}
+}
+
+func hubName(kind string) string {
+	if kind == kindTuanjie {
+		return locales.HubTuanjie()
+	}
+	return locales.HubUnity()
+}
+
+func hubMode(h hub) string {
+	if h.writable() {
+		return locales.HubModeBoth()
+	}
+	return locales.HubModeImport()
 }
 
 func (a *app) aboutSection(c *ui.Context) {
