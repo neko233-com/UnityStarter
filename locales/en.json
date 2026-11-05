@@ -1,0 +1,85 @@
+{
+  "appTitle": "Unity Starter",
+  "sidebarProjects": "Projects",
+  "sidebarInstalls": "Installs",
+  "sidebarSettings": "Settings",
+  "projectsTitle": "Projects",
+  "projectsCount": "{count, plural, =0 {No projects yet} one {# project} other {# projects}}",
+  "@projectsCount": {
+    "description": "Under the Projects title.",
+    "placeholders": { "count": { "type": "int", "example": "3" } }
+  },
+  "projectsSearch": "Search projects",
+  "projectsEmptyTitle": "No projects found",
+  "projectsEmptyHint": "Add a project, or add the folder that holds your projects in Settings.",
+  "installsTitle": "Installs",
+  "installsCount": "{count, plural, =0 {No editors installed} one {# editor} other {# editors}}",
+  "@installsCount": {
+    "description": "Under the Installs title.",
+    "placeholders": { "count": { "type": "int", "example": "2" } }
+  },
+  "installsEmptyTitle": "No editors found",
+  "installsEmptyHint": "The Unity Hub and Tuanjie Hub folders are scanned. Add a folder if your editors are elsewhere.",
+  "installsLaunch": "Launch",
+  "actionOpen": "Open",
+  "actionFolder": "Folder",
+  "actionRefresh": "Refresh",
+  "actionAddProject": "Add project…",
+  "actionNewProject": "New project",
+  "actionChoose": "Choose…",
+  "actionCancel": "Cancel",
+  "actionCreate": "Create",
+  "actionRemove": "Remove",
+  "actionAddFolder": "Add folder…",
+  "actionOpenDataDir": "Open data folder",
+  "channelUnity": "Unity",
+  "channelTuanjie": "Tuanjie",
+  "settingsTitle": "Settings",
+  "settingsLanguage": "Language",
+  "settingsLanguageHint": "Follows the system language unless you choose one.",
+  "settingsLanguageSystem": "Follow system",
+  "settingsProjectRoots": "Project folders",
+  "settingsProjectRootsHint": "Folders scanned for projects, which have a ProjectSettings folder.",
+  "settingsEditorRoots": "Editor folders",
+  "settingsEditorRootsHint": "Folders that hold editor versions, as D:\\IDE\\UnityEditor.",
+  "settingsPinnedProjects": "Added projects",
+  "settingsPinnedProjectsHint": "Projects you added by hand.",
+  "settingsRootsEmpty": "None yet.",
+  "settingsAbout": "About",
+  "settingsAboutText": "A Hub for Unity and Tuanjie, with no ads and no telemetry.",
+  "settingsVersion": "Version {version}",
+  "@settingsVersion": {
+    "placeholders": { "version": { "type": "String", "example": "0.1.0" } }
+  },
+  "newProjectTitle": "New project",
+  "newProjectHint": "The editor creates the project and opens it.",
+  "newProjectName": "Project name",
+  "newProjectLocation": "Location",
+  "newProjectNotChosen": "No folder chosen",
+  "newProjectEditor": "Editor",
+  "newProjectIncomplete": "Choose a folder and a name first.",
+  "newProjectExists": "{path} is not empty.",
+  "@newProjectExists": {
+    "placeholders": { "path": { "type": "String", "example": "D:\\Games\\My Game" } }
+  },
+  "dialogChooseFolder": "Choose a folder",
+  "dialogAddProject": "Choose a project folder",
+  "notAProject": "{path} is not a Unity or Tuanjie project.",
+  "@notAProject": {
+    "placeholders": { "path": { "type": "String", "example": "D:\\Games\\My Game" } }
+  },
+  "editorMissing": "Editor {version} is not installed.",
+  "@editorMissing": {
+    "placeholders": { "version": { "type": "String", "example": "2022.3.51f1" } }
+  },
+  "noEditorInstalled": "Install an editor first, then add its folder in Settings.",
+  "openFailed": "Could not start the editor: {error}",
+  "@openFailed": {
+    "placeholders": { "error": { "type": "String", "example": "access denied" } }
+  },
+  "dialogOK": "OK",
+  "openedAt": "Opened {date}",
+  "@openedAt": {
+    "placeholders": { "date": { "type": "String", "example": "Jan 5, 2026" } }
+  }
+}

@@ -1,0 +1,11 @@
+/build/
+/.mygo/
+mygo_windows_*.syso
+
+# Local agent state
+/.codely/
+/.codely-cli/
+
+# OS junk
+Thumbs.db
+.DS_Store
