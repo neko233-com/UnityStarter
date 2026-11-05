@@ -1,8 +1,12 @@
 {
-  "name": "Unity Starter",
+  "name": "UnityStarter",
+  "slug": "unitystarter",
   "identifier": "com.neko233.unitystarter",
   "version": "0.1.0",
   "out": "build",
+  "windows": {
+    "displayName": "Unity Starter"
+  },
   "i18n": {
     "dir": "locales",
     "source": "en"

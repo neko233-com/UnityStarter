@@ -26,6 +26,9 @@ const (
 	// appVersion is what the CLI prints and what the window shows when MyGo
 	// does not know the packaged version.
 	appVersion = "0.1.0"
+	// appName is the name of the executable and of the app's data folder, as
+	// mygo.json names the app; the window shows a name with a space.
+	appName = "UnityStarter"
 )
 
 // app is the state of the window: what was found on this machine, the page

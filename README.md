@@ -39,7 +39,7 @@ UnityStarter help
 
 ## 数据位置
 
-- 设置：`%APPDATA%\Unity Starter\settings.json`（Windows）。
+- 设置：`%APPDATA%\UnityStarter\settings.json`（Windows）。
 - Hub 接管：`%APPDATA%\UnityHub` 与 `%APPDATA%\TuanjieHub`。
 
 ## 许可

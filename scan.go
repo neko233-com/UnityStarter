@@ -63,7 +63,7 @@ func userDataDir() string {
 		}
 	}
 	if dir, err := os.UserConfigDir(); err == nil {
-		return filepath.Join(dir, "Unity Starter")
+		return filepath.Join(dir, appName)
 	}
 	return "."
 }
