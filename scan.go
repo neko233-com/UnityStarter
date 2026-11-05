@@ -72,24 +72,56 @@ func prefsPath() string {
 	return filepath.Join(userDataDir(), "settings.json")
 }
 
+// legacyPrefsDirs are the data folders of earlier names of the app, whose
+// settings are read when there are none of this name.
+var legacyPrefsDirs = []string{"Unity Starter", "unitystarter.test", "UnityStarter Dev"}
+
 func loadPrefs() prefs {
-	var p prefs
 	data, err := os.ReadFile(prefsPath())
-	if err == nil {
+	if err != nil {
+		if legacy, ok := readLegacyPrefs(); ok {
+			data = legacy
+			logger.Printf("settings: read the settings of an earlier name")
+		}
+	}
+	var p prefs
+	if data != nil {
 		_ = json.Unmarshal(data, &p)
 	}
 	return p
 }
 
-func savePrefs(p prefs) error {
-	if err := os.MkdirAll(filepath.Dir(prefsPath()), 0o755); err != nil {
-		return err
+func loadPrefsFrom(path string) prefs {
+	var p prefs
+	if data, err := os.ReadFile(path); err == nil {
+		_ = json.Unmarshal(data, &p)
 	}
+	return p
+}
+
+func readLegacyPrefs() ([]byte, bool) {
+	base, err := os.UserConfigDir()
+	if err != nil {
+		return nil, false
+	}
+	for _, name := range legacyPrefsDirs {
+		if data, err := os.ReadFile(filepath.Join(base, name, "settings.json")); err == nil {
+			return data, true
+		}
+	}
+	return nil, false
+}
+
+func savePrefs(p prefs) error {
+	return savePrefsTo(prefsPath(), p)
+}
+
+func savePrefsTo(path string, p prefs) error {
 	data, err := json.MarshalIndent(p, "", "  ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(prefsPath(), data, 0o644)
+	return writeFileAtomic(path, append(data, '\n'))
 }
 
 // scan reads the hubs, the editors and the projects of this machine.
@@ -154,6 +186,12 @@ func scanEditors(extraRoots []string) []editorInstall {
 }
 
 func scanProjects(p prefs, editors []editorInstall, hubs []hub) []projectEntry {
+	return scanProjectsIn(p, editors, hubs, append(defaultProjectRoots(), p.ProjectRoots...))
+}
+
+// scanProjectsIn reads the projects of the hubs, of the roots and of the
+// projects added by hand.
+func scanProjectsIn(p prefs, editors []editorInstall, hubs []hub, roots []string) []projectEntry {
 	byVersion := map[string]string{}
 	kindByVersion := map[string]string{}
 	for _, e := range editors {
@@ -206,7 +244,7 @@ func scanProjects(p prefs, editors []editorInstall, hubs []hub) []projectEntry {
 	for dir, hint := range hubHints(hubs) {
 		add(dir, hint)
 	}
-	for _, root := range dedupe(append(defaultProjectRoots(), p.ProjectRoots...)) {
+	for _, root := range dedupe(roots) {
 		walkProjects(root, 4, add)
 	}
 	for _, dir := range p.PinnedProjects {

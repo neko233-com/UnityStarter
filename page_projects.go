@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
@@ -207,11 +208,28 @@ func (a *app) createProject() {
 	}
 	if err := startDetached(a.newEditor, []string{"-createProject", dir}, filepath.Dir(a.newEditor)); err != nil {
 		a.newError = locales.OpenFailed(err.Error())
+		logger.Printf("new project: %v", err)
 		return
 	}
 	a.prefs.PinnedProjects = dedupe(append(a.prefs.PinnedProjects, dir))
 	a.save()
 	a.newOpen = false
-	a.pushToHub(dir)
+	// The editor writes the project's version as it creates it, so the hub
+	// is told the version this app chose.
+	if e, ok := a.editorInstall(a.newEditor); ok && !a.prefs.NoHubSync {
+		entry := projectEntry{
+			Path:     filepath.Clean(dir),
+			Name:     filepath.Base(dir),
+			Version:  e.Version,
+			Kind:     e.Kind,
+			Modified: time.Now(),
+		}
+		added, err := exportProjects(a.hubs, []projectEntry{entry})
+		if err != nil {
+			logger.Printf("hub export: %v", err)
+		} else if added > 0 {
+			a.hubWriteAt = time.Now()
+		}
+	}
 	a.refresh()
 }

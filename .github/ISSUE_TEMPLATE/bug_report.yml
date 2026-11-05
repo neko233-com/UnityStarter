@@ -1,0 +1,27 @@
+name: Bug report
+description: Something in UnityStarter did not work
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. The app's Feedback page copies the diagnostics this needs
+        (version, system, language, editors, hubs), without project paths.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what happened, and what you expected.
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: Paste what the Feedback page copies.
+      render: text
+  - type: input
+    id: version
+    attributes:
+      label: UnityStarter version
+      placeholder: 1.0.0

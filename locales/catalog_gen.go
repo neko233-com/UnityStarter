@@ -816,6 +816,16 @@ func (msgs Messages) CliHubNone() string {
 	return Catalog.Format(msgs.locale, "cliHubNone", nil)
 }
 
+// CliHubSynced says "Added {added} of {count} added projects to the hubs."
+// in the language the app shows.
+func CliHubSynced(added int, count int) string { return In(i18n.Locale()).CliHubSynced(added, count) }
+
+// CliHubSynced says "Added {added} of {count} added projects to the hubs."
+// in the language of msgs.
+func (msgs Messages) CliHubSynced(added int, count int) string {
+	return Catalog.Format(msgs.locale, "cliHubSynced", map[string]any{"added": added, "count": count})
+}
+
 // CliProjectsHeading says "Projects:"
 // in the language the app shows.
 func CliProjectsHeading() string { return In(i18n.Locale()).CliProjectsHeading() }
@@ -1072,6 +1082,16 @@ func ActionOpenDataDir() string { return In(i18n.Locale()).ActionOpenDataDir() }
 // in the language of msgs.
 func (msgs Messages) ActionOpenDataDir() string {
 	return Catalog.Format(msgs.locale, "actionOpenDataDir", nil)
+}
+
+// ActionOpenLogs says "Open logs"
+// in the language the app shows.
+func ActionOpenLogs() string { return In(i18n.Locale()).ActionOpenLogs() }
+
+// ActionOpenLogs says "Open logs"
+// in the language of msgs.
+func (msgs Messages) ActionOpenLogs() string {
+	return Catalog.Format(msgs.locale, "actionOpenLogs", nil)
 }
 
 // ChannelUnity says "Unity"

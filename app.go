@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/egoist/mygo"
@@ -25,7 +26,7 @@ const (
 
 	// appVersion is what the CLI prints and what the window shows when MyGo
 	// does not know the packaged version.
-	appVersion = "0.1.0"
+	appVersion = "1.0.0"
 	// appName is the name of the executable and of the app's data folder, as
 	// mygo.json names the app; the window shows a name with a space.
 	appName = "UnityStarter"
@@ -82,7 +83,10 @@ func (a *app) refresh() {
 	a.scanning = true
 	settings := a.prefs
 	go func() {
+		started := time.Now()
 		editors, projects, hubs := scan(settings)
+		logger.Printf("scan: %d editors, %d projects, %d hubs in %s",
+			len(editors), len(projects), len(hubs), time.Since(started).Round(time.Millisecond))
 		a.win.Update(func() {
 			a.editors, a.projects, a.hubs = editors, projects, hubs
 			a.scanning = false
@@ -189,6 +193,7 @@ func (a *app) formatTime(t time.Time) string {
 
 // alert reports a problem, which needs no answer.
 func (a *app) alert(message string) {
+	logger.Printf("alert: %s", message)
 	win := a.win
 	go func() {
 		_, _ = mygo.Dialog.Message(mygo.MessageOptions{
@@ -289,8 +294,8 @@ func (a *app) toggleFavorite(p projectEntry) {
 	}
 }
 
-// pushToHub adds a project this app added or created to the hub that owns
-// its engine, so that the hub lists it too.
+// pushToHub adds a project this app added to the hub that owns its engine,
+// so that the hub lists it too.
 func (a *app) pushToHub(dir string) {
 	if a.prefs.NoHubSync {
 		return
@@ -299,20 +304,29 @@ func (a *app) pushToHub(dir string) {
 	if !ok {
 		return
 	}
-	entry := projectEntry{Path: filepath.Clean(dir), Name: filepath.Base(dir), Version: version}
+	entry := projectEntry{Path: filepath.Clean(dir), Name: filepath.Base(dir), Version: version, Kind: kindOfVersion(version)}
 	if info != nil {
 		entry.Modified = info.ModTime()
 	}
-	for _, h := range a.hubs {
-		if !h.writable() || h.Kind != kindOfVersion(version) {
-			continue
-		}
-		if err := h.addProject(entry); err != nil {
-			a.alert(locales.HubWriteFailed(err.Error()))
-			return
-		}
+	added, err := exportProjects(a.hubs, []projectEntry{entry})
+	if err != nil {
+		a.alert(locales.HubWriteFailed(err.Error()))
+		return
+	}
+	if added > 0 {
 		a.hubWriteAt = time.Now()
 	}
+}
+
+// editorInstall is the installed editor of an executable, whose version a
+// project created with it has.
+func (a *app) editorInstall(exe string) (editorInstall, bool) {
+	for _, e := range a.editors {
+		if strings.EqualFold(e.Exe, exe) {
+			return e, true
+		}
+	}
+	return editorInstall{}, false
 }
 
 // startHubWatch follows the hubs' files while the app runs, so that a change

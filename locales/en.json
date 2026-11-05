@@ -69,7 +69,7 @@
   "@issueBody": {
     "placeholders": { "diagnostics": { "type": "String", "example": "UnityStarter 0.1.0" } }
   },
-  "cliHelp": "UnityStarter, a hub for Unity and Tuanjie.\n\nUsage:\n  unitystarter projects [--query text]           list projects\n  unitystarter editors                         list installed editors\n  unitystarter open <path|name>                open a project in its editor\n  unitystarter new <folder> [--editor version] create a project\n  unitystarter hub status                      show the hubs taken over\n  unitystarter version                         print the version\n\nFlags:\n  --json   print JSON\n  --lang   en or zh-Hans\n\nWith no command, the window opens.",
+  "cliHelp": "UnityStarter, a hub for Unity and Tuanjie.\n\nUsage:\n  unitystarter projects [--query text]           list projects\n  unitystarter editors                         list installed editors\n  unitystarter open <path|name>                open a project in its editor\n  unitystarter new <folder> [--editor version] create a project\n  unitystarter hub status                      show the hubs taken over\n  unitystarter hub sync                        add added projects to the hubs\n  unitystarter version                         print the version\n\nFlags:\n  --json      print JSON\n  --lang      en or zh-Hans\n  --verbose   log to the terminal\n\nWith no command, the window opens.",
   "cliUnknownCommand": "Unknown command: {name}",
   "@cliUnknownCommand": {
     "placeholders": { "name": { "type": "String", "example": "list" } }
@@ -110,6 +110,13 @@
     "placeholders": { "path": { "type": "String", "example": "D:\\Games\\demo" } }
   },
   "cliHubNone": "No hub found.",
+  "cliHubSynced": "Added {added} of {count} added projects to the hubs.",
+  "@cliHubSynced": {
+    "placeholders": {
+      "added": { "type": "int", "example": "2" },
+      "count": { "type": "int", "example": "3" }
+    }
+  },
   "cliProjectsHeading": "Projects:",
   "cliEditorsHeading": "Editors:",
   "cliHubsHeading": "Hubs:",
@@ -146,6 +153,7 @@
   "actionRemove": "Remove",
   "actionAddFolder": "Add folder…",
   "actionOpenDataDir": "Open data folder",
+  "actionOpenLogs": "Open logs",
   "channelUnity": "Unity",
   "channelTuanjie": "Tuanjie",
   "settingsTitle": "Settings",

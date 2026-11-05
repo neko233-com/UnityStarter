@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"text/tabwriter"
+	"time"
 
 	"github.com/egoist/mygo/i18n"
 
@@ -27,10 +28,11 @@ func scanAll(p prefs) scanResult {
 }
 
 type cliOptions struct {
-	json   bool
-	lang   string
-	query  string
-	editor string
+	json    bool
+	lang    string
+	query   string
+	editor  string
+	verbose bool
 }
 
 // runCLI runs one command without a window, and returns the exit code.
@@ -40,6 +42,7 @@ func runCLI(argv []string, out io.Writer, scanFn func(prefs) scanResult) int {
 		fmt.Fprintln(out, err)
 		return 2
 	}
+	startConsoleLogging(opts.verbose)
 	if opts.lang != "" {
 		tag := opts.lang
 		i18n.SetLocaleFunc(func() string { return tag })
@@ -49,6 +52,7 @@ func runCLI(argv []string, out io.Writer, scanFn func(prefs) scanResult) int {
 	if len(args) > 0 {
 		command, args = args[0], args[1:]
 	}
+	logger.Printf("cli: %v", argv)
 	switch command {
 	case "help":
 		fmt.Fprintln(out, locales.CliHelp())
@@ -79,6 +83,10 @@ func parseCLI(argv []string) (cliOptions, []string, error) {
 		switch arg := argv[i]; {
 		case arg == "--json":
 			opts.json = true
+		case arg == "--verbose":
+			opts.verbose = true
+		case arg == "--version":
+			args = append(args, "version")
 		case arg == "--lang":
 			if i+1 >= len(argv) {
 				return opts, nil, fmt.Errorf("--lang needs a language")
@@ -226,9 +234,10 @@ func cliNew(opts cliOptions, args []string, scanFn func(prefs) scanResult, out i
 		return 2
 	}
 	dir := filepath.Clean(args[0])
-	res := scanFn(loadPrefs())
-	exe := pickEditor(res.editors, opts.editor)
-	if exe == "" {
+	settings := loadPrefs()
+	res := scanFn(settings)
+	editor, ok := pickEditor(res.editors, opts.editor)
+	if !ok {
 		if opts.editor != "" {
 			fmt.Fprintln(out, locales.CliNoEditorFor(opts.editor))
 		} else {
@@ -244,16 +253,38 @@ func cliNew(opts cliOptions, args []string, scanFn func(prefs) scanResult, out i
 		fmt.Fprintln(out, err)
 		return 1
 	}
-	if err := startDetached(exe, []string{"-createProject", dir}, filepath.Dir(exe)); err != nil {
+	if err := startDetached(editor.Exe, []string{"-createProject", dir}, filepath.Dir(editor.Exe)); err != nil {
 		fmt.Fprintln(out, err)
 		return 1
+	}
+	// The editor writes the project's version as it creates it, so the hub is
+	// told the version of the editor this command chose.
+	if !settings.NoHubSync {
+		entry := projectEntry{
+			Path:     dir,
+			Name:     filepath.Base(dir),
+			Version:  editor.Version,
+			Kind:     editor.Kind,
+			Modified: time.Now(),
+		}
+		if _, err := exportProjects(res.hubs, []projectEntry{entry}); err != nil {
+			fmt.Fprintln(out, err)
+			return 1
+		}
 	}
 	fmt.Fprintln(out, locales.CliCreated(dir))
 	return 0
 }
 
 func cliHub(opts cliOptions, args []string, scanFn func(prefs) scanResult, out io.Writer) int {
-	if len(args) > 0 && args[0] != "status" {
+	sub := "status"
+	if len(args) > 0 {
+		sub = args[0]
+	}
+	if sub == "sync" {
+		return cliHubSync(opts, scanFn, out)
+	}
+	if sub != "status" {
 		fmt.Fprintln(out, locales.CliUsageHint())
 		return 2
 	}
@@ -275,6 +306,39 @@ func cliHub(opts cliOptions, args []string, scanFn func(prefs) scanResult, out i
 		fmt.Fprintf(cols, "%s\t%s\t%s\t%s\n", hubName(h.Kind), h.Version, hubMode(h), h.Dir)
 	}
 	cols.Flush()
+	return 0
+}
+
+// cliHubSync adds the projects added by hand to the hubs that list projects.
+func cliHubSync(opts cliOptions, scanFn func(prefs) scanResult, out io.Writer) int {
+	return hubSync(loadPrefs(), opts, scanFn, out)
+}
+
+func hubSync(settings prefs, opts cliOptions, scanFn func(prefs) scanResult, out io.Writer) int {
+	if settings.NoHubSync {
+		fmt.Fprintln(out, locales.HubSyncDisabled())
+		return 1
+	}
+	res := scanFn(settings)
+	pinned := map[string]bool{}
+	for _, dir := range settings.PinnedProjects {
+		pinned[filepath.Clean(dir)] = true
+	}
+	var entries []projectEntry
+	for _, p := range res.projects {
+		if pinned[p.Path] {
+			entries = append(entries, p)
+		}
+	}
+	added, err := exportProjects(res.hubs, entries)
+	if err != nil {
+		fmt.Fprintln(out, err)
+		return 1
+	}
+	if opts.json {
+		return writeJSON(out, map[string]int{"added": added, "pinned": len(entries)})
+	}
+	fmt.Fprintln(out, locales.CliHubSynced(added, len(entries)))
 	return 0
 }
 
@@ -321,24 +385,24 @@ func findProject(projects []projectEntry, target string) (projectEntry, string, 
 
 // pickEditor is the editor a new project is made with: the version asked
 // for, else the newest Unity editor, else the first.
-func pickEditor(editors []editorInstall, version string) string {
+func pickEditor(editors []editorInstall, version string) (editorInstall, bool) {
 	if version != "" {
 		for _, e := range editors {
 			if e.Version == version {
-				return e.Exe
+				return e, true
 			}
 		}
-		return ""
+		return editorInstall{}, false
 	}
 	for _, e := range editors {
 		if e.Kind == kindUnity {
-			return e.Exe
+			return e, true
 		}
 	}
 	if len(editors) > 0 {
-		return editors[0].Exe
+		return editors[0], true
 	}
-	return ""
+	return editorInstall{}, false
 }
 
 func table(out io.Writer) *tabwriter.Writer {

@@ -18,6 +18,8 @@ func main() {
 
 	a := newApp()
 	mygo.App.WhenReady(func() {
+		_ = startLogging(false)
+		logger.Printf("start %s, data %s", appVersion, userDataDir())
 		a.load()
 		a.win = mygo.NewWindow(mygo.WindowOptions{
 			Title:     locales.AppTitle(),

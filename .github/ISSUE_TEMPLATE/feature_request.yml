@@ -1,0 +1,25 @@
+name: Feature request
+description: Something UnityStarter should do
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What is awkward or missing today.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you would like
+      description: How it could work, and which engine or hub it belongs to.
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - label: Projects and editors
+        - label: Hub takeover and sync
+        - label: Store, publishing, licenses, docs or feedback
+        - label: Command line

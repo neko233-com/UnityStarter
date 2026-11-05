@@ -292,6 +292,35 @@ func randomID() string {
 	return hex.EncodeToString(b[:])
 }
 
+// lists reports whether the hub's project list already holds a path.
+func (h hub) lists(path string) bool {
+	_, data := readRegistry(h.Registry)
+	_, ok := data[path]
+	return ok
+}
+
+// exportProjects adds projects to the hubs that own their engine, where those
+// hubs keep a list this app writes. It returns how many it added.
+func exportProjects(hubs []hub, projects []projectEntry) (int, error) {
+	added := 0
+	for _, p := range projects {
+		if p.Hub != "" {
+			continue // a hub already lists it
+		}
+		for _, h := range hubs {
+			if !h.writable() || h.Kind != p.Kind || h.lists(p.Path) {
+				continue
+			}
+			if err := h.addProject(p); err != nil {
+				return added, err
+			}
+			added++
+			logger.Printf("hub: added %s to %s", p.Path, h.Kind)
+		}
+	}
+	return added, nil
+}
+
 // hubFiles are the files this app shares with the hubs, which tell when a
 // hub changes what it lists.
 var hubFiles = map[string]bool{
