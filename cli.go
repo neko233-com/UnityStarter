@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"text/tabwriter"
@@ -28,11 +30,12 @@ func scanAll(p prefs) scanResult {
 }
 
 type cliOptions struct {
-	json    bool
-	lang    string
-	query   string
-	editor  string
-	verbose bool
+	json     bool
+	lang     string
+	query    string
+	editor   string
+	verbose  bool
+	simulate bool
 }
 
 // runCLI runs one command without a window, and returns the exit code.
@@ -70,6 +73,12 @@ func runCLI(argv []string, out io.Writer, scanFn func(prefs) scanResult) int {
 		return cliNew(opts, args, scanFn, out)
 	case "hub":
 		return cliHub(opts, args, scanFn, out)
+	case "releases":
+		return cliReleases(opts, scanFn, out)
+	case "install":
+		return cliInstall(opts, args, out)
+	case "update":
+		return cliUpdate(opts, out)
 	default:
 		fmt.Fprintf(out, "%s\n%s\n", locales.CliUnknownCommand(command), locales.CliUsageHint())
 		return 2
@@ -85,6 +94,8 @@ func parseCLI(argv []string) (cliOptions, []string, error) {
 			opts.json = true
 		case arg == "--verbose":
 			opts.verbose = true
+		case arg == "--simulate":
+			opts.simulate = true
 		case arg == "--version":
 			args = append(args, "version")
 		case arg == "--lang":
@@ -416,5 +427,166 @@ func writeJSON(out io.Writer, v any) int {
 		fmt.Fprintln(out, err)
 		return 1
 	}
+	return 0
+}
+
+// cliReleases lists the editors the engines offer, with the installed ones
+// marked.
+func cliReleases(opts cliOptions, scanFn func(prefs) scanResult, out io.Writer) int {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	var entries []downloadEntry
+	if unities, err := fetchUnityReleases(ctx); err == nil {
+		entries = append(entries, unities...)
+	} else {
+		logger.Printf("releases: %v", err)
+	}
+	entries = append(entries, tuanjieReleases()...)
+	if len(entries) == 0 {
+		fmt.Fprintln(out, locales.DownloadsEmpty())
+		return 1
+	}
+	installed := map[string]bool{}
+	for _, e := range scanFn(loadPrefs()).editors {
+		installed[e.Kind+" "+e.Version] = true
+	}
+	if opts.json {
+		type releaseJSON struct {
+			Version   string `json:"version"`
+			Engine    string `json:"engine"`
+			LTS       bool   `json:"lts"`
+			Size      int64  `json:"size"`
+			Date      string `json:"date,omitempty"`
+			URL       string `json:"url"`
+			Installed bool   `json:"installed"`
+		}
+		list := make([]releaseJSON, 0, len(entries))
+		for _, e := range entries {
+			date := ""
+			if !e.Date.IsZero() {
+				date = e.Date.Format("2006-01-02")
+			}
+			list = append(list, releaseJSON{e.Version, e.Engine, e.LTS, e.Size, date, e.URL, installed[e.Engine+" "+e.Version]})
+		}
+		return writeJSON(out, list)
+	}
+	fmt.Fprintln(out, locales.CliReleasesHeading())
+	cols := table(out)
+	for _, e := range entries {
+		mark := ""
+		if installed[e.Engine+" "+e.Version] {
+			mark = "*"
+		}
+		fmt.Fprintf(cols, "%s\t%s\t%s\t%s\t%s\n", e.Version, channelName(e.Engine), humanSize(e.Size), mark, e.URL)
+	}
+	cols.Flush()
+	return 0
+}
+
+// cliInstall downloads and installs a release, or a stand-in of it.
+func cliInstall(opts cliOptions, args []string, out io.Writer) int {
+	if len(args) == 0 {
+		fmt.Fprintln(out, locales.CliUsageHint())
+		return 2
+	}
+	want := strings.TrimSpace(args[0])
+	settings := loadPrefs()
+	root := settings.InstallRoot
+	if root == "" {
+		root = defaultInstallRoot()
+	}
+	entry, ok := findRelease(want)
+	if !ok {
+		fmt.Fprintln(out, locales.CliReleaseNotFound(want))
+		return 1
+	}
+	if opts.simulate {
+		dir, err := simulateEditorInstall(entry.Engine, entry.Version, root)
+		if err != nil {
+			fmt.Fprintln(out, err)
+			return 1
+		}
+		rememberInstallRoot(&settings, root)
+		fmt.Fprintln(out, locales.CliSimulated(entry.Version, dir))
+		return 0
+	}
+	if err := downloadAndInstall(entry, root); err != nil {
+		fmt.Fprintln(out, err)
+		return 1
+	}
+	rememberInstallRoot(&settings, root)
+	fmt.Fprintln(out, locales.CliInstalled(entry.Version, filepath.Join(root, entry.Version)))
+	return 0
+}
+
+func findRelease(version string) (downloadEntry, bool) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	var entries []downloadEntry
+	if unities, err := fetchUnityReleases(ctx); err == nil {
+		entries = append(entries, unities...)
+	}
+	entries = append(entries, tuanjieReleases()...)
+	for _, e := range entries {
+		if e.Version == version {
+			return e, true
+		}
+	}
+	return downloadEntry{}, false
+}
+
+// downloadAndInstall runs a release's installer the way the hubs do.
+func downloadAndInstall(entry downloadEntry, root string) error {
+	name := filepath.Base(strings.Split(entry.URL, "?")[0])
+	path := filepath.Join(downloadsDir(), name)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Hour)
+	defer cancel()
+	last := -1
+	err := downloadFile(ctx, entry.URL, path, func(done, total int64) {
+		if total <= 0 {
+			return
+		}
+		percent := int(done * 100 / total)
+		if percent != last && percent%2 == 0 {
+			last = percent
+			fmt.Fprintf(os.Stderr, "\r%s %d%%", entry.Version, percent)
+		}
+	})
+	fmt.Fprintln(os.Stderr)
+	if err != nil {
+		return err
+	}
+	dest := filepath.Join(root, entry.Version)
+	cmd := exec.Command(path, installerArgs(entry.Engine, dest)...)
+	hideWindowCmd(cmd)
+	return cmd.Run()
+}
+
+func rememberInstallRoot(settings *prefs, root string) {
+	settings.EditorRoots = dedupe(append(settings.EditorRoots, root))
+	if err := savePrefs(*settings); err != nil {
+		logger.Printf("settings: %v", err)
+	}
+}
+
+// cliUpdate says whether a newer release exists.
+func cliUpdate(opts cliOptions, out io.Writer) int {
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	release, err := checkLatestRelease(ctx)
+	if err != nil {
+		fmt.Fprintln(out, locales.UpdateFailed(err.Error()))
+		return 1
+	}
+	latest := strings.TrimPrefix(release.Tag, "v")
+	if opts.json {
+		return writeJSON(out, map[string]any{"current": appVersion, "latest": latest, "url": release.URL})
+	}
+	if newerVersion(release.Tag) {
+		fmt.Fprintln(out, locales.UpdateAvailable(latest))
+		fmt.Fprintln(out, release.URL)
+		return 0
+	}
+	fmt.Fprintln(out, locales.UpdateLatest())
 	return 0
 }

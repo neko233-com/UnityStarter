@@ -196,6 +196,150 @@ func (msgs Messages) SettingsInstallRootHint() string {
 	return Catalog.Format(msgs.locale, "settingsInstallRootHint", nil)
 }
 
+// SettingsDemo says "Demo mode"
+// in the language the app shows.
+func SettingsDemo() string { return In(i18n.Locale()).SettingsDemo() }
+
+// SettingsDemo says "Demo mode"
+// in the language of msgs.
+func (msgs Messages) SettingsDemo() string {
+	return Catalog.Format(msgs.locale, "settingsDemo", nil)
+}
+
+// SettingsDemoHint says "Installs stand-in editors instead of downloading them, so the flow can be tried without the gigabytes."
+// in the language the app shows.
+func SettingsDemoHint() string { return In(i18n.Locale()).SettingsDemoHint() }
+
+// SettingsDemoHint says "Installs stand-in editors instead of downloading them, so the flow can be tried without the gigabytes."
+// in the language of msgs.
+func (msgs Messages) SettingsDemoHint() string {
+	return Catalog.Format(msgs.locale, "settingsDemoHint", nil)
+}
+
+// SettingsDemoSwitch says "Simulate installs (no download)"
+// in the language the app shows.
+func SettingsDemoSwitch() string { return In(i18n.Locale()).SettingsDemoSwitch() }
+
+// SettingsDemoSwitch says "Simulate installs (no download)"
+// in the language of msgs.
+func (msgs Messages) SettingsDemoSwitch() string {
+	return Catalog.Format(msgs.locale, "settingsDemoSwitch", nil)
+}
+
+// ActionSimulate says "Simulate install"
+// in the language the app shows.
+func ActionSimulate() string { return In(i18n.Locale()).ActionSimulate() }
+
+// ActionSimulate says "Simulate install"
+// in the language of msgs.
+func (msgs Messages) ActionSimulate() string {
+	return Catalog.Format(msgs.locale, "actionSimulate", nil)
+}
+
+// SimulatedBadge says "Simulated"
+// in the language the app shows.
+func SimulatedBadge() string { return In(i18n.Locale()).SimulatedBadge() }
+
+// SimulatedBadge says "Simulated"
+// in the language of msgs.
+func (msgs Messages) SimulatedBadge() string {
+	return Catalog.Format(msgs.locale, "simulatedBadge", nil)
+}
+
+// SimulatedOpen says "This editor is a stand-in and cannot run."
+// in the language the app shows.
+func SimulatedOpen() string { return In(i18n.Locale()).SimulatedOpen() }
+
+// SimulatedOpen says "This editor is a stand-in and cannot run."
+// in the language of msgs.
+func (msgs Messages) SimulatedOpen() string {
+	return Catalog.Format(msgs.locale, "simulatedOpen", nil)
+}
+
+// ActionCheckUpdate says "Check for updates"
+// in the language the app shows.
+func ActionCheckUpdate() string { return In(i18n.Locale()).ActionCheckUpdate() }
+
+// ActionCheckUpdate says "Check for updates"
+// in the language of msgs.
+func (msgs Messages) ActionCheckUpdate() string {
+	return Catalog.Format(msgs.locale, "actionCheckUpdate", nil)
+}
+
+// UpdateLatest says "You have the latest version."
+// in the language the app shows.
+func UpdateLatest() string { return In(i18n.Locale()).UpdateLatest() }
+
+// UpdateLatest says "You have the latest version."
+// in the language of msgs.
+func (msgs Messages) UpdateLatest() string {
+	return Catalog.Format(msgs.locale, "updateLatest", nil)
+}
+
+// UpdateAvailable says "Version {version} is available."
+// in the language the app shows.
+func UpdateAvailable(version string) string { return In(i18n.Locale()).UpdateAvailable(version) }
+
+// UpdateAvailable says "Version {version} is available."
+// in the language of msgs.
+func (msgs Messages) UpdateAvailable(version string) string {
+	return Catalog.Format(msgs.locale, "updateAvailable", map[string]any{"version": version})
+}
+
+// UpdateFailed says "Could not check for updates: {error}"
+// in the language the app shows.
+func UpdateFailed(error string) string { return In(i18n.Locale()).UpdateFailed(error) }
+
+// UpdateFailed says "Could not check for updates: {error}"
+// in the language of msgs.
+func (msgs Messages) UpdateFailed(error string) string {
+	return Catalog.Format(msgs.locale, "updateFailed", map[string]any{"error": error})
+}
+
+// CliReleasesHeading says "Releases:"
+// in the language the app shows.
+func CliReleasesHeading() string { return In(i18n.Locale()).CliReleasesHeading() }
+
+// CliReleasesHeading says "Releases:"
+// in the language of msgs.
+func (msgs Messages) CliReleasesHeading() string {
+	return Catalog.Format(msgs.locale, "cliReleasesHeading", nil)
+}
+
+// CliReleaseNotFound says "No release matches {version}."
+// in the language the app shows.
+func CliReleaseNotFound(version string) string { return In(i18n.Locale()).CliReleaseNotFound(version) }
+
+// CliReleaseNotFound says "No release matches {version}."
+// in the language of msgs.
+func (msgs Messages) CliReleaseNotFound(version string) string {
+	return Catalog.Format(msgs.locale, "cliReleaseNotFound", map[string]any{"version": version})
+}
+
+// CliInstalled says "Installed {version} to {path}"
+// in the language the app shows.
+func CliInstalled(version string, path string) string {
+	return In(i18n.Locale()).CliInstalled(version, path)
+}
+
+// CliInstalled says "Installed {version} to {path}"
+// in the language of msgs.
+func (msgs Messages) CliInstalled(version string, path string) string {
+	return Catalog.Format(msgs.locale, "cliInstalled", map[string]any{"version": version, "path": path})
+}
+
+// CliSimulated says "Simulated {version} at {path}"
+// in the language the app shows.
+func CliSimulated(version string, path string) string {
+	return In(i18n.Locale()).CliSimulated(version, path)
+}
+
+// CliSimulated says "Simulated {version} at {path}"
+// in the language of msgs.
+func (msgs Messages) CliSimulated(version string, path string) string {
+	return Catalog.Format(msgs.locale, "cliSimulated", map[string]any{"version": version, "path": path})
+}
+
 // DownloadsEmpty says "No releases found."
 // in the language the app shows.
 func DownloadsEmpty() string { return In(i18n.Locale()).DownloadsEmpty() }

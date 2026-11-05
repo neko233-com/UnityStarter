@@ -38,10 +38,11 @@ func fixture() *app {
 	}
 	a.editors = []editorInstall{
 		{
-			Version: "2022.3.51f1",
-			Kind:    kindUnity,
-			Exe:     `C:\Program Files\Unity\Hub\Editor\2022.3.51f1\Editor\Unity.exe`,
-			Root:    `C:\Program Files\Unity\Hub\Editor\2022.3.51f1`,
+			Version:   "2022.3.51f1",
+			Kind:      kindUnity,
+			Exe:       `C:\Program Files\Unity\Hub\Editor\2022.3.51f1\Editor\Unity.exe`,
+			Root:      `C:\Program Files\Unity\Hub\Editor\2022.3.51f1`,
+			Simulated: true,
 		},
 	}
 	a.hubs = []hub{

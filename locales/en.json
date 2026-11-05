@@ -21,6 +21,41 @@
   "actionInstall": "Install",
   "settingsInstallRoot": "Install folder",
   "settingsInstallRootHint": "Downloaded editors are installed here, one folder per version.",
+  "settingsDemo": "Demo mode",
+  "settingsDemoHint": "Installs stand-in editors instead of downloading them, so the flow can be tried without the gigabytes.",
+  "settingsDemoSwitch": "Simulate installs (no download)",
+  "actionSimulate": "Simulate install",
+  "simulatedBadge": "Simulated",
+  "simulatedOpen": "This editor is a stand-in and cannot run.",
+  "actionCheckUpdate": "Check for updates",
+  "updateLatest": "You have the latest version.",
+  "updateAvailable": "Version {version} is available.",
+  "@updateAvailable": {
+    "placeholders": { "version": { "type": "String", "example": "1.3.0" } }
+  },
+  "updateFailed": "Could not check for updates: {error}",
+  "@updateFailed": {
+    "placeholders": { "error": { "type": "String", "example": "timeout" } }
+  },
+  "cliReleasesHeading": "Releases:",
+  "cliReleaseNotFound": "No release matches {version}.",
+  "@cliReleaseNotFound": {
+    "placeholders": { "version": { "type": "String", "example": "6000.0.85f2" } }
+  },
+  "cliInstalled": "Installed {version} to {path}",
+  "@cliInstalled": {
+    "placeholders": {
+      "version": { "type": "String", "example": "6000.0.85f2" },
+      "path": { "type": "String", "example": "D:\\Editors\\6000.0.85f2" }
+    }
+  },
+  "cliSimulated": "Simulated {version} at {path}",
+  "@cliSimulated": {
+    "placeholders": {
+      "version": { "type": "String", "example": "6000.0.85f2" },
+      "path": { "type": "String", "example": "D:\\Editors\\6000.0.85f2" }
+    }
+  },
   "downloadsEmpty": "No releases found.",
   "downloadsLoading": "Loading releases…",
   "downloadsError": "Could not load releases: {error}",
@@ -98,7 +133,7 @@
   "@issueBody": {
     "placeholders": { "diagnostics": { "type": "String", "example": "UnityStarter 0.1.0" } }
   },
-  "cliHelp": "UnityStarter, a hub for Unity and Tuanjie.\n\nUsage:\n  unitystarter projects [--query text]           list projects\n  unitystarter editors                         list installed editors\n  unitystarter open <path|name>                open a project in its editor\n  unitystarter new <folder> [--editor version] create a project\n  unitystarter hub status                      show the hubs taken over\n  unitystarter hub sync                        add added projects to the hubs\n  unitystarter version                         print the version\n\nFlags:\n  --json      print JSON\n  --lang      en or zh-Hans\n  --verbose   log to the terminal\n\nWith no command, the window opens.",
+  "cliHelp": "UnityStarter, a hub for Unity and Tuanjie.\n\nUsage:\n  unitystarter projects [--query text]           list projects\n  unitystarter editors                         list installed editors\n  unitystarter open <path|name>                open a project in its editor\n  unitystarter new <folder> [--editor version] create a project\n  unitystarter hub status                      show the hubs taken over\n  unitystarter hub sync                        add added projects to the hubs\n  unitystarter releases                        list the editors to install\n  unitystarter install <version> [--simulate]  install an editor\n  unitystarter update                          check for a newer release\n  unitystarter version                         print the version\n\nFlags:\n  --json      print JSON\n  --lang      en or zh-Hans\n  --verbose   log to the terminal\n\nWith no command, the window opens.",
   "cliUnknownCommand": "Unknown command: {name}",
   "@cliUnknownCommand": {
     "placeholders": { "name": { "type": "String", "example": "list" } }

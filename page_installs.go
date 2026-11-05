@@ -25,10 +25,26 @@ func (a *app) installsPage(c *ui.Context) {
 				ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
 					ui.Text(c, e.Version).FontSize(16).Bold()
 					ui.Badge(c, channelName(e.Kind))
+					if e.Simulated {
+						ui.Badge(c, locales.SimulatedBadge())
+					}
 				})
 				ui.Text(c, e.Exe).FontSize(12).TextColor(t.TextMuted).Clip()
 			})
 			ui.Row(c).Gap(6).Children(func() {
+				if e.Simulated {
+					if ui.Button(c, locales.ActionFolder()).Clicked() {
+						mygo.Shell.ShowItemInFolder(e.Exe)
+					}
+					if ui.Button(c, locales.ActionRemove()).Clicked() {
+						if err := removeSimulatedEditor(e.Root); err != nil {
+							a.alert(err.Error())
+						} else {
+							a.refresh()
+						}
+					}
+					return
+				}
 				if ui.PrimaryButton(c, locales.InstallsLaunch()).Clicked() {
 					if err := startDetached(e.Exe, nil, filepath.Dir(e.Exe)); err != nil {
 						a.alert(locales.OpenFailed(err.Error()))

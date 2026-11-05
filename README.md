@@ -1,13 +1,13 @@
 # UnityStarter
 
-Unity 国际版 Hub + 团结引擎 Hub 的合体替代品：无广告、无遥测，原生 Go 界面（[mygo](https://github.com/egoist/mygo) 原生 UI，无 WebView），同一个可执行文件也能当 CLI 用。
+Unity 国际版 Hub + 团结引擎 Hub 的合体替代品：无广告、无遥测，原生 Go 界面（[mygo](https://github.com/egoist/mygo) 原生 UI，无 WebView），同一个可执行文件也能当 CLI 用。`UnityStarter.exe` 约 12 MB；3.8 GB 是 Unity 官方引擎安装包的大小，Hub 只是替你下载和安装它。
 
 Windows 10/11 x64，单文件约 10 MB。
 
 ## 功能
 
 - **项目**：扫描磁盘与两个 Hub 的项目列表；行内显示引擎、渲染管线（URP/HDRP/内置）、Git / SVN / Lore 分支与未提交状态，可一键打开仓库地址；搜索、收藏、双击打开、手动添加、新建项目。
-- **安装与下载**：识别 Unity / 团结引擎已安装的编辑器（默认目录、Hub 的 `secondaryInstallPath.json`、自定义目录），多套版本并存管理；下载页直接列出 Unity 国际版（`services.api.unity.com` → `download.unity3d.com`）与团结引擎（`tuanjie.cn`）的官方安装包，不跳转、不换源。
+- **安装与下载**：识别 Unity / 团结引擎已安装的编辑器（默认目录、Hub 的 `secondaryInstallPath.json`、自定义目录），多套版本并存管理；下载页直接列出 Unity 国际版（`services.api.unity.com` → `download.unity3d.com`）与团结引擎（`tuanjie.cn`）的官方安装包，不跳转、不换源，应用内下载 + 静默安装（参数与 Unity Hub 一致）。
 - **接管 Hub（双向）**：读取并写回 Hub 自己的文件。
   - Unity Hub：项目表 `projects-v1.json`、收藏 `favoriteProjects.json`，新增项目与收藏会写入 Hub，Hub 侧改动实时同步回来。
   - 团结引擎 Hub：收藏与目录双向；它的项目清单不存在可写文件，项目来自磁盘扫描。
@@ -33,6 +33,9 @@ UnityStarter.exe open <路径|名称>
 UnityStarter.exe new <目录> [--editor 版本]
 UnityStarter.exe hub status [--json]
 UnityStarter.exe hub sync [--json]
+UnityStarter.exe releases [--json]
+UnityStarter.exe install <版本> [--simulate]
+UnityStarter.exe update [--json]
 UnityStarter.exe version
 UnityStarter.exe help
 ```
@@ -41,6 +44,12 @@ UnityStarter.exe help
 - `--lang en|zh-Hans`：切换文案，默认跟随系统。
 - `--verbose`：日志输出到终端。
 - 退出码：`0` 成功，`1` 失败（找不到项目、无编辑器等），`2` 命令或参数错误。
+
+## 模拟安装（不下载数 GB）
+
+设置页打开「演示模式」，下载页的按钮变成「模拟安装」：只创建 `<安装目录>\<版本>\Editor\Unity.exe` 的占位结构与标记文件，安装页会立刻出现该版本并标为「模拟」，可一键移除。用于验证下载→安装→项目匹配整条链路，不需要真的拉 3.8 GB。
+
+CLI 同样可用：`UnityStarter.exe install 6000.0.85f2 --simulate`。
 
 ## 数据与日志
 

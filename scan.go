@@ -25,6 +25,8 @@ type editorInstall struct {
 	Kind    string
 	Exe     string
 	Root    string
+	// Simulated is an editor this app put there to try the install flow.
+	Simulated bool
 }
 
 // projectEntry is a project found on disk.
@@ -57,6 +59,9 @@ type prefs struct {
 	// InstallRoot is where downloaded editors are installed, a folder per
 	// version.
 	InstallRoot string `json:"installRoot"`
+	// DemoMode installs stand-in editors instead of downloading, so that the
+	// flow can be tried without the gigabytes.
+	DemoMode bool `json:"demoMode"`
 	// NoHubSync leaves the hubs' files as they are, only reading them.
 	NoHubSync bool `json:"noHubSync"`
 }
@@ -185,7 +190,7 @@ func scanEditors(extraRoots []string) []editorInstall {
 					continue
 				}
 				seenVersion[kind+" "+version] = true
-				out = append(out, editorInstall{Version: version, Kind: kind, Exe: exe, Root: dir})
+				out = append(out, editorInstall{Version: version, Kind: kind, Exe: exe, Root: dir, Simulated: isSimulatedEditor(dir)})
 			}
 		}
 	}

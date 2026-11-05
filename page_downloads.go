@@ -140,6 +140,19 @@ func (a *app) downloadGroup(c *ui.Context, title, engine string, entries []downl
 func (a *app) downloadAction(c *ui.Context, e downloadEntry) {
 	t := c.Theme()
 	job := a.jobs[jobKey(e)]
+	// In demo mode the flow is tried with a stand-in editor, not gigabytes.
+	if a.prefs.DemoMode && (job == nil || job.Status == "installed") {
+		if ui.PrimaryButton(c, locales.ActionSimulate()).Clicked() {
+			if _, err := simulateEditorInstall(e.Engine, e.Version, a.installRoot()); err != nil {
+				a.alert(err.Error())
+				return
+			}
+			a.prefs.EditorRoots = dedupe(append(a.prefs.EditorRoots, a.installRoot()))
+			a.save()
+			a.refresh()
+		}
+		return
+	}
 	installed := false
 	for _, editor := range a.editors {
 		if editor.Version == e.Version && editor.Kind == e.Engine {

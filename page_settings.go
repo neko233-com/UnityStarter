@@ -45,6 +45,7 @@ func (a *app) settingsPage(c *ui.Context) {
 				})
 
 			a.installRootSection(c)
+			a.demoSection(c)
 
 			a.rootsSection(c, locales.SettingsPinnedProjects(), locales.SettingsPinnedProjectsHint(), a.prefs.PinnedProjects,
 				func(next []string) {
@@ -143,6 +144,22 @@ func (a *app) installRootSection(c *ui.Context) {
 	})
 }
 
+// demoSection turns installs into stand-ins, for trying the flow.
+func (a *app) demoSection(c *ui.Context) {
+	demo := a.prefs.DemoMode
+	ui.Column(c).Gap(8).Children(func() {
+		a.sectionTitle(c, locales.SettingsDemo(), locales.SettingsDemoHint())
+		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
+			ui.Switch(c, &demo)
+			ui.Text(c, locales.SettingsDemoSwitch()).FontSize(12)
+		})
+	})
+	if demo != a.prefs.DemoMode {
+		a.prefs.DemoMode = demo
+		a.save()
+	}
+}
+
 // hubSection takes over the hubs' projects and favorites, and says which of
 // them this app can write to.
 func (a *app) hubSection(c *ui.Context) {
@@ -219,6 +236,9 @@ func (a *app) aboutSection(c *ui.Context) {
 			}
 			if ui.Button(c, locales.ActionOpenLogs()).Clicked() {
 				_ = mygo.Shell.OpenPath(logPath())
+			}
+			if ui.Button(c, locales.ActionCheckUpdate()).Clicked() {
+				a.checkUpdates()
 			}
 		})
 	})

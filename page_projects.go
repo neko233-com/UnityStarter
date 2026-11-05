@@ -94,6 +94,8 @@ func (a *app) projectRow(c *ui.Context, p projectEntry) {
 			}
 			if p.Editor == "" {
 				ui.Button(c, locales.ActionOpen()).Disabled(true).Tooltip(locales.EditorMissing(p.Version))
+			} else if a.editorIsSimulated(p.Editor) {
+				ui.Button(c, locales.ActionOpen()).Disabled(true).Tooltip(locales.SimulatedOpen())
 			} else if ui.PrimaryButton(c, locales.ActionOpen()).Clicked() {
 				a.openProject(p)
 			}

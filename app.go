@@ -27,7 +27,7 @@ const (
 
 	// appVersion is what the CLI prints and what the window shows when MyGo
 	// does not know the packaged version.
-	appVersion = "1.2.0"
+	appVersion = "1.3.0"
 	// appName is the name of the executable and of the app's data folder, as
 	// mygo.json names the app; the window shows a name with a space.
 	appName = "UnityStarter"
@@ -238,6 +238,12 @@ func (a *app) openProject(p projectEntry) {
 		a.alert(locales.EditorMissing(p.Version))
 		return
 	}
+	for _, e := range a.editors {
+		if strings.EqualFold(e.Exe, p.Editor) && e.Simulated {
+			a.alert(locales.SimulatedOpen())
+			return
+		}
+	}
 	if err := startDetached(p.Editor, []string{"-projectPath", p.Path}, filepath.Dir(p.Editor)); err != nil {
 		a.alert(locales.OpenFailed(err.Error()))
 	}
@@ -342,6 +348,12 @@ func (a *app) editorInstall(exe string) (editorInstall, bool) {
 		}
 	}
 	return editorInstall{}, false
+}
+
+// editorIsSimulated reports whether an executable is a stand-in.
+func (a *app) editorIsSimulated(exe string) bool {
+	e, ok := a.editorInstall(exe)
+	return ok && e.Simulated
 }
 
 // startHubWatch follows the hubs' files while the app runs, so that a change

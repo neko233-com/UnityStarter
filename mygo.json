@@ -2,7 +2,7 @@
   "name": "UnityStarter",
   "slug": "unitystarter",
   "identifier": "com.neko233.unitystarter",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "out": "build",
   "windows": {
     "displayName": "UnityStarter"
@@ -12,6 +12,7 @@
     "source": "en"
   }
 }
+
 
 
 
