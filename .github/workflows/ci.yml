@@ -60,7 +60,7 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
         shell: pwsh
         run: |
-          $version = (Get-Content mygo.json -Raw | ConvertFrom--Json).version
+          $version = (Get-Content mygo.json -Raw | ConvertFrom-Json).version
           if ($env:RELEASE_TAG -cne "v$version") { throw "Tag does not match mygo.json version" }
           $installer = "dist/unitystarter-setup-$version-amd64.exe"
           $exe = 'dist/UnityStarter.exe'
