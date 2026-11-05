@@ -20,3 +20,6 @@ func startDetached(exe string, args []string, dir string) error {
 	}
 	return cmd.Process.Release()
 }
+
+// hideWindowCmd keeps a command's console window from flashing.
+func hideWindowCmd(cmd *exec.Cmd) { cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true} }

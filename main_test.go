@@ -25,6 +25,8 @@ func fixture() *app {
 			Editor:   `C:\Program Files\Unity\Hub\Editor\2022.3.51f1\Editor\Unity.exe`,
 			Hub:      kindUnity,
 			Favorite: true,
+			Pipeline: "urp",
+			VCS:      vcsInfo{Kind: "git", Branch: "main", Remote: "https://github.com/neko233-com/UnityStarter"},
 		},
 		{
 			Path:     `D:\Code\Games\cozy`,
@@ -57,6 +59,13 @@ func fixture() *app {
 			Favorites: `C:\Users\ada\AppData\Roaming\TuanjieHub\favoriteProjects.json`,
 		},
 	}
+	a.downloads = []downloadEntry{
+		{Engine: kindUnity, Version: "6000.0.85f2", LTS: true, URL: "https://download.unity3d.com/x.exe", Size: 4096, Date: time.Date(2026, 11, 3, 16, 15, 0, 0, time.UTC)},
+		{Engine: kindUnity, Version: "6000.3.28f1", LTS: true, URL: "https://download.unity3d.com/y.exe", Size: 4096},
+		{Engine: kindTuanjie, Version: "2022.3.62t17", LTS: true, URL: "https://download.tuanjie.cn/z.exe", Size: 4096},
+	}
+	a.downloadsReady = true
+	a.downloadsSince = time.Now()
 	return a
 }
 
@@ -78,6 +87,12 @@ func TestView(t *testing.T) {
 	}
 	if !tt.HasText(locales.SettingsLanguage()) {
 		t.Errorf("texts %q after choosing settings", tt.Texts())
+	}
+	if err := tt.Click(locales.SidebarDownloads()); err != nil {
+		t.Fatal(err)
+	}
+	if !tt.HasText(locales.PageDownloads()) {
+		t.Errorf("texts %q after choosing downloads", tt.Texts())
 	}
 	if err := tt.Click(locales.PageStore()); err != nil {
 		t.Fatal(err)
@@ -101,7 +116,7 @@ func TestSnapshot(t *testing.T) {
 		t.Skip("set SNAPSHOT to a directory to draw the pages")
 	}
 	a := fixture()
-	for _, page := range []string{pageProjects, pageInstalls, pageStore, pagePublish, pageLicense, pageDocs, pageFeedback, pageSettings} {
+	for _, page := range []string{pageProjects, pageInstalls, pageDownloads, pageStore, pagePublish, pageLicense, pageDocs, pageFeedback, pageSettings} {
 		a.page = page
 		tt := ui.NewTester(a.view, 1180, 760)
 		tt.Frame()

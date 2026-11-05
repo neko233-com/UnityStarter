@@ -14,3 +14,5 @@ func startDetached(exe string, args []string, dir string) error {
 	}
 	return cmd.Process.Release()
 }
+
+func hideWindowCmd(cmd *exec.Cmd) {}

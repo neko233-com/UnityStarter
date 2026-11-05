@@ -20,13 +20,13 @@ func (a *app) installsPage(c *ui.Context) {
 	a.installs.Key = func(i int) any { return a.editors[i].Exe }
 	ui.List(c, &a.installs, len(a.editors), func(i int) {
 		e := a.editors[i]
-		ui.Row(c).Padding(12, 18).Gap(16).AlignItems(ui.Center).Children(func() {
-			ui.Column(c).Grow(1).Gap(3).Children(func() {
+		ui.Row(c).Padding(14, 18).Gap(16).AlignItems(ui.Center).Children(func() {
+			ui.Column(c).Grow(1).Gap(5).Children(func() {
 				ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-					ui.Text(c, e.Version).FontSize(14).Bold()
+					ui.Text(c, e.Version).FontSize(16).Bold()
 					ui.Badge(c, channelName(e.Kind))
 				})
-				ui.Text(c, e.Exe).FontSize(11).TextColor(t.TextMuted).Clip()
+				ui.Text(c, e.Exe).FontSize(12).TextColor(t.TextMuted).Clip()
 			})
 			ui.Row(c).Gap(6).Children(func() {
 				if ui.PrimaryButton(c, locales.InstallsLaunch()).Clicked() {

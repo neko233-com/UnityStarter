@@ -6,8 +6,8 @@ Windows 10/11 x64，单文件约 10 MB。
 
 ## 功能
 
-- **项目**：扫描磁盘与两个 Hub 的项目列表，搜索、收藏、双击或按钮用对应版本编辑器打开，手动添加、新建项目。
-- **安装**：识别 Unity / 团结引擎已安装的编辑器（默认目录、Hub 的 `secondaryInstallPath.json`、自定义目录），可启动与定位。
+- **项目**：扫描磁盘与两个 Hub 的项目列表；行内显示引擎、渲染管线（URP/HDRP/内置）、Git / SVN / Lore 分支与未提交状态，可一键打开仓库地址；搜索、收藏、双击打开、手动添加、新建项目。
+- **安装与下载**：识别 Unity / 团结引擎已安装的编辑器（默认目录、Hub 的 `secondaryInstallPath.json`、自定义目录），多套版本并存管理；下载页直接列出 Unity 国际版（`services.api.unity.com` → `download.unity3d.com`）与团结引擎（`tuanjie.cn`）的官方安装包，不跳转、不换源。
 - **接管 Hub（双向）**：读取并写回 Hub 自己的文件。
   - Unity Hub：项目表 `projects-v1.json`、收藏 `favoriteProjects.json`，新增项目与收藏会写入 Hub，Hub 侧改动实时同步回来。
   - 团结引擎 Hub：收藏与目录双向；它的项目清单不存在可写文件，项目来自磁盘扫描。
@@ -45,7 +45,7 @@ UnityStarter.exe help
 ## 数据与日志
 
 - 设置：`%APPDATA%\UnityStarter\settings.json`（旧的带空格目录会在首次运行时读取）。
-- 日志：`%APPDATA%\UnityStarter\logs\app.log`，超过 1 MB 轮转一次；设置页有「打开日志」。
+- 日志：`%APPDATA%\UnityStarter\logs\app.log`，超过 1 MB 轮转，最多保留 5 份且超过 14 天自动删除；设置页有「打开日志」。
 - Hub 接管：`%APPDATA%\UnityHub`、`%APPDATA%\TuanjieHub`。
 
 ## 开发

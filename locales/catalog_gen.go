@@ -74,6 +74,146 @@ func (msgs Messages) SidebarSettings() string {
 	return Catalog.Format(msgs.locale, "sidebarSettings", nil)
 }
 
+// SidebarDownloads says "Downloads"
+// in the language the app shows.
+func SidebarDownloads() string { return In(i18n.Locale()).SidebarDownloads() }
+
+// SidebarDownloads says "Downloads"
+// in the language of msgs.
+func (msgs Messages) SidebarDownloads() string {
+	return Catalog.Format(msgs.locale, "sidebarDownloads", nil)
+}
+
+// PageDownloads says "Downloads"
+// in the language the app shows.
+func PageDownloads() string { return In(i18n.Locale()).PageDownloads() }
+
+// PageDownloads says "Downloads"
+// in the language of msgs.
+func (msgs Messages) PageDownloads() string {
+	return Catalog.Format(msgs.locale, "pageDownloads", nil)
+}
+
+// PageDownloadsHint says "Official installers, side by side: Unity from unity3d.com, Tuanjie from tuanjie.cn."
+// in the language the app shows.
+func PageDownloadsHint() string { return In(i18n.Locale()).PageDownloadsHint() }
+
+// PageDownloadsHint says "Official installers, side by side: Unity from unity3d.com, Tuanjie from tuanjie.cn."
+// in the language of msgs.
+func (msgs Messages) PageDownloadsHint() string {
+	return Catalog.Format(msgs.locale, "pageDownloadsHint", nil)
+}
+
+// DownloadsUnity says "Unity (international)"
+// in the language the app shows.
+func DownloadsUnity() string { return In(i18n.Locale()).DownloadsUnity() }
+
+// DownloadsUnity says "Unity (international)"
+// in the language of msgs.
+func (msgs Messages) DownloadsUnity() string {
+	return Catalog.Format(msgs.locale, "downloadsUnity", nil)
+}
+
+// DownloadsTuanjie says "Tuanjie engine"
+// in the language the app shows.
+func DownloadsTuanjie() string { return In(i18n.Locale()).DownloadsTuanjie() }
+
+// DownloadsTuanjie says "Tuanjie engine"
+// in the language of msgs.
+func (msgs Messages) DownloadsTuanjie() string {
+	return Catalog.Format(msgs.locale, "downloadsTuanjie", nil)
+}
+
+// DownloadsInstalled says "Installed"
+// in the language the app shows.
+func DownloadsInstalled() string { return In(i18n.Locale()).DownloadsInstalled() }
+
+// DownloadsInstalled says "Installed"
+// in the language of msgs.
+func (msgs Messages) DownloadsInstalled() string {
+	return Catalog.Format(msgs.locale, "downloadsInstalled", nil)
+}
+
+// DownloadsEmpty says "No releases found."
+// in the language the app shows.
+func DownloadsEmpty() string { return In(i18n.Locale()).DownloadsEmpty() }
+
+// DownloadsEmpty says "No releases found."
+// in the language of msgs.
+func (msgs Messages) DownloadsEmpty() string {
+	return Catalog.Format(msgs.locale, "downloadsEmpty", nil)
+}
+
+// DownloadsLoading says "Loading releases…"
+// in the language the app shows.
+func DownloadsLoading() string { return In(i18n.Locale()).DownloadsLoading() }
+
+// DownloadsLoading says "Loading releases…"
+// in the language of msgs.
+func (msgs Messages) DownloadsLoading() string {
+	return Catalog.Format(msgs.locale, "downloadsLoading", nil)
+}
+
+// DownloadsError says "Could not load releases: {error}"
+// in the language the app shows.
+func DownloadsError(error string) string { return In(i18n.Locale()).DownloadsError(error) }
+
+// DownloadsError says "Could not load releases: {error}"
+// in the language of msgs.
+func (msgs Messages) DownloadsError(error string) string {
+	return Catalog.Format(msgs.locale, "downloadsError", map[string]any{"error": error})
+}
+
+// DownloadsArchive says "All versions"
+// in the language the app shows.
+func DownloadsArchive() string { return In(i18n.Locale()).DownloadsArchive() }
+
+// DownloadsArchive says "All versions"
+// in the language of msgs.
+func (msgs Messages) DownloadsArchive() string {
+	return Catalog.Format(msgs.locale, "downloadsArchive", nil)
+}
+
+// ActionDownload says "Download"
+// in the language the app shows.
+func ActionDownload() string { return In(i18n.Locale()).ActionDownload() }
+
+// ActionDownload says "Download"
+// in the language of msgs.
+func (msgs Messages) ActionDownload() string {
+	return Catalog.Format(msgs.locale, "actionDownload", nil)
+}
+
+// PipelineBuiltin says "Built-in"
+// in the language the app shows.
+func PipelineBuiltin() string { return In(i18n.Locale()).PipelineBuiltin() }
+
+// PipelineBuiltin says "Built-in"
+// in the language of msgs.
+func (msgs Messages) PipelineBuiltin() string {
+	return Catalog.Format(msgs.locale, "pipelineBuiltin", nil)
+}
+
+// VcsDirty says "Uncommitted changes"
+// in the language the app shows.
+func VcsDirty() string { return In(i18n.Locale()).VcsDirty() }
+
+// VcsDirty says "Uncommitted changes"
+// in the language of msgs.
+func (msgs Messages) VcsDirty() string {
+	return Catalog.Format(msgs.locale, "vcsDirty", nil)
+}
+
+// ActionRepo says "Open repository"
+// in the language the app shows.
+func ActionRepo() string { return In(i18n.Locale()).ActionRepo() }
+
+// ActionRepo says "Open repository"
+// in the language of msgs.
+func (msgs Messages) ActionRepo() string {
+	return Catalog.Format(msgs.locale, "actionRepo", nil)
+}
+
 // SidebarWorkspace says "Workspace"
 // in the language the app shows.
 func SidebarWorkspace() string { return In(i18n.Locale()).SidebarWorkspace() }

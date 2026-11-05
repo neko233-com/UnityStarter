@@ -50,16 +50,32 @@ func (a *app) filteredProjects() []projectEntry {
 
 func (a *app) projectRow(c *ui.Context, p projectEntry) {
 	t := c.Theme()
-	row := ui.Row(c).Padding(12, 18).Gap(16).AlignItems(ui.Center).Children(func() {
-		ui.Column(c).Grow(1).Gap(3).Children(func() {
+	row := ui.Row(c).Padding(14, 18).Gap(16).AlignItems(ui.Center).Children(func() {
+		ui.Column(c).Grow(1).Gap(5).Children(func() {
 			ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-				ui.Text(c, p.Name).FontSize(14).Bold().Clip()
+				ui.Text(c, p.Name).FontSize(16).Bold().Clip()
 				ui.Badge(c, channelName(p.Kind))
+				if p.Pipeline != "" {
+					ui.Badge(c, pipelineName(p.Pipeline))
+				}
+				if p.VCS.Kind != "" {
+					badge := strings.ToUpper(p.VCS.Kind)
+					if p.VCS.Branch != "" {
+						badge += " · " + p.VCS.Branch
+					}
+					if p.VCS.Dirty {
+						badge += " •"
+					}
+					b := ui.Badge(c, badge).FontSize(11)
+					if p.VCS.Dirty {
+						b.Tooltip(locales.VcsDirty())
+					}
+				}
 			})
-			ui.Text(c, p.Path).FontSize(11).TextColor(t.TextMuted).Clip()
+			ui.Text(c, p.Path).FontSize(12).TextColor(t.TextMuted).Clip()
 		})
-		ui.Column(c).Width(150).Gap(3).Children(func() {
-			ui.Text(c, p.Version).FontSize(12)
+		ui.Column(c).Width(170).Gap(4).Children(func() {
+			ui.Text(c, p.Version).FontSize(13)
 			ui.Text(c, locales.OpenedAt(a.formatTime(p.Modified))).FontSize(11).TextColor(t.TextMuted)
 		})
 		ui.Row(c).Gap(6).Children(func() {
@@ -70,6 +86,11 @@ func (a *app) projectRow(c *ui.Context, p projectEntry) {
 			}
 			if ui.Button(c, star).Tooltip(tip).Width(38).Clicked() {
 				a.toggleFavorite(p)
+			}
+			if p.VCS.Remote != "" && isWebURL(p.VCS.Remote) {
+				if ui.Button(c, strings.ToUpper(p.VCS.Kind)).Tooltip(locales.ActionRepo()).Clicked() {
+					_ = mygo.Shell.OpenExternal(p.VCS.Remote)
+				}
 			}
 			if p.Editor == "" {
 				ui.Button(c, locales.ActionOpen()).Disabled(true).Tooltip(locales.EditorMissing(p.Version))
@@ -85,6 +106,23 @@ func (a *app) projectRow(c *ui.Context, p projectEntry) {
 	if row.RowDoubleClicked() {
 		a.openProject(p)
 	}
+}
+
+// pipelineName is the badge of a render pipeline.
+func pipelineName(pipeline string) string {
+	switch pipeline {
+	case "urp":
+		return "URP"
+	case "hdrp":
+		return "HDRP"
+	default:
+		return locales.PipelineBuiltin()
+	}
+}
+
+// isWebURL reports whether a repository URL can be opened in a browser.
+func isWebURL(raw string) bool {
+	return strings.HasPrefix(raw, "http://") || strings.HasPrefix(raw, "https://")
 }
 
 func channelName(kind string) string {

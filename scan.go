@@ -42,6 +42,10 @@ type projectEntry struct {
 	Hub string
 	// Favorite is the hub's star.
 	Favorite bool
+	// Pipeline is the render pipeline the project's packages name.
+	Pipeline string
+	// VCS is the version control the project is kept in.
+	VCS vcsInfo
 }
 
 // prefs is what the app keeps between launches.
@@ -238,6 +242,8 @@ func scanProjectsIn(p prefs, editors []editorInstall, hubs []hub, roots []string
 			Editor:   byVersion[version],
 			Hub:      hint.Hub,
 			Favorite: hint.Favorite,
+			Pipeline: detectPipeline(dir),
+			VCS:      detectVSCCached(dir),
 		}
 	}
 

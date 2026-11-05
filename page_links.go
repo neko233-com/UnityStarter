@@ -129,6 +129,8 @@ func (a *app) licensePage(c *ui.Context) {
 					if loc.IsDir {
 						ui.Text(c, locales.LicensesFiles(loc.Files)).FontSize(11).TextColor(t.TextMuted)
 					}
+					ui.Text(c, humanSize(loc.Size)).FontSize(11).TextColor(t.TextMuted).Width(76)
+					ui.Text(c, a.formatTime(loc.Modified)).FontSize(11).TextColor(t.TextMuted).Width(96)
 					if ui.Button(c, locales.ActionFolder()).Clicked() {
 						mygo.Shell.ShowItemInFolder(loc.Path)
 					}

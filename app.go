@@ -15,18 +15,19 @@ import (
 )
 
 const (
-	pageProjects = "/projects"
-	pageInstalls = "/installs"
-	pageStore    = "/store"
-	pagePublish  = "/publish"
-	pageLicense  = "/license"
-	pageDocs     = "/docs"
-	pageFeedback = "/feedback"
-	pageSettings = "/settings"
+	pageProjects  = "/projects"
+	pageInstalls  = "/installs"
+	pageDownloads = "/downloads"
+	pageStore     = "/store"
+	pagePublish   = "/publish"
+	pageLicense   = "/license"
+	pageDocs      = "/docs"
+	pageFeedback  = "/feedback"
+	pageSettings  = "/settings"
 
 	// appVersion is what the CLI prints and what the window shows when MyGo
 	// does not know the packaged version.
-	appVersion = "1.0.0"
+	appVersion = "1.1.0"
 	// appName is the name of the executable and of the app's data folder, as
 	// mygo.json names the app; the window shows a name with a space.
 	appName = "UnityStarter"
@@ -55,6 +56,14 @@ type app struct {
 
 	// diagCopied says the diagnostics were just copied, beside their button.
 	diagCopied bool
+
+	// downloads is what the engines offer to install, read from the caches
+	// and from Unity's releases API.
+	downloads      []downloadEntry
+	downloadsSince time.Time
+	downloadsBusy  bool
+	downloadsReady bool
+	downloadsErr   string
 
 	newOpen   bool
 	newDir    string
@@ -122,6 +131,7 @@ func (a *app) view(c *ui.Context) {
 					ui.SidebarItem(c, pageInstalls, iconInstalls, locales.SidebarInstalls()).Children(func() {
 						ui.Badge(c, fmt.Sprint(len(a.editors)))
 					})
+					ui.SidebarItem(c, pageDownloads, iconDownload, locales.SidebarDownloads())
 				})
 				ui.SidebarSection(c, locales.SidebarServices(), nil, func() {
 					ui.SidebarItem(c, pageStore, iconStore, locales.PageStore())
@@ -139,6 +149,8 @@ func (a *app) view(c *ui.Context) {
 			switch a.page {
 			case pageInstalls:
 				a.installsPage(c)
+			case pageDownloads:
+				a.downloadsPage(c)
 			case pageStore:
 				a.storePage(c)
 			case pagePublish:

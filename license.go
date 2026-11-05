@@ -4,14 +4,17 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"time"
 )
 
 // licenseLocation is a file an editor keeps its license in, or the folder the
 // Unity licensing client keeps them in.
 type licenseLocation struct {
-	Path  string
-	IsDir bool
-	Files int
+	Path     string
+	IsDir    bool
+	Files    int
+	Size     int64
+	Modified time.Time
 }
 
 // licenseLocations finds the licenses installed on this machine, for the
@@ -45,10 +48,18 @@ func licenseLocations() []licenseLocation {
 		if err != nil {
 			continue
 		}
-		loc := licenseLocation{Path: path, IsDir: info.IsDir()}
+		loc := licenseLocation{Path: path, IsDir: info.IsDir(), Size: info.Size(), Modified: info.ModTime()}
 		if loc.IsDir {
-			if entries, err := os.ReadDir(path); err == nil {
-				loc.Files = len(entries)
+			entries, err := os.ReadDir(path)
+			if err != nil {
+				continue
+			}
+			loc.Files = len(entries)
+			loc.Size = 0
+			for _, entry := range entries {
+				if entryInfo, err := entry.Info(); err == nil {
+					loc.Size += entryInfo.Size()
+				}
 			}
 			if loc.Files == 0 {
 				continue
