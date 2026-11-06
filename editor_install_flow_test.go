@@ -49,9 +49,8 @@ func TestEditorOneClickWithInstallerFixture(t *testing.T) {
 		t.Fatal(installErr)
 	}
 	path := filepath.Join(root, e.Version, "Editor", "Unity.exe")
-	got, err := os.ReadFile(path)
-	if err != nil || string(got) != "editor fixture" {
-		t.Fatalf("fixture editor missing: %q %v", got, err)
+	if got := editorExecutableVersion(path); got != e.Version {
+		t.Fatalf("fixture editor version: %q", got)
 	}
 }
 
@@ -131,10 +130,11 @@ func TestEditorInstallReverifiesBeforeLaunching(t *testing.T) {
 		}
 		return os.WriteFile(filepath.Join(dir, "Editor", "Unity.exe"), []byte("fixture"), 0o600)
 	}
+	verify := func(engine, version, dir string) error { return nil }
 	if err := os.WriteFile(installer, []byte("tampered installer"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := installVerifiedEditor(e, installer, dest, run); err == nil || called != 0 {
+	if err := installVerifiedEditorWith(e, installer, dest, run, verify); err == nil || called != 0 {
 		t.Fatal("tampered installer executed")
 	}
 	if _, err := os.Stat(dest); !os.IsNotExist(err) {
@@ -143,15 +143,85 @@ func TestEditorInstallReverifiesBeforeLaunching(t *testing.T) {
 	if err := os.WriteFile(installer, body, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := installVerifiedEditor(e, installer, dest, run); err != nil || called != 1 {
+	if err := installVerifiedEditorWith(e, installer, dest, run, verify); err != nil || called != 1 {
 		t.Fatalf("verified installation failed: %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(dest, installMarker)); !os.IsNotExist(err) {
 		t.Fatal("successful install marker remains")
 	}
-	if err := installVerifiedEditor(e, installer, dest, run); err == nil || called != 1 {
+	if err := installVerifiedEditorWith(e, installer, dest, run, verify); err == nil || called != 1 {
 		t.Fatal("existing editor overwritten")
 	}
+}
+
+func TestEditorInstallRejectsIncompleteOrWrongVersion(t *testing.T) {
+	body := []byte("verified installer")
+	e := editorInstallFixture(body)
+	root := t.TempDir()
+	installer := filepath.Join(root, "installer.exe")
+	if err := os.WriteFile(installer, body, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	dest := filepath.Join(root, e.Version)
+	run := func(_, _, dir string) error {
+		if err := os.MkdirAll(filepath.Join(dir, "Editor"), 0o755); err != nil {
+			return err
+		}
+		return os.WriteFile(filepath.Join(dir, "Editor", "Unity.exe"), []byte("fixture"), 0o600)
+	}
+	version := e.Version
+	verify := func(engine, expected, dir string) error {
+		return verifyInstalledEditorWithVersion(engine, expected, dir, func(string) string { return version })
+	}
+	if err := installVerifiedEditorWith(e, installer, dest, run, verify); err == nil {
+		t.Fatal("missing core files accepted")
+	}
+	if _, err := os.Stat(filepath.Join(dest, installMarker)); err != nil {
+		t.Fatal("incomplete installation marker missing")
+	}
+	if got := scanEditorsIn([]string{dest}); len(got) != 0 {
+		t.Fatalf("incomplete editor was visible: %+v", got)
+	}
+	for _, dir := range []string{"Editor/Data/Managed", "Editor/Data/Resources", "Editor/Data/PlaybackEngines"} {
+		if err := os.MkdirAll(filepath.Join(dest, filepath.FromSlash(dir)), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, name := range []string{"UnityEngine.dll", "UnityEditor.dll"} {
+		if err := os.WriteFile(filepath.Join(dest, "Editor", "Data", "Managed", name), []byte("fixture"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	version = "6000.0.0f1"
+	if err := installVerifiedEditorWith(e, installer, dest, run, verify); err == nil {
+		t.Fatal("wrong version accepted")
+	}
+	if _, err := os.Stat(filepath.Join(dest, installMarker)); err != nil {
+		t.Fatal("wrong-version marker missing")
+	}
+	version = e.Version
+	if err := installVerifiedEditorWith(e, installer, dest, run, verify); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(dest, installMarker)); !os.IsNotExist(err) {
+		t.Fatal("validated installation retained marker")
+	}
+}
+
+func TestInstalledRealEditorVersionAndCoreFiles(t *testing.T) {
+	root := os.Getenv("UNITYSTARTER_REAL_EDITOR_ROOT")
+	version := os.Getenv("UNITYSTARTER_REAL_EDITOR_VERSION")
+	engine := os.Getenv("UNITYSTARTER_REAL_EDITOR_ENGINE")
+	if root == "" || version == "" || engine == "" {
+		t.Skip("explicit installed editor validation")
+	}
+	if err := verifyInstalledEditor(engine, version, root); err != nil {
+		t.Fatal(err)
+	}
+	if err := verifyInstalledEditor(engine, "0.0.0f1", root); err == nil {
+		t.Fatal("wrong version accepted")
+	}
+	t.Logf("verified editor product version and core files: %s %s", engine, version)
 }
 
 func TestDownloadAndInstallActionShown(t *testing.T) {

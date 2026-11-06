@@ -372,6 +372,10 @@ func (a *app) installJob(job *downloadJob) {
 }
 
 func installVerifiedEditor(entry downloadEntry, installer, dest string, run func(string, string, string) error) error {
+	return installVerifiedEditorWith(entry, installer, dest, run, verifyInstalledEditor)
+}
+
+func installVerifiedEditorWith(entry downloadEntry, installer, dest string, run func(string, string, string) error, verify func(string, string, string) error) error {
 	if err := validateEditorInstallEntry(entry); err != nil {
 		return err
 	}
@@ -389,7 +393,7 @@ func installVerifiedEditor(entry downloadEntry, installer, dest string, run func
 	if err := run(installer, entry.Engine, dest); err != nil {
 		return err
 	}
-	if err := verifyInstalledEditor(entry.Engine, dest); err != nil {
+	if err := verify(entry.Engine, entry.Version, dest); err != nil {
 		return err
 	}
 	return os.Remove(filepath.Join(dest, installMarker))
@@ -413,13 +417,34 @@ func prepareEditorInstall(dest string) error {
 	return os.WriteFile(filepath.Join(dest, installMarker), []byte("Installation incomplete; retry from UnityStarter.\n"), 0o644)
 }
 
-func verifyInstalledEditor(engine, dest string) error {
+func verifyInstalledEditor(engine, version, dest string) error {
+	return verifyInstalledEditorWithVersion(engine, version, dest, editorExecutableVersion)
+}
+
+func verifyInstalledEditorWithVersion(engine, version, dest string, readVersion func(string) string) error {
 	name := "Unity.exe"
 	if engine == kindTuanjie {
 		name = "Tuanjie.exe"
 	}
-	if info, err := os.Stat(filepath.Join(dest, "Editor", name)); err != nil || info.IsDir() {
-		return fmt.Errorf("installer finished but %s was not found in %s", name, dest)
+	if engine != kindUnity && engine != kindTuanjie {
+		return fmt.Errorf("invalid editor engine")
+	}
+	for _, rel := range []string{filepath.Join("Editor", name), filepath.Join("Editor", "Data", "Managed", "UnityEngine.dll"), filepath.Join("Editor", "Data", "Managed", "UnityEditor.dll")} {
+		file := filepath.Join(dest, rel)
+		info, err := os.Lstat(file)
+		if err != nil || !info.Mode().IsRegular() || info.Size() == 0 {
+			return fmt.Errorf("editor installation is incomplete: %s", rel)
+		}
+	}
+	for _, rel := range []string{filepath.Join("Editor", "Data", "Resources"), filepath.Join("Editor", "Data", "PlaybackEngines")} {
+		info, err := os.Stat(filepath.Join(dest, rel))
+		if err != nil || !info.IsDir() {
+			return fmt.Errorf("editor installation is incomplete: %s", rel)
+		}
+	}
+	actual := readVersion(filepath.Join(dest, "Editor", name))
+	if actual == "" || !strings.EqualFold(actual, version) {
+		return fmt.Errorf("editor version mismatch: expected %s, found %s", version, actual)
 	}
 	return nil
 }
