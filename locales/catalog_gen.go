@@ -386,6 +386,38 @@ func (msgs Messages) ActivityEmpty() string {
 	return Catalog.Format(msgs.locale, "activityEmpty", nil)
 }
 
+// ActivityViewAll says "View all tasks"
+// in the language the app shows.
+func ActivityViewAll() string { return In(i18n.Locale()).ActivityViewAll() }
+
+// ActivityViewAll says "View all tasks"
+// in the language of msgs.
+func (msgs Messages) ActivityViewAll() string {
+	return Catalog.Format(msgs.locale, "activityViewAll", nil)
+}
+
+// ActivityOtherEngineTasks says "Active tasks in the other engine: {count}"
+// in the language the app shows.
+func ActivityOtherEngineTasks(count int) string {
+	return In(i18n.Locale()).ActivityOtherEngineTasks(count)
+}
+
+// ActivityOtherEngineTasks says "Active tasks in the other engine: {count}"
+// in the language of msgs.
+func (msgs Messages) ActivityOtherEngineTasks(count int) string {
+	return Catalog.Format(msgs.locale, "activityOtherEngineTasks", map[string]any{"count": count})
+}
+
+// ActivityOtherJobs says "Other active editor tasks: {count}"
+// in the language the app shows.
+func ActivityOtherJobs(count int) string { return In(i18n.Locale()).ActivityOtherJobs(count) }
+
+// ActivityOtherJobs says "Other active editor tasks: {count}"
+// in the language of msgs.
+func (msgs Messages) ActivityOtherJobs(count int) string {
+	return Catalog.Format(msgs.locale, "activityOtherJobs", map[string]any{"count": count})
+}
+
 // ActionBackground says "Run in background"
 // in the language the app shows.
 func ActionBackground() string { return In(i18n.Locale()).ActionBackground() }

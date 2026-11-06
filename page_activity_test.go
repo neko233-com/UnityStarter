@@ -61,3 +61,27 @@ func TestBackgroundEditorJobsAcrossEngines(t *testing.T) {
 		t.Fatalf("jobs missing: %q", tt.Texts())
 	}
 }
+
+func TestEditorActivityBannerShowsOtherEngineAndParallelJobs(t *testing.T) {
+	a := newApp()
+	a.page = pageTuanjieProjects
+	a.activeEngine = kindTuanjie
+	unity := &downloadJob{Entry: downloadEntry{Engine: kindUnity, Version: "7000.0.0a16"}, Status: "downloading", Done: 10, Total: 20}
+	a.jobs = map[string]*downloadJob{jobKey(unity.Entry): unity}
+	tt := ui.NewTester(a.view, 1180, 760)
+	if !tt.HasText(locales.ActivityOtherEngineTasks(1)) || tt.HasText("7000.0.0a16") {
+		t.Fatalf("other engine's task should be summarized without mixing versions: %q", tt.Texts())
+	}
+	tuanjie := &downloadJob{Entry: downloadEntry{Engine: kindTuanjie, Version: "2022.3.62t17"}, Status: "installing"}
+	a.jobs[jobKey(tuanjie.Entry)] = tuanjie
+	tt.Frame()
+	if !tt.HasText(channelName(kindTuanjie)+" · 2022.3.62t17") || !tt.HasText(locales.ActivityOtherJobs(1)) {
+		t.Fatalf("current engine or parallel task count missing: %q", tt.Texts())
+	}
+	if err := tt.Click(locales.ActivityViewAll()); err != nil {
+		t.Fatal(err)
+	}
+	if a.page != pageActivity || !tt.HasText(channelName(kindUnity)+" · 7000.0.0a16") || !tt.HasText(channelName(kindTuanjie)+" · 2022.3.62t17") {
+		t.Fatalf("activity page did not show both tasks: %q", tt.Texts())
+	}
+}

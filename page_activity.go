@@ -43,30 +43,37 @@ func (a *app) editorActivityBanner(c *ui.Context) {
 		return
 	}
 	jobs := a.activityJobs(true)
+	if len(jobs) == 0 {
+		return
+	}
 	engine := a.activeEngine
 	switch a.page {
 	case pageProjects, pageFavorites, pageInstalls, pageDownloads, pageTuanjieProjects, pageTuanjieFavorites, pageTuanjieInstalls, pageTuanjieDownloads:
 		engine = engineForPage(a.page)
 	}
-	filtered := jobs[:0]
-	for _, job := range jobs {
-		if job.Entry.Engine == engine {
-			filtered = append(filtered, job)
+	var job *downloadJob
+	for _, candidate := range jobs {
+		if candidate.Entry.Engine == engine {
+			job = candidate
+			break
 		}
 	}
-	jobs = filtered
-	if len(jobs) == 0 {
-		return
-	}
-	job := jobs[0]
 	ui.Row(c).Padding(8, 22).Gap(10).AlignItems(ui.Center).Background(c.Theme().Surface).Children(func() {
+		if job == nil {
+			ui.Text(c, locales.ActivityOtherEngineTasks(len(jobs))).FontSize(12).Grow(1).Clip()
+			ui.Button(c, locales.ActivityViewAll()).OnClick(func() { a.page = pageActivity })
+			return
+		}
 		ui.Text(c, channelName(job.Entry.Engine)+" · "+job.Entry.Version).FontSize(12).Grow(1).Clip()
+		if len(jobs) > 1 {
+			ui.Text(c, locales.ActivityOtherJobs(len(jobs)-1)).FontSize(11).TextColor(c.Theme().TextMuted).Clip()
+		}
 		if job.Status == "downloading" && job.Total > 0 {
 			ui.Progress(c, min(1, max(0, float64(job.Done)/float64(job.Total)))).Width(130)
 		} else {
 			ui.Progress(c, -1).Width(130)
 		}
-		ui.Button(c, locales.ActivityTitle()).OnClick(func() { a.page = pageActivity })
+		ui.Button(c, locales.ActivityViewAll()).OnClick(func() { a.page = pageActivity })
 	})
 }
 
