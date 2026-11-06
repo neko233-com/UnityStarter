@@ -80,20 +80,48 @@ func (a *app) installsPage(c *ui.Context) {
 				if ui.Button(c, locales.ActionFolder()).Clicked() {
 					mygo.Shell.ShowItemInFolder(e.Exe)
 				}
-				ui.Button(c, locales.InstallManage()).Disabled(a.moduleBusy).OnClick(func() {
-					a.manageEditor = e
-					a.manageOpen = true
-					a.manageModules = false
-					a.manageUninstall = false
-					a.moduleStatus = ""
-					a.androidPlan = nil
-				})
+				otherBusy := (a.moduleBusy || a.moduleLoading) && !strings.EqualFold(a.manageEditor.Exe, e.Exe)
+				ui.Button(c, locales.InstallManage()).Disabled(otherBusy).OnClick(func() { a.openEditorManagement(e) })
 			})
 		})
 	}).Grow(1).Children(func() {
 		if len(editors) == 0 {
 			a.emptyState(c, locales.InstallsEmptyTitle(), locales.InstallsEmptyHint())
 		}
+	})
+}
+
+func (a *app) openEditorManagement(e editorInstall) {
+	same := a.manageEditor.Exe != "" && strings.EqualFold(a.manageEditor.Exe, e.Exe)
+	if (a.moduleBusy || a.moduleLoading) && !same {
+		return
+	}
+	if same && (a.moduleBusy || a.moduleLoading || (a.manageModules && a.moduleStatus != "")) {
+		a.manageOpen, a.manageModules, a.manageUninstall = true, true, false
+		return
+	}
+	a.manageEditor, a.manageOpen = e, true
+	a.manageModules, a.manageUninstall = false, false
+	a.moduleStatus, a.androidPlan = "", nil
+}
+
+// A dismissed modal must not strand an active module operation. Keep a
+// route back to its status and cancellation on every page and engine tab.
+func (a *app) moduleActivityBanner(c *ui.Context) {
+	active := a.moduleBusy || a.moduleLoading
+	if a.manageOpen || (!active && (!a.manageModules || a.moduleStatus == "")) {
+		return
+	}
+	status := a.moduleStatus
+	if status == "" {
+		status = locales.InstallModuleLoading()
+	}
+	ui.Row(c).Padding(8, 22).Gap(10).AlignItems(ui.Center).Background(c.Theme().Surface).Children(func() {
+		if active {
+			ui.Spinner(c)
+		}
+		ui.Text(c, displayVersion(a.manageEditor.Version, a.manageEditor.DisplayVersion)+" · "+status).Grow(1).FontSize(12).Clip()
+		ui.Button(c, locales.InstallModules()).OnClick(func() { a.openEditorManagement(a.manageEditor) })
 	})
 }
 

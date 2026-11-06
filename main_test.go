@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"image"
 	"image/png"
 	"os"
@@ -236,6 +237,66 @@ func TestModuleCatalogOfflineNoticeAndRefresh(t *testing.T) {
 		if err := writePNG(path, tt.Image()); err != nil {
 			t.Fatal(err)
 		}
+	}
+}
+
+func TestModuleOperationCanBeReopenedAfterDismissal(t *testing.T) {
+	for _, loading := range []bool{false, true} {
+		t.Run(fmt.Sprintf("loading=%v", loading), func(t *testing.T) {
+			a := fixture()
+			e := editorInstall{Version: "2022.3.51f1", Kind: kindUnity, Exe: `C:\Editors\Unity.exe`}
+			a.manageEditor, a.manageOpen, a.manageModules = e, true, true
+			a.moduleBusy, a.moduleLoading = !loading, loading
+			a.moduleStatus = "operation in progress"
+			cancelled := false
+			a.moduleCancel = func() { cancelled = true }
+			tt := ui.NewTester(a.view, 1180, 760)
+			tt.Key(0, ui.KeyEscape)
+			tt.Frame()
+			if a.manageOpen || !tt.HasText("operation in progress") {
+				t.Fatal("dismissed operation has no persistent entry point")
+			}
+			a.openEditorManagement(editorInstall{Exe: `C:\Other\Unity.exe`})
+			if a.manageOpen || a.manageEditor.Exe != e.Exe {
+				t.Fatal("another editor replaced the active operation")
+			}
+			if err := tt.Click(locales.InstallModules()); err != nil {
+				t.Fatal(err)
+			}
+			tt.Frame()
+			if !a.manageOpen || !a.manageModules || a.manageEditor.Exe != e.Exe || !tt.HasText("operation in progress") {
+				t.Fatal("reopened operation lost its editor or status")
+			}
+			if !loading {
+				if err := tt.Click(locales.ActionCancel()); err != nil {
+					t.Fatal(err)
+				}
+				if !cancelled {
+					t.Fatal("reopened operation cannot be cancelled")
+				}
+			}
+		})
+	}
+}
+
+func TestModuleResultRemainsVisibleUntilAcknowledged(t *testing.T) {
+	a := fixture()
+	a.manageEditor = editorInstall{Version: "2022.3.51f1", Kind: kindUnity, Exe: `C:\Editors\Unity.exe`}
+	a.manageModules = true
+	a.moduleStatus = "module result"
+	tt := ui.NewTester(a.view, 1180, 760)
+	if !tt.HasText("module result") {
+		t.Fatal("completed module result was lost after dismissing the dialog")
+	}
+	if err := tt.Click(locales.InstallModules()); err != nil {
+		t.Fatal(err)
+	}
+	if err := tt.Click(locales.DialogOK()); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.manageOpen || tt.HasText("module result") {
+		t.Fatal("acknowledged result remains visible")
 	}
 }
 

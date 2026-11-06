@@ -6,7 +6,7 @@ Windows 10/11 x64，单文件约 10 MB。
 
 ## 功能
 
-- **项目**：扫描磁盘、Hub 项目表以及 Unity／团结 Editor 在 Windows 注册表中的最近项目；自动发现时跳过系统临时目录中的最近项目，手动添加、收藏或 Hub 明确列出的项目仍会保留。支持搜索、排序、收藏、双击打开、手动添加和新建项目。项目行的更多菜单可隐藏项目，在设置中可恢复；这只影响 UnityStarter，不修改项目文件或 Hub 记录。项目列表优先显示，Git 状态在后台补充；没有 Hub 或关闭同步时，收藏保存在本机。点击项目行的编辑器版本，可以选择同一引擎的已安装版本；选择不同版本时确认风险后再打开，项目版本由 Editor 实际迁移。新建项目时，同版本的多个安装目录可分别选择，项目名必须是有效的文件夹名称。
+- **项目**：扫描磁盘、Hub 项目表以及 Unity／团结 Editor 在 Windows 注册表中的最近项目；自动发现时跳过系统临时目录和已有项目的 `Library`／`Temp` 内的工作副本，手动添加、收藏或 Hub 明确列出的项目仍会保留。支持搜索、排序、收藏、双击打开、手动添加和新建项目。项目行的更多菜单可隐藏项目，在设置中可恢复；这只影响 UnityStarter，不修改项目文件或 Hub 记录。项目列表优先显示，Git 状态在后台补充；没有 Hub 或关闭同步时，收藏保存在本机。点击项目行的编辑器版本，可以选择同一引擎的已安装版本；选择不同版本时确认风险后再打开，项目版本由 Editor 实际迁移。新建项目时，同版本的多个安装目录可分别选择，项目名必须是有效的文件夹名称。
 - **安装与下载**：识别 Unity / 团结引擎已安装的编辑器（默认目录、Hub 的 `secondaryInstallPath.json`、自定义目录），同版本的不同安装目录也可分别管理；可选择版本父目录、版本目录或 `Editor` 文件夹，Windows 上优先读取编辑器程序的实际版本。下载页分别读取两个引擎的官方版本清单，可按版本号查询 Unity 官方历史版本（每次最多 25 个匹配项），一次点击下载并安装具备官方校验信息的版本，安装目录在点击时确定；执行安装程序前再次核对文件。官方服务器支持时使用最多 6 个连接并行下载；具有校验值的编辑器及 OpenJDK 包支持网络中断或异常退出后续传，取消下载会清理进度；不支持分段时使用单连接。离线时使用本程序最近一次缓存，首次使用可回退到本机 Hub 缓存。
 - **接管 Hub（双向）**：读取并写回 Hub 自己的文件。
   - Unity Hub：项目表 `projects-v1.json`、收藏 `favoriteProjects.json`，新增项目与收藏会写入 Hub，Hub 侧改动实时同步回来。
@@ -70,11 +70,12 @@ CLI 同样可用：`unitystarter install 6000.0.85f2 --simulate`。
 go tool mygo dev      # 开发（热重载）
 task test             # 测试与静态检查
 task build            # 构建 exe、NSIS 和 MSI
+task install-local    # 构建并替换本机 MSI，启动程序，不发布
 task checksums        # 生成 SHA256SUMS.txt
 go tool mygo generate # 修改 locales/*.json 后重新生成语言包
 ```
 
-`task install` 使用环境变量 `MSI_PATH`、`MSI_SHA256` 和 `EXE_SHA256` 校验、安装并启动 MSI。CI 见 `.github/workflows/ci.yml`：测试并构建产物；推送与版本一致的 `v*` 标签后通过 `task release` 发布 Release。
+`task install-local` 会先关闭本机 UnityStarter；若窗口未及时关闭，会强制结束受管理的 UnityStarter 进程，然后安装并启动本机构建。`task install` 使用环境变量 `MSI_PATH`、`MSI_SHA256` 和 `EXE_SHA256` 校验、安装并启动 MSI。CI 见 `.github/workflows/ci.yml`：测试并构建产物；推送与版本一致的 `v*` 标签后通过 `task release` 发布 Release。
 
 ## 已知限制
 

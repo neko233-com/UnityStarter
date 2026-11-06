@@ -412,7 +412,10 @@ func (a *app) editorManageDialog(c *ui.Context) {
 							}
 						})
 					} else if !a.moduleBusy {
-						ui.Button(c, locales.DialogOK()).OnClick(func() { a.manageOpen = false })
+						ui.Button(c, locales.DialogOK()).OnClick(func() {
+							a.manageOpen, a.manageModules = false, false
+							a.moduleStatus = ""
+						})
 					}
 				})
 				return

@@ -281,6 +281,7 @@ func (a *app) view(c *ui.Context) {
 				}).Grow(1)
 			})
 			ui.Column(c).Grow(1).Fill().Children(func() {
+				a.moduleActivityBanner(c)
 				a.updateBanner(c)
 				switch a.page {
 				case pageProjects, pageFavorites, pageTuanjieProjects, pageTuanjieFavorites:
