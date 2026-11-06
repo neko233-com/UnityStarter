@@ -10,6 +10,10 @@ tasks:
       - go test ./...
       - go vet ./...
       - go tool mygo vet .
+  test-native-activity:
+    desc: Verify native background module progress, cancellation and retry in an isolated fixture
+    cmds:
+      - pwsh -NoProfile -File _tools/test-native-activity.ps1
   build:
     desc: Build the native application, NSIS installer, and per-user MSI
     cmds:

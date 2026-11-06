@@ -85,6 +85,7 @@ CLI 同样可用：`unitystarter install 6000.0.85f2 --simulate`。
 ```sh
 go tool mygo dev      # 开发（热重载）
 task test             # 测试与静态检查
+task test-native-activity # 原生窗口验证后台进度、取消和重试（需网络）
 task build            # 构建 exe、NSIS 和 MSI
 task install-local    # 构建并替换本机 MSI，启动程序，不发布
 task checksums        # 生成 SHA256SUMS.txt
@@ -94,6 +95,8 @@ go tool mygo generate # 修改 locales/*.json 后重新生成语言包
 `task install-local` 会先关闭本机 UnityStarter；若窗口未及时关闭，会强制结束受管理的 UnityStarter 进程，然后安装并启动本机构建。`task install` 使用环境变量 `MSI_PATH`、`MSI_SHA256` 和 `EXE_SHA256` 校验、安装并启动 MSI。CI 见 `.github/workflows/ci.yml`：测试并构建产物；推送与版本一致的 `v*` 标签后通过 `task release` 发布 Release。
 
 设置 `UNITYSTARTER_TEST_OFFICIAL_BATCH=1` 后运行 `go test . -run TestOfficialLanguage`，可在临时编辑器目录实测官方语言包的批量下载、安装、取消和目标文件冲突；测试不会修改现有编辑器。队列调度使用测试回调，不能代替真实桌面交互或平台构建验收。
+
+`task test-native-activity` 下载并校验官方 Node.js 压缩包，通过本机限速服务和独立原生测试窗口检查后台进度、取消后的零安装与重试安装；仅操作临时编辑器，不会启动或修改本机真实编辑器。
 
 ## 已知限制
 

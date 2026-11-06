@@ -1,0 +1,67 @@
+package main
+
+import (
+	"bytes"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"time"
+
+	"github.com/egoist/mygo"
+	"github.com/egoist/mygo/ui"
+)
+
+type slowActivityWriter struct{ http.ResponseWriter }
+
+func (w slowActivityWriter) Write(p []byte) (int, error) {
+	total := 0
+	for len(p) > 0 {
+		n := min(len(p), 16<<10)
+		written, err := w.ResponseWriter.Write(p[:n])
+		total += written
+		if err != nil { return total, err }
+		p = p[written:]
+		time.Sleep(70 * time.Millisecond)
+	}
+	return total, nil
+}
+
+type activityTransport struct{ target string }
+
+func (t activityTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	copy := req.Clone(req.Context())
+	copy.URL.Scheme, copy.URL.Host = "http", t.target
+	return http.DefaultTransport.RoundTrip(copy)
+}
+
+func main() {
+	fixture := os.Getenv("UNITYSTARTER_ACTIVITY_FIXTURE")
+	data, err := os.ReadFile(filepath.Join(fixture, "node.zip"))
+	if err != nil { panic(err) }
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("ETag", `"activity-fixture"`)
+		http.ServeContent(slowActivityWriter{w}, r, "node.zip", time.Time{}, bytes.NewReader(data))
+	}))
+	defer server.Close()
+	http.DefaultClient = &http.Client{Transport: activityTransport{target: server.Listener.Addr().String()}}
+	root := filepath.Join(fixture, "editor")
+	if err := os.MkdirAll(filepath.Join(root, "Editor", "Data", "PlaybackEngines", "OpenHarmonyPlayer"), 0o755); err != nil { panic(err) }
+	m := editorModule{ID: openHarmonyNodeModule, Name: "Nodejs", Visible: true, Parent: "openharmony", URL: "https://mirrors.cloud.tencent.com/nodejs-release/v18.14.1/node-v18.14.1-win-x64.zip", Destination: "{UNITY_PATH}/Editor/Data/PlaybackEngines/OpenHarmonyPlayer/Nodejs"}
+	e := editorInstall{Kind: kindTuanjie, Version: "2022.3.62t17", Root: root, Exe: filepath.Join(root, "Editor", "Tuanjie.exe"), Modules: []editorModule{{ID: "openharmony", Name: "OpenHarmony", Visible: true, Selected: true}, m}}
+	a := newApp()
+	a.prefs.NoHubSync = true
+	a.manageEditor, a.manageOpen, a.manageModules = e, true, true
+	mygo.App.SetLocale("zh-Hans")
+	mygo.App.WhenReady(func() {
+		a.win = mygo.NewWindow(mygo.WindowOptions{Title: "UnityStarter Activity Fixture", Width: 1180, Height: 760, Content: ui.View(a.view)})
+	})
+	if err := mygo.App.Run(); err != nil { panic(err) }
+	if a.moduleBusy { panic("fixture closed while module still running") }
+	if !openHarmonyNodeFilesPresent(filepath.Join(root, "Editor", "Data", "PlaybackEngines", "OpenHarmonyPlayer", "Nodejs")) { panic("fixture module was not installed") }
+	modules := []editorModule{m}
+	applyOwnedModuleState(root, modules)
+	if !modules[0].Selected { panic("fixture module state missing") }
+	fmt.Println("Fixture module installed and recorded")
+}
