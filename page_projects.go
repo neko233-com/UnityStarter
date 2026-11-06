@@ -428,6 +428,10 @@ func indexOf(values []string, want string) int {
 }
 
 func (a *app) openNewProject() {
+	if a.templateWorkBusy() {
+		a.newOpen = true
+		return
+	}
 	a.newEngine = engineForPage(a.page)
 	_, exes := a.editorLabels()
 	if len(exes) == 0 {
@@ -439,6 +443,13 @@ func (a *app) openNewProject() {
 	a.newName = ""
 	a.newDir = a.defaultProjectDir()
 	a.newEditor = exes[0]
+	a.newTemplateQuery, a.newTemplateCategory = "", ""
+	a.newTemplateID, a.newTemplateSource, a.newTemplatesErr = "", "", ""
+	a.newTemplateChosen, a.newTemplateTerms = false, false
+	a.newTemplates = nil
+	if e, ok := a.editorInstall(a.newEditor); ok {
+		a.loadProjectTemplates(e, false)
+	}
 }
 
 func (a *app) defaultProjectDir() string {
@@ -451,57 +462,6 @@ func (a *app) defaultProjectDir() string {
 		return home
 	}
 	return ""
-}
-
-func (a *app) newProjectDialog(c *ui.Context) {
-	if !a.newOpen {
-		return
-	}
-	t := c.Theme()
-	ui.Modal(c, &a.newOpen, func() {
-		ui.Column(c).Width(460).Gap(16).Children(func() {
-			ui.Column(c).Gap(4).Children(func() {
-				ui.Text(c, locales.NewProjectTitle()).FontSize(18).Bold()
-				ui.Text(c, locales.NewProjectHint()).FontSize(12).TextColor(t.TextMuted)
-			})
-
-			ui.Column(c).Gap(6).Children(func() {
-				ui.Text(c, locales.NewProjectLocation()).FontSize(12).Bold()
-				ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-					label := a.newDir
-					if label == "" {
-						label = locales.NewProjectNotChosen()
-					}
-					ui.Text(c, label).FontSize(12).TextColor(t.TextMuted).Grow(1).Clip()
-					if ui.Button(c, locales.ActionChoose()).Clicked() {
-						a.pickFolder(locales.DialogChooseFolder(), func(dir string) { a.newDir = dir })
-					}
-				})
-			})
-
-			ui.TextInput(c, &a.newName).Label(locales.NewProjectName()).Placeholder("My Game")
-
-			labels, exes := a.editorLabels()
-			if len(labels) > 0 {
-				chosen := labels[indexOf(exes, a.newEditor)]
-				ui.Select(c, &chosen, labels).Label(locales.NewProjectEditor())
-				a.newEditor = exes[indexOf(labels, chosen)]
-			}
-
-			if a.newError != "" {
-				ui.Text(c, a.newError).FontSize(12).TextColor(t.Danger)
-			}
-
-			ui.Row(c).Gap(8).Justify(ui.End).Children(func() {
-				if ui.Button(c, locales.ActionCancel()).Clicked() {
-					a.newOpen = false
-				}
-				if ui.PrimaryButton(c, locales.ActionCreate()).Clicked() {
-					a.createProject()
-				}
-			})
-		})
-	})
 }
 
 // createProject has the chosen editor make the project, and opens it.
@@ -525,13 +485,41 @@ func (a *app) createProject() {
 		a.newError = locales.NewProjectExists(dir)
 		return
 	}
-	if err := startProjectCreation(dir, editor, a.launchEditor); err != nil {
-		a.newError = locales.OpenFailed(err.Error())
-		logger.Printf("new project: %v", err)
+	template, ok := a.selectedProjectTemplate()
+	if !ok || template.Archive == "" || a.newTemplateSource != templateEditorKey(editor) {
+		a.newError = locales.TemplateChooseFirst()
 		return
 	}
-	if abs, err := filepath.Abs(dir); err == nil {
-		a.pendingProjectList = append(a.pendingProjectList, pendingProject{Path: abs, Version: editor.Version, Kind: editor.Kind, CreatedAt: time.Now(), file: pendingProjectFile(abs)})
+	if template.TermsURL != "" && !a.newTemplateTerms {
+		a.newError = locales.TemplateTermsRequired()
+		return
 	}
-	a.newOpen = false
+	if a.newCreating {
+		return
+	}
+	launch := a.launchEditor
+	finish := func(err error) {
+		a.newCreating = false
+		if err != nil {
+			a.newError = locales.OpenFailed(err.Error())
+			if !a.newOpen {
+				a.alert(a.newError)
+			}
+			return
+		}
+		if abs, err := filepath.Abs(dir); err == nil {
+			a.pendingProjectList = append(a.pendingProjectList, pendingProject{Path: abs, Version: editor.Version, Kind: editor.Kind, CreatedAt: time.Now(), file: pendingProjectFile(abs)})
+		}
+		a.newOpen = false
+	}
+	if a.win == nil {
+		finish(startProjectCreationFromTemplate(dir, editor, template, launch))
+		return
+	}
+	a.newCreating = true
+	win := a.win
+	go func() {
+		err := startProjectCreationFromTemplate(dir, editor, template, launch)
+		win.Update(func() { finish(err) })
+	}()
 }

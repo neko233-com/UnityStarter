@@ -27,12 +27,26 @@ func pendingProjectFile(dir string) string {
 }
 
 func startProjectCreation(dir string, editor editorInstall, launch func(string, []string, string) error) error {
+	return startProjectCreationArgs(dir, editor, nil, launch)
+}
+
+func startProjectCreationFromTemplate(dir string, editor editorInstall, template projectTemplate, launch func(string, []string, string) error) error {
+	if err := verifyProjectTemplate(template, editor.Kind); err != nil {
+		return err
+	}
+	return startProjectCreationArgs(dir, editor, []string{"-cloneFromTemplate", template.Archive}, launch)
+}
+
+func startProjectCreationArgs(dir string, editor editorInstall, extra []string, launch func(string, []string, string) error) error {
 	if editor.Version == "" || editor.Exe == "" || (editor.Kind != kindUnity && editor.Kind != kindTuanjie) || kindOfVersion(editor.Version) != editor.Kind {
 		return fmt.Errorf("invalid editor version or engine")
 	}
 	dir, err := filepath.Abs(dir)
 	if err != nil {
 		return err
+	}
+	if entries, err := os.ReadDir(dir); err == nil && len(entries) > 0 {
+		return fmt.Errorf("project directory is not empty")
 	}
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
@@ -57,7 +71,7 @@ func startProjectCreation(dir string, editor editorInstall, launch func(string, 
 		_ = os.Remove(file)
 		return err
 	}
-	if err = launchWithEditorLock(editor.Exe, []string{"-createProject", dir}, filepath.Dir(editor.Exe), launch); err != nil {
+	if err = launchVersionCheckedEditor(editor.Exe, editor.Version, append([]string{"-createProject", dir}, extra...), filepath.Dir(editor.Exe), launch); err != nil {
 		_ = os.Remove(file)
 		return err
 	}

@@ -79,6 +79,9 @@ func uninstallVerifiedEditor(ctx context.Context, e editorInstall, running func(
 }
 
 func (a *app) editorWorkActive() bool {
+	if a.templateWorkBusy() {
+		return true
+	}
 	if a.moduleBusy || a.moduleLoading || a.uninstallBusy || len(a.moduleQueue) > 0 || a.androidPlan != nil {
 		return true
 	}

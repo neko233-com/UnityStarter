@@ -65,6 +65,16 @@ func main() {
 			a.win.SetTitle(locales.AppTitle())
 		})
 		mygo.App.OnBeforeQuit(func(event *mygo.QuitEvent) {
+			if a.templateWorkBusy() {
+				event.PreventDefault()
+				if a.newCreating {
+					a.newOpen = true
+				} else {
+					a.newOpen = false
+					a.page = pageActivity
+				}
+				return
+			}
 			if a.uninstallBusy {
 				event.PreventDefault()
 				a.alert(locales.InstallUninstallBusy())
@@ -85,6 +95,9 @@ func main() {
 			}
 			if a.scanCancel != nil {
 				a.scanCancel()
+			}
+			if a.newTemplatesCancel != nil {
+				a.newTemplatesCancel()
 			}
 			if a.updateCancel != nil {
 				a.updateCancel()

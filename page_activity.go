@@ -100,12 +100,13 @@ func (a *app) activityPage(c *ui.Context) {
 	module := a.manageModules && (a.moduleBusy || a.moduleLoading || len(a.moduleQueue) > 0 || a.androidPlan != nil || a.moduleStatus != "")
 	a.header(c, locales.ActivityTitle(), locales.ActivityBackgroundHint(), nil)
 	ui.Divider(c)
-	if len(jobs) == 0 && !module && a.visualStudioTask == nil {
+	if len(jobs) == 0 && !module && a.visualStudioTask == nil && a.templateJob == nil {
 		a.emptyState(c, locales.ActivityEmpty(), "")
 		return
 	}
 	ui.Scroll(c).Grow(1).Children(func() {
 		ui.Column(c).Padding(24).Gap(16).Children(func() {
+			a.templateActivityCard(c)
 			if task := a.visualStudioTask; task != nil {
 				c.Key("visual-studio")
 				panel(c, func() {

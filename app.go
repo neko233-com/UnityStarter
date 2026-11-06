@@ -37,7 +37,7 @@ const (
 
 	// appVersion is what the CLI prints and what the window shows when MyGo
 	// does not know the packaged version.
-	appVersion = "1.6.22"
+	appVersion = "1.6.23"
 	// appName is the name of the executable and of the app's data folder, as
 	// mygo.json names the app; the window shows a name with a space.
 	appName = "UnityStarter"
@@ -149,14 +149,27 @@ type app struct {
 	updateCtx     context.Context
 	updateCancel  context.CancelFunc
 
-	newOpen              bool
-	newDir               string
-	newName              string
-	newEditor            string
-	newEngine            string
-	newError             string
-	pendingProjectList   []pendingProject
-	pendingProjectErrors map[string]string
+	newOpen                bool
+	newDir                 string
+	newName                string
+	newEditor              string
+	newEngine              string
+	newError               string
+	newTemplates           []projectTemplate
+	newTemplateID          string
+	newTemplateQuery       string
+	newTemplateCategory    string
+	newTemplateSource      string
+	newTemplatesBusy       bool
+	newTemplatesErr        string
+	newTemplateChosen      bool
+	newTemplateTerms       bool
+	newTemplatesCancel     context.CancelFunc
+	newTemplatesGeneration uint64
+	newCreating            bool
+	templateJob            *templateDownloadJob
+	pendingProjectList     []pendingProject
+	pendingProjectErrors   map[string]string
 }
 
 func newApp() *app {
@@ -316,7 +329,11 @@ func (a *app) view(c *ui.Context) {
 				ui.Divider(c)
 				ui.Sidebar(c, &a.page, func() {
 					ui.SidebarItem(c, pageActivity, iconDownload, locales.ActivityTitle()).Children(func() {
-						if n := len(a.activityJobs(true)); n > 0 {
+						n := len(a.activityJobs(true))
+						if a.templateJob != nil && a.templateJob.Busy {
+							n++
+						}
+						if n > 0 {
 							ui.Badge(c, fmt.Sprint(n))
 						}
 					})
@@ -329,6 +346,7 @@ func (a *app) view(c *ui.Context) {
 				a.uninstallActivityBanner(c)
 				a.moduleActivityBanner(c)
 				a.visualStudioActivityBanner(c)
+				a.templateActivityBanner(c)
 				a.editorActivityBanner(c)
 				a.updateBanner(c)
 				switch a.page {

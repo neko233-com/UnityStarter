@@ -44,6 +44,240 @@ func (msgs Messages) AlertTitle() string {
 	return Catalog.Format(msgs.locale, "alertTitle", nil)
 }
 
+// TemplateChooseFirst says "Select and download a template before creating the project."
+// in the language the app shows.
+func TemplateChooseFirst() string { return In(i18n.Locale()).TemplateChooseFirst() }
+
+// TemplateChooseFirst says "Select and download a template before creating the project."
+// in the language of msgs.
+func (msgs Messages) TemplateChooseFirst() string {
+	return Catalog.Format(msgs.locale, "templateChooseFirst", nil)
+}
+
+// TemplateTermsRequired says "Read and accept this template's terms before continuing."
+// in the language the app shows.
+func TemplateTermsRequired() string { return In(i18n.Locale()).TemplateTermsRequired() }
+
+// TemplateTermsRequired says "Read and accept this template's terms before continuing."
+// in the language of msgs.
+func (msgs Messages) TemplateTermsRequired() string {
+	return Catalog.Format(msgs.locale, "templateTermsRequired", nil)
+}
+
+// TemplateCatalogFailed says "Official templates unavailable; local and cached templates remain usable. {error}"
+// in the language the app shows.
+func TemplateCatalogFailed(error string) string {
+	return In(i18n.Locale()).TemplateCatalogFailed(error)
+}
+
+// TemplateCatalogFailed says "Official templates unavailable; local and cached templates remain usable. {error}"
+// in the language of msgs.
+func (msgs Messages) TemplateCatalogFailed(error string) string {
+	return Catalog.Format(msgs.locale, "templateCatalogFailed", map[string]any{"error": error})
+}
+
+// TemplateDownloadFailed says "Template download failed: {error}"
+// in the language the app shows.
+func TemplateDownloadFailed(error string) string {
+	return In(i18n.Locale()).TemplateDownloadFailed(error)
+}
+
+// TemplateDownloadFailed says "Template download failed: {error}"
+// in the language of msgs.
+func (msgs Messages) TemplateDownloadFailed(error string) string {
+	return Catalog.Format(msgs.locale, "templateDownloadFailed", map[string]any{"error": error})
+}
+
+// TemplateRefresh says "Refresh templates"
+// in the language the app shows.
+func TemplateRefresh() string { return In(i18n.Locale()).TemplateRefresh() }
+
+// TemplateRefresh says "Refresh templates"
+// in the language of msgs.
+func (msgs Messages) TemplateRefresh() string {
+	return Catalog.Format(msgs.locale, "templateRefresh", nil)
+}
+
+// TemplateRepair says "Verify / download again"
+// in the language the app shows.
+func TemplateRepair() string { return In(i18n.Locale()).TemplateRepair() }
+
+// TemplateRepair says "Verify / download again"
+// in the language of msgs.
+func (msgs Messages) TemplateRepair() string {
+	return Catalog.Format(msgs.locale, "templateRepair", nil)
+}
+
+// TemplateClose says "Close new project; background downloads continue"
+// in the language the app shows.
+func TemplateClose() string { return In(i18n.Locale()).TemplateClose() }
+
+// TemplateClose says "Close new project; background downloads continue"
+// in the language of msgs.
+func (msgs Messages) TemplateClose() string {
+	return Catalog.Format(msgs.locale, "templateClose", nil)
+}
+
+// TemplateSearch says "Search templates, URP, HDRP…"
+// in the language the app shows.
+func TemplateSearch() string { return In(i18n.Locale()).TemplateSearch() }
+
+// TemplateSearch says "Search templates, URP, HDRP…"
+// in the language of msgs.
+func (msgs Messages) TemplateSearch() string {
+	return Catalog.Format(msgs.locale, "templateSearch", nil)
+}
+
+// TemplateCore says "Core"
+// in the language the app shows.
+func TemplateCore() string { return In(i18n.Locale()).TemplateCore() }
+
+// TemplateCore says "Core"
+// in the language of msgs.
+func (msgs Messages) TemplateCore() string {
+	return Catalog.Format(msgs.locale, "templateCore", nil)
+}
+
+// TemplateSample says "Sample"
+// in the language the app shows.
+func TemplateSample() string { return In(i18n.Locale()).TemplateSample() }
+
+// TemplateSample says "Sample"
+// in the language of msgs.
+func (msgs Messages) TemplateSample() string {
+	return Catalog.Format(msgs.locale, "templateSample", nil)
+}
+
+// TemplateLearning says "Learning"
+// in the language the app shows.
+func TemplateLearning() string { return In(i18n.Locale()).TemplateLearning() }
+
+// TemplateLearning says "Learning"
+// in the language of msgs.
+func (msgs Messages) TemplateLearning() string {
+	return Catalog.Format(msgs.locale, "templateLearning", nil)
+}
+
+// TemplateLocal says "Downloaded"
+// in the language the app shows.
+func TemplateLocal() string { return In(i18n.Locale()).TemplateLocal() }
+
+// TemplateLocal says "Downloaded"
+// in the language of msgs.
+func (msgs Messages) TemplateLocal() string {
+	return Catalog.Format(msgs.locale, "templateLocal", nil)
+}
+
+// TemplateLoading says "Loading compatible templates…"
+// in the language the app shows.
+func TemplateLoading() string { return In(i18n.Locale()).TemplateLoading() }
+
+// TemplateLoading says "Loading compatible templates…"
+// in the language of msgs.
+func (msgs Messages) TemplateLoading() string {
+	return Catalog.Format(msgs.locale, "templateLoading", nil)
+}
+
+// TemplateEmpty says "No matching templates. Try another filter or refresh the catalog."
+// in the language the app shows.
+func TemplateEmpty() string { return In(i18n.Locale()).TemplateEmpty() }
+
+// TemplateEmpty says "No matching templates. Try another filter or refresh the catalog."
+// in the language of msgs.
+func (msgs Messages) TemplateEmpty() string {
+	return Catalog.Format(msgs.locale, "templateEmpty", nil)
+}
+
+// TemplateCompatibilityHint says "Templates match the selected Editor. The Editor resolves packages on first launch."
+// in the language the app shows.
+func TemplateCompatibilityHint() string { return In(i18n.Locale()).TemplateCompatibilityHint() }
+
+// TemplateCompatibilityHint says "Templates match the selected Editor. The Editor resolves packages on first launch."
+// in the language of msgs.
+func (msgs Messages) TemplateCompatibilityHint() string {
+	return Catalog.Format(msgs.locale, "templateCompatibilityHint", nil)
+}
+
+// TemplateDownload says "Download template"
+// in the language the app shows.
+func TemplateDownload() string { return In(i18n.Locale()).TemplateDownload() }
+
+// TemplateDownload says "Download template"
+// in the language of msgs.
+func (msgs Messages) TemplateDownload() string {
+	return Catalog.Format(msgs.locale, "templateDownload", nil)
+}
+
+// TemplateCreating says "Creating project…"
+// in the language the app shows.
+func TemplateCreating() string { return In(i18n.Locale()).TemplateCreating() }
+
+// TemplateCreating says "Creating project…"
+// in the language of msgs.
+func (msgs Messages) TemplateCreating() string {
+	return Catalog.Format(msgs.locale, "templateCreating", nil)
+}
+
+// TemplateTerms says "Read template terms ↗"
+// in the language the app shows.
+func TemplateTerms() string { return In(i18n.Locale()).TemplateTerms() }
+
+// TemplateTerms says "Read template terms ↗"
+// in the language of msgs.
+func (msgs Messages) TemplateTerms() string {
+	return Catalog.Format(msgs.locale, "templateTerms", nil)
+}
+
+// TemplateAcceptTerms says "I have read and accept the template terms"
+// in the language the app shows.
+func TemplateAcceptTerms() string { return In(i18n.Locale()).TemplateAcceptTerms() }
+
+// TemplateAcceptTerms says "I have read and accept the template terms"
+// in the language of msgs.
+func (msgs Messages) TemplateAcceptTerms() string {
+	return Catalog.Format(msgs.locale, "templateAcceptTerms", nil)
+}
+
+// TemplatePackages says "Included packages ({count})"
+// in the language the app shows.
+func TemplatePackages(count int) string { return In(i18n.Locale()).TemplatePackages(count) }
+
+// TemplatePackages says "Included packages ({count})"
+// in the language of msgs.
+func (msgs Messages) TemplatePackages(count int) string {
+	return Catalog.Format(msgs.locale, "templatePackages", map[string]any{"count": count})
+}
+
+// TemplateTask says "Project template"
+// in the language the app shows.
+func TemplateTask() string { return In(i18n.Locale()).TemplateTask() }
+
+// TemplateTask says "Project template"
+// in the language of msgs.
+func (msgs Messages) TemplateTask() string {
+	return Catalog.Format(msgs.locale, "templateTask", nil)
+}
+
+// TemplateDownloaded says "Template downloaded and verified. Ready to create a project."
+// in the language the app shows.
+func TemplateDownloaded() string { return In(i18n.Locale()).TemplateDownloaded() }
+
+// TemplateDownloaded says "Template downloaded and verified. Ready to create a project."
+// in the language of msgs.
+func (msgs Messages) TemplateDownloaded() string {
+	return Catalog.Format(msgs.locale, "templateDownloaded", nil)
+}
+
+// TemplateView says "Use template"
+// in the language the app shows.
+func TemplateView() string { return In(i18n.Locale()).TemplateView() }
+
+// TemplateView says "Use template"
+// in the language of msgs.
+func (msgs Messages) TemplateView() string {
+	return Catalog.Format(msgs.locale, "templateView", nil)
+}
+
 // SettingsGeneral says "General"
 // in the language the app shows.
 func SettingsGeneral() string { return In(i18n.Locale()).SettingsGeneral() }

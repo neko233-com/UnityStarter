@@ -938,10 +938,14 @@ func TestNewProjectCanChooseBetweenSameVersionInstallations(t *testing.T) {
 	if a.newEditor != `D:\Editors\two\Unity.exe` {
 		t.Fatalf("wrong installation selected: %q", a.newEditor)
 	}
+	template := templateFixture(t, kindUnity, "com.unity.template.urp-blank", "14.0.0")
+	a.newTemplates = []projectTemplate{template}
+	a.newTemplateID = template.key()
+	tt.Frame()
 	if err := tt.Click(locales.ActionCreate()); err != nil {
 		t.Fatal(err)
 	}
-	if launched != a.newEditor || len(args) != 2 || args[0] != "-createProject" || args[1] != filepath.Join(a.newDir, "Game") {
+	if launched != a.newEditor || len(args) != 4 || args[0] != "-createProject" || args[1] != filepath.Join(a.newDir, "Game") || args[2] != "-cloneFromTemplate" || args[3] != template.Archive {
 		t.Fatalf("wrong editor or project path passed to launch: %q %q", launched, args)
 	}
 }
