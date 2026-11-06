@@ -49,7 +49,9 @@ func readEditorModules(root string) []editorModule {
 	annotateSDKDependencies(modules)
 	state := readModuleState(root)
 	for i := range modules {
-		if moduleStateMatches(state, modules[i]) && moduleFilesPresent(root, modules[i]) {
+		if modules[i].ID == "linux-il2cpp" {
+			modules[i].Selected = (modules[i].Selected || moduleStateMatches(state, modules[i])) && moduleFilesPresent(root, modules[i])
+		} else if moduleStateMatches(state, modules[i]) && moduleFilesPresent(root, modules[i]) {
 			modules[i].Selected = true
 		}
 	}
@@ -80,6 +82,8 @@ func moduleOutput(m editorModule) string {
 		return "WebGLSupport"
 	case "windows-il2cpp":
 		return filepath.Join("windowsstandalonesupport", "Variations", "win64_player_development_il2cpp")
+	case "linux-il2cpp":
+		return filepath.Join("LinuxStandaloneSupport", "Variations", "linux64_player_development_il2cpp")
 	case "weixinminigame":
 		return "WeixinMiniGameSupport"
 	case "playableads":
@@ -235,8 +239,7 @@ func (a *app) installEditorModule(e editorInstall, m editorModule) {
 			}
 		}
 		if err == nil && player == "" {
-			output := filepath.Join(e.Root, "Editor", "Data", "PlaybackEngines", moduleOutput(m))
-			if info, statErr := os.Stat(output); statErr != nil || !info.IsDir() {
+			if !moduleFilesPresent(e.Root, m) {
 				err = fmt.Errorf("module installation completed but expected files were not found")
 			}
 		}

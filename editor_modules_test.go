@@ -50,6 +50,68 @@ func TestLegacyUnityModuleIntegrity(t *testing.T) {
 	}
 }
 
+func TestLinuxIL2CPPModuleRequiresBothPlayers(t *testing.T) {
+	t.Setenv("APPDATA", t.TempDir())
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	m := editorModule{ID: "linux-il2cpp", URL: "https://download.unity3d.com/linux.exe", Checksum: strings.Repeat("a", 32), Destination: "{UNITY_PATH}"}
+	if !standaloneModule(m) {
+		t.Fatal("verified Linux IL2CPP installer is not supported")
+	}
+	root := t.TempDir()
+	stale := m
+	stale.Selected = true
+	data, err := json.Marshal([]editorModule{stale})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "modules.json"), data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := readEditorModules(root); len(got) != 1 || got[0].Selected {
+		t.Fatalf("stale Hub state reported as installed: %+v", got)
+	}
+	if err := markOwnedModuleInstalled(root, m); err != nil {
+		t.Fatal(err)
+	}
+	modules := []editorModule{m}
+	applyOwnedModuleState(root, modules)
+	if modules[0].Selected {
+		t.Fatal("missing module reported as installed")
+	}
+	base := filepath.Join(root, "Editor", "Data", "PlaybackEngines", "LinuxStandaloneSupport", "Variations")
+	for i, variant := range []string{"linux64_player_development_il2cpp", "linux64_player_nondevelopment_il2cpp"} {
+		dir := filepath.Join(base, variant)
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, "UnityPlayer.so"), []byte("player"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		modules = []editorModule{m}
+		applyOwnedModuleState(root, modules)
+		if modules[0].Selected != (i == 1) {
+			t.Fatalf("installed status after player %d: %+v", i, modules[0])
+		}
+	}
+}
+
+func TestLiveLinuxIL2CPPModule(t *testing.T) {
+	root := os.Getenv("UNITYSTARTER_LINUX_MODULE_ROOT")
+	if root == "" {
+		t.Skip("set UNITYSTARTER_LINUX_MODULE_ROOT to an isolated official module installation")
+	}
+	modules, err := fetchUnityModules(context.Background(), "7000.0.0a16")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, m := range modules {
+		if m.ID == "linux-il2cpp" && standaloneModule(m) && moduleFilesPresent(root, m) {
+			return
+		}
+	}
+	t.Fatal("official Linux IL2CPP module metadata or installed files not recognized")
+}
+
 func TestUnityModuleCatalogCachedForOfflineScan(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())

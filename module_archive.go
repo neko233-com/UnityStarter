@@ -64,6 +64,16 @@ func parentModuleSelected(modules []editorModule, parent string) bool {
 }
 
 func moduleFilesPresent(root string, m editorModule) bool {
+	if m.ID == "linux-il2cpp" {
+		base := filepath.Join(root, "Editor", "Data", "PlaybackEngines", "LinuxStandaloneSupport", "Variations")
+		for _, variant := range []string{"linux64_player_development_il2cpp", "linux64_player_nondevelopment_il2cpp"} {
+			info, err := os.Stat(filepath.Join(base, variant, "UnityPlayer.so"))
+			if err != nil || !info.Mode().IsRegular() || info.Size() == 0 {
+				return false
+			}
+		}
+		return true
+	}
 	if language, ok := tuanjieLanguageModule(m); ok {
 		file := filepath.Join(root, "Editor", "Data", "Localization", language+".po")
 		info, err := os.Lstat(file)
