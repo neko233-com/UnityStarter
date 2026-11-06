@@ -23,7 +23,7 @@
   "installEditor": "Install Editor",
   "installManage": "Manage",
   "installModules": "Add modules",
-  "installModuleHint": "Supports standalone modules, OpenJDK, Unity and Tuanjie language packs, Tuanjie documentation, and some Android SDK/NDK releases. Language packs have no official checksum; other modules require the official Hub.",
+  "installModuleHint": "Supports standalone modules, OpenJDK, Unity and Tuanjie documentation and language packs, and some Android SDK/NDK releases. Unity documentation uses the server's MD5, not a signed catalog digest; language packs have no official checksum. Other modules require the official Hub.",
   "offlineDocsTitle": "Offline documentation",
   "offlineDocsManual": "Manual",
   "offlineDocsAPI": "Scripting API",

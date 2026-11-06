@@ -75,6 +75,9 @@ func moduleFilesVerifiable(m editorModule) bool {
 	if _, _, ok := tuanjieDocumentationArchive(m); ok {
 		return true
 	}
+	if _, ok := unityDocumentationArchive(m); ok {
+		return true
+	}
 	if androidSDKMetadata(m) || legacyAndroidSDKMetadata(m) {
 		return true
 	}
@@ -104,6 +107,9 @@ func moduleFilesPresent(root string, m editorModule) bool {
 	}
 	if _, _, ok := tuanjieDocumentationArchive(m); ok {
 		return documentationFilesPresent(filepath.Join(root, "Editor", "Data", "Documentation"))
+	}
+	if _, ok := unityDocumentationArchive(m); ok {
+		return documentationFilesPresentIn(filepath.Join(root, "Editor", "Data", "Documentation"), "en")
 	}
 	if m.ID == "android-sdk-ndk-tools" && m.Parent == "android" && m.EULA == androidLicenseURL {
 		return androidSDKFilesPresentForPlan(filepath.Join(root, "Editor", "Data", "PlaybackEngines", "AndroidPlayer"), legacyAndroidSDKMetadata(m))

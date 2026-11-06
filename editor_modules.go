@@ -122,6 +122,12 @@ func moduleInstallSpec(e editorInstall, m editorModule) (integrity, player, exte
 	if sum, version, valid := tuanjieDocumentationArchive(m); valid && e.Kind == kindTuanjie && version == e.Version {
 		return sum, documentationModule, ".zip", true
 	}
+	if version, valid := unityDocumentationArchive(m); valid && e.Kind == kindUnity {
+		parts := editorVersionPattern.FindStringSubmatch(e.Version)
+		if len(parts) > 2 && version == parts[1]+"."+parts[2] {
+			return "", unityDocumentationModule, ".zip", true
+		}
+	}
 	return "", "", "", false
 }
 
@@ -208,7 +214,12 @@ func (a *app) installEditorModule(e editorInstall, m editorModule) {
 		}
 		var language []byte
 		var err error
-		if player == languageModule {
+		if player == unityDocumentationModule {
+			integrity, expectedSize, err = unityDocumentationRemote(ctx, m)
+			if err == nil {
+				err = downloadFileVerifiedSize(ctx, m.URL, path, integrity, expectedSize, progress)
+			}
+		} else if player == languageModule {
 			language, err = downloadEditorLanguage(ctx, m, progress)
 		} else {
 			err = downloadFileVerifiedSize(ctx, m.URL, path, integrity, expectedSize, progress)
@@ -240,6 +251,8 @@ func (a *app) installEditorModule(e editorInstall, m editorModule) {
 					err = installEditorLanguage(e.Root, m, language)
 				} else if player == documentationModule {
 					err = installTuanjieDocumentation(e.Root, path, integrity)
+				} else if player == unityDocumentationModule {
+					err = installDocumentation(e.Root, path, integrity, "en")
 				} else if player != "" {
 					err = installOpenJDK(e.Root, path, player, integrity)
 				} else {
