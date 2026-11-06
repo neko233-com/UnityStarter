@@ -3,10 +3,14 @@ package main
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
+
+var errEditorVersionChanged = errors.New("editor version changed")
 
 // Coordinate GUI and CLI operations on the same physical editor directory.
 // The lock is held only while launching, but throughout an uninstall.
@@ -69,10 +73,19 @@ func acquireEditorLock(exe string) (func(), error) {
 }
 
 func launchWithEditorLock(exe string, args []string, dir string, launch func(string, []string, string) error) error {
+	return launchVersionCheckedEditor(exe, "", args, dir, launch)
+}
+
+func launchVersionCheckedEditor(exe, expected string, args []string, dir string, launch func(string, []string, string) error) error {
 	release, err := acquireEditorLock(exe)
 	if err != nil {
 		return err
 	}
 	defer release()
+	if expected != "" {
+		if actual := editorExecutableVersion(exe); actual != "" && !strings.EqualFold(actual, expected) {
+			return errEditorVersionChanged
+		}
+	}
 	return launch(exe, args, dir)
 }

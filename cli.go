@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -230,10 +231,15 @@ func cliOpen(args []string, scanFn func(prefs) scanResult, out io.Writer) int {
 		fmt.Fprintln(out, locales.CliNoEditorFor(p.Version))
 		return 1
 	}
+	expected := ""
 	for _, e := range res.editors {
-		if strings.EqualFold(e.Exe, p.Editor) && e.Simulated {
-			fmt.Fprintln(out, locales.SimulatedOpen())
-			return 1
+		if strings.EqualFold(e.Exe, p.Editor) {
+			if e.Simulated {
+				fmt.Fprintln(out, locales.SimulatedOpen())
+				return 1
+			}
+			expected = e.Version
+			break
 		}
 	}
 	version, _, ok := readProject(p.Path)
@@ -245,7 +251,11 @@ func cliOpen(args []string, scanFn func(prefs) scanResult, out io.Writer) int {
 		fmt.Fprintln(out, locales.ProjectVersionChanged())
 		return 1
 	}
-	if err := launchWithEditorLock(p.Editor, []string{"-projectPath", p.Path}, filepath.Dir(p.Editor), startDetached); err != nil {
+	if err := launchVersionCheckedEditor(p.Editor, expected, []string{"-projectPath", p.Path}, filepath.Dir(p.Editor), startDetached); err != nil {
+		if errors.Is(err, errEditorVersionChanged) {
+			fmt.Fprintln(out, locales.ProjectEditorChanged())
+			return 1
+		}
 		fmt.Fprintln(out, err)
 		return 1
 	}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"path/filepath"
@@ -57,6 +58,7 @@ type app struct {
 	versionConfirm         bool
 	versionProject         projectEntry
 	versionEditor          string
+	versionConfirmedEditor editorInstall
 	launchEditor           func(string, []string, string) error
 	manageOpen             bool
 	manageEditor           editorInstall
@@ -509,7 +511,16 @@ func (a *app) openProject(p projectEntry) {
 		a.refresh()
 		return
 	}
-	if err := launchWithEditorLock(p.Editor, []string{"-projectPath", p.Path}, filepath.Dir(p.Editor), a.launchEditor); err != nil {
+	expected := ""
+	if e, ok := a.editorInstall(p.Editor); ok {
+		expected = e.Version
+	}
+	if err := launchVersionCheckedEditor(p.Editor, expected, []string{"-projectPath", p.Path}, filepath.Dir(p.Editor), a.launchEditor); err != nil {
+		if errors.Is(err, errEditorVersionChanged) {
+			a.alert(locales.ProjectEditorChanged())
+			a.refresh()
+			return
+		}
 		a.alert(locales.OpenFailed(err.Error()))
 	}
 }

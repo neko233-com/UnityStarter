@@ -689,6 +689,82 @@ func TestProjectVersionRecheckedAfterMigrationConfirmation(t *testing.T) {
 	}
 }
 
+func TestProjectVersionConfirmationRejectsChangedEditor(t *testing.T) {
+	a := fixture()
+	path := filepath.Join(t.TempDir(), "Game")
+	writeProject(t, path, "2022.3.51f1")
+	a.projects[0].Path = path
+	a.editors = append(a.editors, editorInstall{Version: "6000.0.1f1", Kind: kindUnity, Exe: "chosen-editor"})
+	launched := false
+	a.launchEditor = func(string, []string, string) error { launched = true; return nil }
+	tt := ui.NewTester(a.view, 900, 560)
+	if err := tt.Click("2022.3.51f1 ▾"); err != nil {
+		t.Fatal(err)
+	}
+	if err := tt.Click(locales.ProjectVersionOpen()); err != nil {
+		t.Fatal(err)
+	}
+	if !tt.HasText("chosen-editor") || !tt.HasText("2022.3.51f1 → 6000.0.1f1") {
+		t.Fatalf("confirmed editor identity missing: %q", tt.Texts())
+	}
+	if path := os.Getenv("PROJECT_CONFIRM_SNAPSHOT"); path != "" {
+		if err := writePNG(path, tt.Image()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	a.editors[len(a.editors)-1].Version = "7000.0.0a16"
+	tt.Frame()
+	if !tt.HasText("2022.3.51f1 → 6000.0.1f1") {
+		t.Fatal("confirmation changed when editor list refreshed")
+	}
+	if err := tt.Click(locales.ProjectVersionContinue()); err != nil {
+		t.Fatal(err)
+	}
+	if launched || !a.alertOpen || a.alertMessage != locales.ProjectEditorChanged() || a.versionConfirm {
+		t.Fatalf("changed editor was not rejected: launched=%v alert=%q", launched, a.alertMessage)
+	}
+}
+
+func TestProjectActionsVisibleAtMinimumWidth(t *testing.T) {
+	a := fixture()
+	a.projects[0].Name = "a-very-long-project-name-with-many-details"
+	a.projects[0].VCS = vcsInfo{Kind: "git", Branch: "a-long-feature-branch"}
+	tt := ui.NewTester(a.view, 900, 560)
+	for _, label := range []string{"2022.3.51f1 ▾", locales.ActionOpen(), "⋯"} {
+		rect, ok := tt.Find(label)
+		if !ok || rect.X < 288 || rect.X+rect.W > 900 || rect.Y < 0 || rect.Y+rect.H > 560 {
+			t.Fatalf("project action %q outside window: %+v %v", label, rect, ok)
+		}
+	}
+	if err := tt.Click("⋯"); err != nil {
+		t.Fatal(err)
+	}
+	if !tt.HasText(locales.ActionFolder()) {
+		t.Fatal("compact project menu lost the folder action")
+	}
+}
+
+func TestProjectOpenRejectsChangedRealEditor(t *testing.T) {
+	exe := os.Getenv("UNITYSTARTER_LIVE_UNITY_EDITOR")
+	if exe == "" {
+		t.Skip("set UNITYSTARTER_LIVE_UNITY_EDITOR to an installed editor")
+	}
+	actual := editorExecutableVersion(exe)
+	if actual == "" {
+		t.Fatal("installed editor version could not be read")
+	}
+	path := filepath.Join(t.TempDir(), "Game")
+	writeProject(t, path, "6000.0.1f1")
+	a := fixture()
+	a.editors = []editorInstall{{Version: "6000.0.1f1", Kind: kindUnity, Exe: exe}}
+	launched := false
+	a.launchEditor = func(string, []string, string) error { launched = true; return nil }
+	a.openProject(projectEntry{Path: path, Version: "6000.0.1f1", Kind: kindUnity, Editor: exe})
+	if launched || !a.alertOpen || a.alertMessage != locales.ProjectEditorChanged() {
+		t.Fatalf("editor version %s did not reject stale selection", actual)
+	}
+}
+
 func TestProjectOpenRejectsChangedOrMissingProject(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "Game")
 	writeProject(t, path, "6000.0.2f1")

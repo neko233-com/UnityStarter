@@ -120,6 +120,23 @@ func TestCLIOpenRejectsStaleProjectVersion(t *testing.T) {
 	}
 }
 
+func TestCLIOpenRejectsChangedRealEditor(t *testing.T) {
+	exe := os.Getenv("UNITYSTARTER_LIVE_UNITY_EDITOR")
+	if exe == "" {
+		t.Skip("set UNITYSTARTER_LIVE_UNITY_EDITOR to an installed editor")
+	}
+	if actual := editorExecutableVersion(exe); actual == "" || actual == "6000.0.1f1" {
+		t.Fatalf("unexpected editor version %q", actual)
+	}
+	path := filepath.Join(t.TempDir(), "Game")
+	writeProject(t, path, "6000.0.1f1")
+	res := scanResult{editors: []editorInstall{{Version: "6000.0.1f1", Kind: kindUnity, Exe: exe}}, projects: []projectEntry{{Name: "game", Path: path, Version: "6000.0.1f1", Kind: kindUnity, Editor: exe}}}
+	var out bytes.Buffer
+	if code := runCLI([]string{"open", path}, &out, func(prefs) scanResult { return res }); code != 1 || !strings.Contains(out.String(), locales.ProjectEditorChanged()) {
+		t.Fatalf("changed editor not rejected: exit=%d output=%q", code, out.String())
+	}
+}
+
 func TestCLIHubStatusJSON(t *testing.T) {
 	code, out := run(t, "hub", "status", "--json")
 	if code != 0 {

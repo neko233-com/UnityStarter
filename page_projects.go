@@ -15,6 +15,8 @@ import (
 
 func (a *app) projectsPage(c *ui.Context) {
 	engine := engineForPage(a.page)
+	width, _ := c.Size()
+	compact := width < 1100
 	if a.queryEngine != engine {
 		a.query = ""
 		a.queryEngine = engine
@@ -72,14 +74,18 @@ func (a *app) projectsPage(c *ui.Context) {
 	ui.Row(c).Padding(5, 16).Gap(10).AlignItems(ui.Center).Background(c.Theme().Surface).Children(func() {
 		ui.Button(c, "★").Width(38).OnClick(func() { a.sortProjects("favorite") })
 		ui.Button(c, locales.ProjectColumnName()).Grow(1).OnClick(func() { a.sortProjects("name") })
-		ui.Button(c, locales.ProjectColumnModified()).Width(110).OnClick(func() { a.sortProjects("modified") })
-		ui.Button(c, locales.ProjectColumnEditor()).Width(150).OnClick(func() { a.sortProjects("version") })
-		ui.Text(c, "").Width(190)
+		dateWidth, versionWidth, actionsWidth := float32(110), float32(150), float32(190)
+		if compact {
+			dateWidth, versionWidth, actionsWidth = 76, 110, 104
+		}
+		ui.Button(c, locales.ProjectColumnModified()).Width(dateWidth).OnClick(func() { a.sortProjects("modified") })
+		ui.Button(c, locales.ProjectColumnEditor()).Width(versionWidth).OnClick(func() { a.sortProjects("version") })
+		ui.Text(c, "").Width(actionsWidth)
 	})
 
 	a.list.Key = func(i int) any { return items[i].Path }
 	ui.List(c, &a.list, len(items), func(i int) {
-		a.projectRow(c, items[i])
+		a.projectRow(c, items[i], compact)
 	}).Grow(1).Children(func() {
 		if len(items) == 0 {
 			if favoritesPage(a.page) && strings.TrimSpace(a.query) == "" {
@@ -145,9 +151,12 @@ func (a *app) sortProjects(column string) {
 	}
 }
 
-func (a *app) projectRow(c *ui.Context, p projectEntry) {
+func (a *app) projectRow(c *ui.Context, p projectEntry, compact bool) {
 	t := c.Theme()
 	menu := func(m *ui.Menu) {
+		if compact && m.Item(locales.ActionFolder()).Chosen() {
+			mygo.Shell.OpenPath(p.Path)
+		}
 		if p.VCS.Remote != "" && isWebURL(p.VCS.Remote) && m.Item(locales.ActionRepo()).Chosen() {
 			_ = mygo.Shell.OpenExternal(p.VCS.Remote)
 		}
@@ -162,14 +171,14 @@ func (a *app) projectRow(c *ui.Context, p projectEntry) {
 			star, tip = "★", locales.FavoriteRemove()
 		}
 		ui.Button(c, star).Tooltip(tip).Width(38).OnClick(func() { a.toggleFavorite(p) })
-		ui.Column(c).Grow(1).Gap(5).Children(func() {
+		ui.Column(c).Grow(1).Shrink(1).MinWidth(0).Clip().Gap(5).Children(func() {
 			ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-				ui.Text(c, p.Name).FontSize(16).Bold().Clip()
+				ui.Text(c, p.Name).FontSize(16).Bold().SingleLine().Clip().Tooltip(p.Name)
 				ui.Badge(c, channelName(p.Kind))
 				if p.Pipeline != "" {
 					ui.Badge(c, pipelineName(p.Pipeline))
 				}
-				if p.VCS.Kind != "" {
+				if p.VCS.Kind != "" && !compact {
 					badge := strings.ToUpper(p.VCS.Kind)
 					if p.VCS.Branch != "" {
 						badge += " · " + p.VCS.Branch
@@ -183,15 +192,20 @@ func (a *app) projectRow(c *ui.Context, p projectEntry) {
 					}
 				}
 			})
-			ui.Text(c, p.Path).FontSize(12).TextColor(t.TextMuted).Clip()
+			ui.Text(c, p.Path).FontSize(12).TextColor(t.TextMuted).SingleLine().Clip().Tooltip(p.Path)
 		})
-		ui.Text(c, a.formatTime(p.Modified)).Width(110).FontSize(11).TextColor(t.TextMuted)
+		dateWidth, versionWidth, actionsWidth := float32(110), float32(150), float32(190)
+		if compact {
+			dateWidth, versionWidth, actionsWidth = 76, 110, 104
+		}
+		date := a.formatTime(p.Modified)
+		ui.Text(c, date).Width(dateWidth).FontSize(11).TextColor(t.TextMuted).SingleLine().Clip().Tooltip(date)
 		label := p.Version
 		if p.DisplayVersion != "" {
 			label = p.DisplayVersion
 		}
-		ui.Button(c, label+" ▾").Width(150).Tooltip(displayVersion(p.Version, p.DisplayVersion)).OnClick(func() { a.chooseProjectVersion(p) })
-		ui.Row(c).Gap(6).Width(190).Justify(ui.End).Children(func() {
+		ui.Button(c, label+" ▾").Width(versionWidth).Tooltip(displayVersion(p.Version, p.DisplayVersion)).OnClick(func() { a.chooseProjectVersion(p) })
+		ui.Row(c).Gap(6).Width(actionsWidth).Justify(ui.End).Children(func() {
 			ui.Button(c, locales.ActionOpen()).OnClick(func() {
 				if p.Editor == "" || a.editorIsSimulated(p.Editor) {
 					a.chooseProjectVersion(p)
@@ -199,8 +213,10 @@ func (a *app) projectRow(c *ui.Context, p projectEntry) {
 					a.openProject(p)
 				}
 			})
-			if ui.Button(c, locales.ActionFolder()).Clicked() {
-				mygo.Shell.OpenPath(p.Path)
+			if !compact {
+				if ui.Button(c, locales.ActionFolder()).Clicked() {
+					mygo.Shell.OpenPath(p.Path)
+				}
 			}
 			ui.Button(c, "⋯").Width(36).Label(locales.ProjectMore()).Tooltip(locales.ProjectMore()).PopoverMenuButton(menu)
 		})
@@ -256,6 +272,7 @@ func (a *app) projectEditors(p projectEntry) []editorInstall {
 
 func (a *app) chooseProjectVersion(p projectEntry) {
 	a.versionProject, a.versionOpen, a.versionConfirm, a.versionEditor = p, true, false, ""
+	a.versionConfirmedEditor = editorInstall{}
 	editors := a.projectEditors(p)
 	if len(editors) > 0 {
 		a.versionEditor = editors[0].Exe
@@ -277,12 +294,9 @@ func (a *app) projectVersionDialog(c *ui.Context) {
 		ui.Column(c).Width(500).Gap(14).Children(func() {
 			if a.versionConfirm {
 				ui.Text(c, locales.ProjectVersionConfirm()).FontSize(18).Bold()
-				e, ok := a.editorInstall(a.versionEditor)
-				if !ok || e.Kind != a.versionProject.Kind || e.Simulated {
-					ui.Text(c, locales.ProjectVersionNone()).TextColor(t.Danger)
-					return
-				}
+				e := a.versionConfirmedEditor
 				ui.Text(c, a.versionProject.Name+" · "+a.versionProject.Version+" → "+e.Version).FontSize(14).Bold()
+				ui.Text(c, e.Exe).FontSize(11).TextColor(t.TextMuted).Clip().Tooltip(e.Exe)
 				ui.Text(c, locales.ProjectVersionWarning()).FontSize(12).TextColor(t.TextMuted)
 				ui.Row(c).Gap(8).Justify(ui.End).Children(func() {
 					ui.Button(c, locales.ActionCancel()).OnClick(func() { a.versionConfirm = false })
@@ -329,6 +343,7 @@ func (a *app) projectVersionDialog(c *ui.Context) {
 					if strings.EqualFold(e.Version, a.versionProject.Version) {
 						a.openSelectedProjectVersion()
 					} else {
+						a.versionConfirmedEditor = e
 						a.versionConfirm = true
 					}
 				})
@@ -339,7 +354,10 @@ func (a *app) projectVersionDialog(c *ui.Context) {
 
 func (a *app) openSelectedProjectVersion() {
 	e, ok := a.editorInstall(a.versionEditor)
-	if !ok || e.Kind != a.versionProject.Kind || e.Simulated {
+	if !ok || e.Kind != a.versionProject.Kind || e.Simulated || (a.versionConfirm && (!strings.EqualFold(e.Exe, a.versionConfirmedEditor.Exe) || !strings.EqualFold(e.Version, a.versionConfirmedEditor.Version) || e.Kind != a.versionConfirmedEditor.Kind)) {
+		a.versionConfirm = false
+		a.alert(locales.ProjectEditorChanged())
+		a.refresh()
 		return
 	}
 	p := a.versionProject

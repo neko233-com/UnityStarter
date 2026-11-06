@@ -2886,6 +2886,16 @@ func (msgs Messages) ProjectVersionChanged() string {
 	return Catalog.Format(msgs.locale, "projectVersionChanged", nil)
 }
 
+// ProjectEditorChanged says "The selected editor changed or is no longer available. Refresh the editor list and choose again."
+// in the language the app shows.
+func ProjectEditorChanged() string { return In(i18n.Locale()).ProjectEditorChanged() }
+
+// ProjectEditorChanged says "The selected editor changed or is no longer available. Refresh the editor list and choose again."
+// in the language of msgs.
+func (msgs Messages) ProjectEditorChanged() string {
+	return Catalog.Format(msgs.locale, "projectEditorChanged", nil)
+}
+
 // NewProjectExists says "{path} is not empty."
 // in the language the app shows.
 func NewProjectExists(path string) string { return In(i18n.Locale()).NewProjectExists(path) }
