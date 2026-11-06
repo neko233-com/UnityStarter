@@ -322,7 +322,10 @@ func (a *app) editorManageDialog(c *ui.Context) {
 					})
 					return
 				}
-				ui.Text(c, locales.InstallModuleHint()).FontSize(12).TextColor(t.TextMuted)
+				ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
+					ui.Text(c, locales.InstallModuleHint()).Grow(1).FontSize(12).TextColor(t.TextMuted)
+					ui.Button(c, locales.InstallModuleRefresh()).Disabled(a.moduleLoading || a.moduleBusy).OnClick(func() { a.loadEditorModules(e) })
+				})
 				if a.moduleLoading {
 					ui.Text(c, locales.InstallModuleLoading()).FontSize(12).TextColor(t.TextMuted)
 				}
@@ -379,7 +382,7 @@ func (a *app) editorManageDialog(c *ui.Context) {
 			}
 			ui.Button(c, locales.InstallModules()).OnClick(func() {
 				a.manageModules = true
-				if len(e.Modules) == 0 {
+				if len(e.Modules) == 0 || e.ModulesCached {
 					a.loadEditorModules(e)
 				}
 			})

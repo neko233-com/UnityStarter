@@ -31,6 +31,8 @@ type editorInstall struct {
 	// Simulated is an editor this app put there to try the install flow.
 	Simulated bool
 	Modules   []editorModule
+	// ModulesCached means the list came from this app's saved official catalog.
+	ModulesCached bool
 }
 
 // projectEntry is a project found on disk.
@@ -266,7 +268,8 @@ func scanEditorsIn(roots []string) []editorInstall {
 				if actual := editorExecutableVersion(exe); actual != "" {
 					version = actual
 				}
-				out = append(out, editorInstall{Version: version, Kind: kind, Exe: exe, Root: dir, Simulated: isSimulatedEditor(dir), Modules: readEditorModules(dir)})
+				modules, cached := scannedEditorModules(dir, kind, version)
+				out = append(out, editorInstall{Version: version, Kind: kind, Exe: exe, Root: dir, Simulated: isSimulatedEditor(dir), Modules: modules, ModulesCached: cached})
 			}
 		}
 	}

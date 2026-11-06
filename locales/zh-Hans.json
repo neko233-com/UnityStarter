@@ -41,6 +41,8 @@
   "installModuleNeedsParent": "请先安装对应的平台模块。",
   "installModuleProgress": "正在下载或安装模块…",
   "installModuleLoading": "正在读取官方模块列表…",
+  "installModuleRefresh": "刷新清单",
+  "installModuleCached": "暂时无法连接官方服务，正在显示上次保存的模块清单。",
   "installModuleDone": "模块安装完成，请刷新列表。",
   "installModuleLocalOnly": "模块已安装，本地状态已保存；官方 Hub 的模块清单未能更新。",
   "installModuleRecordFailed": "模块文件已安装，但安装状态未能保存，请检查权限或官方 Hub 的模块清单",

@@ -40,6 +40,59 @@ func TestUnityModuleCatalogAndOwnedState(t *testing.T) {
 	}
 }
 
+func TestUnityModuleCatalogCachedForOfflineScan(t *testing.T) {
+	t.Setenv("APPDATA", t.TempDir())
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"results":[{"version":"7000.0.0a16","downloads":[{"platform":"WINDOWS","architecture":"X86_64","modules":[{"id":"webgl","name":"Web","url":"https://download.unity3d.com/web.exe","integrity":"md5-ASNFZ4mrze8BI0VniavN7w==","destination":"{UNITY_PATH}"}]}]}]}`))
+	}))
+	previous := unityModuleCatalogURL
+	unityModuleCatalogURL = server.URL + "?version="
+	defer func() { unityModuleCatalogURL = previous }()
+	root := filepath.Join(t.TempDir(), "7000.0.0a16")
+	exe := filepath.Join(root, "Editor", "Unity.exe")
+	output := filepath.Join(root, "Editor", "Data", "PlaybackEngines", "WebGLSupport")
+	if err := os.MkdirAll(output, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(exe, []byte("fixture"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	e := editorInstall{Kind: kindUnity, Version: "7000.0.0a16", Root: root}
+	modules, cached, err := moduleCatalogWithSource(context.Background(), e)
+	if err != nil || cached || len(modules) != 1 {
+		t.Fatalf("online catalog: %+v %v %v", modules, cached, err)
+	}
+	if err := markOwnedModuleInstalled(root, modules[0]); err != nil {
+		t.Fatal(err)
+	}
+	server.Close()
+	modules, cached, err = moduleCatalogWithSource(context.Background(), e)
+	if err != nil || !cached || len(modules) != 1 || !modules[0].Selected {
+		t.Fatalf("offline catalog and installed state: %+v %v %v", modules, cached, err)
+	}
+	editors := scanEditorsIn([]string{root})
+	if len(editors) != 1 || !editors[0].ModulesCached || len(installedModuleNames(editors[0].Modules)) != 1 {
+		t.Fatalf("offline installation scan: %+v", editors)
+	}
+	if err := os.Remove(output); err != nil {
+		t.Fatal(err)
+	}
+	modules, _, err = moduleCatalogWithSource(context.Background(), e)
+	if err != nil || modules[0].Selected {
+		t.Fatalf("missing module files marked installed: %+v %v", modules, err)
+	}
+	if _, _, err := moduleCatalogWithSource(context.Background(), editorInstall{Kind: kindUnity, Version: "7000.0.0a17", Root: root}); err == nil {
+		t.Fatal("another version reused the cached catalog")
+	}
+	if err := os.WriteFile(unityModuleCachePath(e.Version), []byte(`{"schema":1,"version":"wrong","modules":[]}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := moduleCatalogWithSource(context.Background(), e); err == nil {
+		t.Fatal("corrupt or mismatched cache was accepted")
+	}
+}
+
 func TestModuleMetadataValidationAndPreservation(t *testing.T) {
 	root := t.TempDir()
 	path := filepath.Join(root, "modules.json")
@@ -170,4 +223,28 @@ func TestLiveUnity7ModuleCatalog(t *testing.T) {
 		}
 	}
 	t.Fatal("the official Unity 7 catalog has no supported Web module")
+}
+
+func TestLiveUnity7ModuleCatalogOfflineCache(t *testing.T) {
+	if os.Getenv("UNITYSTARTER_LIVE_CATALOG") != "1" {
+		t.Skip("set UNITYSTARTER_LIVE_CATALOG=1 to check the official service")
+	}
+	t.Setenv("APPDATA", t.TempDir())
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	e := editorInstall{Kind: kindUnity, Version: "7000.0.0a16", Root: t.TempDir()}
+	online, cached, err := moduleCatalogWithSource(context.Background(), e)
+	if err != nil || cached || len(online) == 0 {
+		t.Fatalf("online catalog: %d cached=%v err=%v", len(online), cached, err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	offline, cached, err := moduleCatalogWithSource(ctx, e)
+	if err != nil || !cached || len(offline) != len(online) {
+		t.Fatalf("official catalog offline cache: %d / %d cached=%v err=%v", len(offline), len(online), cached, err)
+	}
+	for i := range online {
+		if online[i].ID != offline[i].ID || online[i].DependencyFingerprint != offline[i].DependencyFingerprint {
+			t.Fatalf("cached module differs from official metadata: %+v / %+v", online[i], offline[i])
+		}
+	}
 }

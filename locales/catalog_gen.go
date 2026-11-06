@@ -418,6 +418,26 @@ func (msgs Messages) InstallModuleLoading() string {
 	return Catalog.Format(msgs.locale, "installModuleLoading", nil)
 }
 
+// InstallModuleRefresh says "Refresh list"
+// in the language the app shows.
+func InstallModuleRefresh() string { return In(i18n.Locale()).InstallModuleRefresh() }
+
+// InstallModuleRefresh says "Refresh list"
+// in the language of msgs.
+func (msgs Messages) InstallModuleRefresh() string {
+	return Catalog.Format(msgs.locale, "installModuleRefresh", nil)
+}
+
+// InstallModuleCached says "Official service unavailable; showing the last saved module list."
+// in the language the app shows.
+func InstallModuleCached() string { return In(i18n.Locale()).InstallModuleCached() }
+
+// InstallModuleCached says "Official service unavailable; showing the last saved module list."
+// in the language of msgs.
+func (msgs Messages) InstallModuleCached() string {
+	return Catalog.Format(msgs.locale, "installModuleCached", nil)
+}
+
 // InstallModuleDone says "Module installed. Refresh the list."
 // in the language the app shows.
 func InstallModuleDone() string { return In(i18n.Locale()).InstallModuleDone() }

@@ -40,6 +40,8 @@
   "installModuleNeedsParent": "Install the corresponding platform module first.",
   "installModuleProgress": "Downloading or installing module…",
   "installModuleLoading": "Loading official module list…",
+  "installModuleRefresh": "Refresh list",
+  "installModuleCached": "Official service unavailable; showing the last saved module list.",
   "installModuleDone": "Module installed. Refresh the list.",
   "installModuleLocalOnly": "Module installed and recorded locally, but the official Hub's module list could not be updated.",
   "installModuleRecordFailed": "Module files were installed, but their status could not be saved; check permissions or the official Hub's module list",

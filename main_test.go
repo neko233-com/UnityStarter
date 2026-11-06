@@ -152,6 +152,22 @@ func TestAndroidLicenseCanBeReviewedAndCanceled(t *testing.T) {
 	}
 }
 
+func TestModuleCatalogOfflineNoticeAndRefresh(t *testing.T) {
+	a := fixture()
+	a.manageOpen, a.manageModules = true, true
+	a.manageEditor = editorInstall{Version: "7000.0.0a16", Kind: kindUnity, ModulesCached: true, Modules: []editorModule{{ID: "webgl", Name: "Web", Visible: true, Selected: true}}}
+	a.moduleStatus = locales.InstallModuleCached()
+	tt := ui.NewTester(a.view, 900, 560)
+	if !tt.HasText(locales.InstallModuleCached()) || !tt.HasText(locales.InstallModuleRefresh()) || !tt.HasText("Web") || !tt.HasText(locales.DownloadsInstalled()) {
+		t.Fatalf("offline module management: %q", tt.Texts())
+	}
+	if path := os.Getenv("MODULE_CATALOG_SNAPSHOT"); path != "" {
+		if err := writePNG(path, tt.Image()); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
 func TestAndroidRecoveryStillRequiresLicenseConfirmation(t *testing.T) {
 	a := fixture()
 	a.manageOpen, a.manageModules = true, true

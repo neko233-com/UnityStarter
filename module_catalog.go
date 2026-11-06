@@ -15,6 +15,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"unitystarter/locales"
 )
 
 var unityModuleCatalogURL = "https://services.api.unity.com/unity/editor/release/v1/releases?limit=1&version="
@@ -222,36 +224,52 @@ func markOwnedModuleInstalled(root string, module editorModule) error {
 }
 
 func moduleCatalog(ctx context.Context, e editorInstall) ([]editorModule, error) {
+	modules, _, err := moduleCatalogWithSource(ctx, e)
+	return modules, err
+}
+
+func moduleCatalogWithSource(ctx context.Context, e editorInstall) ([]editorModule, bool, error) {
 	var modules []editorModule
 	var err error
+	fromCache := false
 	if e.Kind == kindTuanjie {
 		modules = cachedTuanjieModules(e.Version, hubConfigDirs())
 		if len(modules) == 0 {
 			data, fetchErr := fetchTuanjieCatalog(ctx)
 			if fetchErr != nil {
-				return nil, fetchErr
+				return nil, false, fetchErr
 			}
 			if cacheErr := writeFileAtomic(tuanjieReleasesCachePath(), data); cacheErr != nil {
 				logger.Printf("Tuanjie catalog cache: %v", cacheErr)
 			}
 			modules = tuanjieModulesFromCatalog(data, e.Version)
 			if len(modules) == 0 {
-				return nil, fmt.Errorf("no modules for this editor in the official catalog")
+				return nil, false, fmt.Errorf("no modules for this editor in the official catalog")
 			}
 		}
 	} else {
 		modules, err = fetchUnityModules(ctx, e.Version)
 		if err != nil {
-			return nil, err
+			modules = readUnityModuleCache(e.Version)
+			if len(modules) == 0 {
+				return nil, false, err
+			}
+			fromCache = true
+		} else if cacheErr := writeUnityModuleCache(e.Version, modules); cacheErr != nil {
+			logger.Printf("Unity module catalog cache: %v", cacheErr)
 		}
 	}
-	state := readModuleState(e.Root)
+	applyOwnedModuleState(e.Root, modules)
+	return modules, fromCache, nil
+}
+
+func applyOwnedModuleState(root string, modules []editorModule) {
+	state := readModuleState(root)
 	for i := range modules {
-		if moduleStateMatches(state, modules[i]) && moduleFilesPresent(e.Root, modules[i]) {
+		if moduleStateMatches(state, modules[i]) && moduleFilesPresent(root, modules[i]) {
 			modules[i].Selected = true
 		}
 	}
-	return modules, nil
 }
 
 func (a *app) loadEditorModules(e editorInstall) {
@@ -264,7 +282,12 @@ func (a *app) loadEditorModules(e editorInstall) {
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
 		defer cancel()
-		modules, err := moduleCatalog(ctx, e)
+		modules := readEditorModules(e.Root)
+		cached := false
+		var err error
+		if len(modules) == 0 {
+			modules, cached, err = moduleCatalogWithSource(ctx, e)
+		}
 		win.Update(func() {
 			a.moduleLoading = false
 			if a.manageEditor.Exe != e.Exe {
@@ -275,6 +298,13 @@ func (a *app) loadEditorModules(e editorInstall) {
 				return
 			}
 			a.manageEditor.Modules = modules
+			a.manageEditor.ModulesCached = cached
+			if cached {
+				a.moduleStatus = locales.InstallModuleCached()
+			}
+			if e.Kind == kindUnity {
+				a.refresh()
+			}
 		})
 	}()
 }
