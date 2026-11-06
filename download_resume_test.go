@@ -44,6 +44,79 @@ func TestDownloadLockRejectsConcurrentWriter(t *testing.T) {
 	release()
 }
 
+func TestDownloadResumeRecoversInterruptedCheckpoint(t *testing.T) {
+	dest := filepath.Join(t.TempDir(), "editor.exe")
+	source, integrity, validator, size := "https://example.test/editor.exe", "sha256-fixture", `"stable"`, int64(parallelMinimumSize)
+	file, _, statePath, state, release, err := openResume(dest, source, integrity, validator, size)
+	if err != nil {
+		t.Fatal(err)
+	}
+	state.Completed[0] = 42
+	if err := writeResumeState(statePath, state); err != nil {
+		t.Fatal(err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatal(err)
+	}
+	release()
+	if err := os.WriteFile(statePath+".tmp", []byte(`{"incomplete":`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	file, _, _, recovered, release, err := openResume(dest, source, integrity, validator, size)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if recovered.Completed[0] != 42 {
+		t.Fatalf("last committed progress was lost: %+v", recovered.Completed)
+	}
+	if _, err := os.Lstat(statePath + ".tmp"); !os.IsNotExist(err) {
+		t.Fatalf("interrupted checkpoint remains: %v", err)
+	}
+	file.Close()
+	release()
+	if err := os.Mkdir(statePath+".tmp", 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, _, _, _, err := openResume(dest, source, integrity, validator, size); err == nil {
+		t.Fatal("unsafe temporary directory was accepted")
+	}
+	if info, err := os.Stat(statePath + ".tmp"); err != nil || !info.IsDir() {
+		t.Fatalf("unsafe entry not preserved: %v", err)
+	}
+}
+
+func TestDownloadStreamRecoversInterruptedTemporaryFile(t *testing.T) {
+	payload := []byte("verified stream fixture")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodHead {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		_, _ = w.Write(payload)
+	}))
+	defer server.Close()
+	dir := t.TempDir()
+	dest := filepath.Join(dir, "editor.exe")
+	part, _, _, err := resumePaths(dest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(part+".stream", []byte("interrupted"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	sum := sha256.Sum256(payload)
+	if err := downloadFileVerified(context.Background(), server.URL, dest, "sha256-"+base64.StdEncoding.EncodeToString(sum[:]), func(int64, int64) {}); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := os.ReadFile(dest); err != nil || !bytes.Equal(got, payload) {
+		t.Fatalf("downloaded content: %q %v", got, err)
+	}
+	entries, err := os.ReadDir(dir)
+	if err != nil || len(entries) != 1 || entries[0].Name() != "editor.exe" {
+		t.Fatalf("interrupted stream file remains: %v %v", entries, err)
+	}
+}
+
 func TestParallelDownloadCancelAndDiscardRemoveResumeFiles(t *testing.T) {
 	payload := bytes.Repeat([]byte("x"), parallelMinimumSize)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

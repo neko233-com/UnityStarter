@@ -180,11 +180,23 @@ func downloadFileVerifiedSize(ctx context.Context, from, to, integrity string, e
 	if err := os.MkdirAll(filepath.Dir(to), 0o755); err != nil {
 		return err
 	}
-	file, err := os.CreateTemp(filepath.Dir(to), "."+filepath.Base(to)+"-*.part")
+	resumePart, statePath, lockKey, err := resumePaths(to)
 	if err != nil {
 		return err
 	}
-	part := file.Name()
+	release, err := acquireDownloadLock(lockKey)
+	if err != nil {
+		return err
+	}
+	defer release()
+	part := resumePart + ".stream"
+	if err := removeDownloadTemp(part); err != nil {
+		return err
+	}
+	file, err := os.OpenFile(part, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		return err
+	}
 	defer os.Remove(part)
 	total := resp.ContentLength
 	var done int64
@@ -230,7 +242,10 @@ func downloadFileVerifiedSize(ctx context.Context, from, to, integrity string, e
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	return os.Rename(part, to)
+	if err := os.Rename(part, to); err != nil {
+		return err
+	}
+	return removeResumeFiles(resumePart, statePath)
 }
 
 func reuseVerifiedDownload(ctx context.Context, to string, expectedSize int64, digest hash.Hash, expected []byte, progress func(int64, int64)) (bool, error) {

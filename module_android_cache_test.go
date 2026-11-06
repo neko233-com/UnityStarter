@@ -120,6 +120,32 @@ func TestAndroidCacheRetainsOnFailureAndClearsOnCancel(t *testing.T) {
 	}
 }
 
+func TestAndroidCacheClearsInterruptedCheckpoint(t *testing.T) {
+	root, base := t.TempDir(), t.TempDir()
+	plan, _, _ := androidCacheFixture("http://example.test")
+	cache, err := openAndroidCache(base, root, plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cache.close()
+	part, state, _, err := resumePaths(filepath.Join(cache.dir, "001.zip"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(state+".tmp", []byte("interrupted"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(part+".stream", []byte("interrupted"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := cache.clear(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(cache.dir); !os.IsNotExist(err) {
+		t.Fatalf("owned temporary checkpoint remains: %v", err)
+	}
+}
+
 func TestAndroidCacheReusesCompletedPackageAfterNetworkFailure(t *testing.T) {
 	root, base := t.TempDir(), t.TempDir()
 	_, first, second := androidCacheFixture("")

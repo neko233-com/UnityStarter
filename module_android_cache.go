@@ -181,7 +181,8 @@ func (c *androidCache) clear() error {
 		if err != nil {
 			return err
 		}
-		allowed[filepath.Base(archive)], allowed[filepath.Base(part)], allowed[filepath.Base(state)] = true, true, true
+		allowed[filepath.Base(archive)], allowed[filepath.Base(part)], allowed[filepath.Base(state)], allowed[filepath.Base(state)+".tmp"] = true, true, true, true
+		allowed[filepath.Base(part)+".stream"] = true
 	}
 	entries, err := os.ReadDir(c.dir)
 	if err != nil {
@@ -189,7 +190,7 @@ func (c *androidCache) clear() error {
 	}
 	for _, entry := range entries {
 		if !allowed[entry.Name()] || entry.IsDir() {
-			return fmt.Errorf("Android cache contains unowned files")
+			return fmt.Errorf("Android cache contains an unowned entry: %s", entry.Name())
 		}
 	}
 	for _, entry := range entries {

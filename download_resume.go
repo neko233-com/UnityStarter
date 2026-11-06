@@ -51,12 +51,39 @@ func validResumeState(state resumeState, source, integrity, validator string, si
 }
 
 func removeResumeFiles(part, statePath string) error {
+	if err := removeResumeTemp(statePath); err != nil {
+		return err
+	}
+	if err := removeDownloadTemp(part + ".stream"); err != nil {
+		return err
+	}
 	for _, p := range []string{part, statePath} {
 		if err := os.Remove(p); err != nil && !os.IsNotExist(err) {
 			return err
 		}
 	}
 	return nil
+}
+
+// A checkpoint's temporary file has an exact, per-download name. Only the
+// download lock holder removes it, and links or other unusual entries are
+// never followed or replaced.
+func removeResumeTemp(statePath string) error {
+	return removeDownloadTemp(statePath + ".tmp")
+}
+
+func removeDownloadTemp(path string) error {
+	info, err := os.Lstat(path)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 {
+		return fmt.Errorf("download progress temporary file is unsafe")
+	}
+	return os.Remove(path)
 }
 
 func discardResume(to string) error {
@@ -69,12 +96,7 @@ func discardResume(to string) error {
 		return err
 	}
 	defer release()
-	for _, p := range []string{part, statePath} {
-		if err := os.Remove(p); err != nil && !os.IsNotExist(err) {
-			return err
-		}
-	}
-	return nil
+	return removeResumeFiles(part, statePath)
 }
 
 func openResume(to, source, integrity, validator string, size int64) (*os.File, string, string, resumeState, func(), error) {
@@ -92,6 +114,12 @@ func openResume(to, source, integrity, validator string, size int64) (*os.File, 
 		return nil, "", "", resumeState{}, nil, err
 	}
 	if err := os.MkdirAll(filepath.Dir(part), 0o755); err != nil {
+		return fail(err)
+	}
+	if err := removeResumeTemp(statePath); err != nil {
+		return fail(err)
+	}
+	if err := removeDownloadTemp(part + ".stream"); err != nil {
 		return fail(err)
 	}
 	var data []byte
@@ -150,7 +178,24 @@ func writeResumeState(path string, state resumeState) error {
 	if err != nil {
 		return err
 	}
-	if err := writeFileAtomic(path, data); err != nil {
+	tmp := path + ".tmp"
+	file, err := os.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		return fmt.Errorf("save download progress: %w", err)
+	}
+	defer os.Remove(tmp)
+	if _, err := file.Write(data); err != nil {
+		file.Close()
+		return fmt.Errorf("save download progress: %w", err)
+	}
+	if err := file.Sync(); err != nil {
+		file.Close()
+		return fmt.Errorf("save download progress: %w", err)
+	}
+	if err := file.Close(); err != nil {
+		return fmt.Errorf("save download progress: %w", err)
+	}
+	if err := os.Rename(tmp, path); err != nil {
 		return fmt.Errorf("save download progress: %w", err)
 	}
 	return nil
