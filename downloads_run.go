@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"hash"
 	"io"
@@ -213,6 +214,9 @@ func (a *app) finishEditorDownload(key string, job *downloadJob, downloadErr, co
 	}
 	if downloadErr != nil {
 		job.Status, job.Err = "failedDownload", downloadErr.Error()
+		if errors.Is(downloadErr, errDownloadStalled) {
+			job.Err = locales.DownloadStalled()
+		}
 		logger.Printf("download: %v", downloadErr)
 		return
 	}
@@ -251,11 +255,13 @@ func downloadFileVerifiedSize(ctx context.Context, from, to, integrity string, e
 	if handled, err := parallelDownload(ctx, from, to, integrity, expectedSize, progress); handled {
 		return err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, from, nil)
+	watch := newDownloadIdleWatch(ctx, downloadIdleTimeout)
+	defer watch.close()
+	req, err := http.NewRequestWithContext(watch.ctx, http.MethodGet, from, nil)
 	if err != nil {
 		return err
 	}
-	resp, err := (&http.Client{}).Do(req)
+	resp, err := watch.request(http.DefaultClient, req)
 	if err != nil {
 		return err
 	}
@@ -288,10 +294,11 @@ func downloadFileVerifiedSize(ctx context.Context, from, to, integrity string, e
 	}
 	defer os.Remove(part)
 	total := resp.ContentLength
+	body := watch.reader(resp.Body)
 	var done int64
 	buf := make([]byte, 1<<20)
 	for {
-		n, readErr := resp.Body.Read(buf)
+		n, readErr := body.Read(buf)
 		if n > 0 {
 			if expectedSize > 0 && int64(n) > expectedSize-done {
 				file.Close()

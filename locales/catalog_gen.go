@@ -1356,6 +1356,16 @@ func (msgs Messages) ActionRetryDownload() string {
 	return Catalog.Format(msgs.locale, "actionRetryDownload", nil)
 }
 
+// DownloadStalled says "No data received for 45 seconds. Retry to continue."
+// in the language the app shows.
+func DownloadStalled() string { return In(i18n.Locale()).DownloadStalled() }
+
+// DownloadStalled says "No data received for 45 seconds. Retry to continue."
+// in the language of msgs.
+func (msgs Messages) DownloadStalled() string {
+	return Catalog.Format(msgs.locale, "downloadStalled", nil)
+}
+
 // ActionRetryDownloadInstall says "Check download and retry"
 // in the language the app shows.
 func ActionRetryDownloadInstall() string { return In(i18n.Locale()).ActionRetryDownloadInstall() }

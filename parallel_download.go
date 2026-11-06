@@ -248,14 +248,20 @@ func (w *rangeProgressWriter) Write(p []byte) (int, error) {
 }
 
 func downloadRange(ctx context.Context, from string, file *os.File, start, end, total int64, validator string, report func(int64)) (int64, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, from, nil)
+	return downloadRangeWithIdle(ctx, from, file, start, end, total, validator, report, downloadIdleTimeout)
+}
+
+func downloadRangeWithIdle(ctx context.Context, from string, file *os.File, start, end, total int64, validator string, report func(int64), idle time.Duration) (int64, error) {
+	watch := newDownloadIdleWatch(ctx, idle)
+	defer watch.close()
+	req, err := http.NewRequestWithContext(watch.ctx, http.MethodGet, from, nil)
 	if err != nil {
 		return 0, err
 	}
 	req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", start, end))
 	req.Header.Set("If-Range", validator)
 	req.Header.Set("Accept-Encoding", "identity")
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := watch.request(http.DefaultClient, req)
 	if err != nil {
 		return 0, err
 	}
@@ -272,12 +278,18 @@ func downloadRange(ctx context.Context, from string, file *os.File, start, end, 
 		return 0, fmt.Errorf("invalid range length")
 	}
 	w := &rangeProgressWriter{w: io.NewOffsetWriter(file, start), report: report}
-	if _, err := io.CopyN(w, resp.Body, length); err != nil {
+	body := watch.reader(resp.Body)
+	if _, err := io.CopyN(w, body, length); err != nil {
 		return w.n, err
 	}
 	var extra [1]byte
-	if n, err := resp.Body.Read(extra[:]); n != 0 || err != io.EOF {
+	if n, err := body.Read(extra[:]); n != 0 {
 		return 0, fmt.Errorf("range response exceeded expected length")
+	} else if err != io.EOF {
+		if err != nil {
+			return w.n, err
+		}
+		return w.n, fmt.Errorf("range response did not terminate")
 	}
 	return w.n, nil
 }

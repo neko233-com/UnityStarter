@@ -135,6 +135,7 @@
   "downloadsArchive": "所有版本",
   "actionDownload": "下载",
   "actionRetryDownload": "重试／继续",
+  "downloadStalled": "45 秒未收到数据，请重试继续下载。",
   "actionRetryDownloadInstall": "检查下载并重试",
   "actionDiscardDownload": "丢弃进度",
   "downloadClearing": "正在清除下载进度…",

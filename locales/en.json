@@ -167,6 +167,7 @@
   "downloadsArchive": "All versions",
   "actionDownload": "Download",
   "actionRetryDownload": "Retry / resume",
+  "downloadStalled": "No data received for 45 seconds. Retry to continue.",
   "actionRetryDownloadInstall": "Check download and retry",
   "actionDiscardDownload": "Discard progress",
   "downloadClearing": "Discarding download progress…",

@@ -122,6 +122,10 @@ func TestEditorDownloadTransitionsAndCancellation(t *testing.T) {
 	if called != 1 || job.Status != "failedDownload" {
 		t.Fatal("failed download started installation")
 	}
+	a.finishEditorDownload(key, job, errDownloadStalled, nil, install)
+	if job.Err != locales.DownloadStalled() {
+		t.Fatalf("stalled download was not explained: %s", job.Err)
+	}
 	a.jobs[key] = &downloadJob{}
 	a.finishEditorDownload(key, job, nil, nil, install)
 	if called != 1 {
