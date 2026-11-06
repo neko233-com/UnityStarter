@@ -11,11 +11,46 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/egoist/mygo/ui"
+	"unitystarter/locales"
 )
 
 func shaString(data []byte) string {
 	sum := sha256.Sum256(data)
 	return hex.EncodeToString(sum[:])
+}
+
+func TestUpdateWaitsForEditorAndModuleInstallations(t *testing.T) {
+	t.Setenv("APPDATA", t.TempDir())
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	a := fixture()
+	a.updatePending, a.updateStatus = "99.0.0", "ready"
+	a.jobs = map[string]*downloadJob{"job": {Status: "installing"}}
+	tt := ui.NewTester(a.view, 1180, 760)
+	if !tt.HasText(locales.UpdateInstallWait()) {
+		t.Fatalf("missing wait message: %q", tt.Texts())
+	}
+	_ = tt.Click(locales.UpdateRestart())
+	if a.updateStatus != "ready" || a.alertOpen {
+		t.Fatal("disabled update action ran during editor installation")
+	}
+	a.applyUpdateNow()
+	if !a.alertOpen || a.alertMessage != locales.DownloadInstallInProgress() || a.updateStatus != "ready" {
+		t.Fatal("update helper was not blocked before startup")
+	}
+	a.alertOpen = false
+	a.jobs["job"].Status = "installed"
+	a.moduleBusy = true
+	tt.Frame()
+	if !tt.HasText(locales.UpdateInstallWait()) {
+		t.Fatal("module installation did not block update")
+	}
+	a.moduleBusy = false
+	tt.Frame()
+	if !tt.HasText("ready") {
+		t.Fatal("update did not become available after installation")
+	}
 }
 
 func TestUpdateAssetsRejectsUntrustedOrIncompleteRelease(t *testing.T) {

@@ -61,6 +61,7 @@
   "updateReady": "Version {version} is ready; it will install the next time you start the app.",
   "@updateReady": { "placeholders": { "version": { "type": "String", "example": "1.5.1" } } },
   "updateRestart": "Update and restart",
+  "updateInstallWait": "An editor or module is installing. Wait for it to finish before updating.",
   "projectWrongEngine": "This project belongs to the other engine. Open its engine group and add it there.",
   "tuanjieDownloadsEmptyHint": "No Tuanjie releases found. Check your network and refresh.",
   "sidebarFavorites": "Favorites",

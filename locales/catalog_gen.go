@@ -618,6 +618,16 @@ func (msgs Messages) UpdateRestart() string {
 	return Catalog.Format(msgs.locale, "updateRestart", nil)
 }
 
+// UpdateInstallWait says "An editor or module is installing. Wait for it to finish before updating."
+// in the language the app shows.
+func UpdateInstallWait() string { return In(i18n.Locale()).UpdateInstallWait() }
+
+// UpdateInstallWait says "An editor or module is installing. Wait for it to finish before updating."
+// in the language of msgs.
+func (msgs Messages) UpdateInstallWait() string {
+	return Catalog.Format(msgs.locale, "updateInstallWait", nil)
+}
+
 // ProjectWrongEngine says "This project belongs to the other engine. Open its engine group and add it there."
 // in the language the app shows.
 func ProjectWrongEngine() string { return In(i18n.Locale()).ProjectWrongEngine() }

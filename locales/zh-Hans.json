@@ -62,6 +62,7 @@
   "updateReady": "版本 {version} 已下载，下次启动时自动安装。",
   "@updateReady": { "placeholders": { "version": { "type": "String", "example": "1.5.1" } } },
   "updateRestart": "更新并重启",
+  "updateInstallWait": "编辑器或模块正在安装，请等待完成后更新。",
   "projectWrongEngine": "该项目属于另一种引擎，请切换到对应引擎分组后添加。",
   "tuanjieDownloadsEmptyHint": "未找到团结引擎版本，请检查网络后刷新。",
   "sidebarFavorites": "收藏",
