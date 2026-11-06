@@ -81,6 +81,41 @@ func TestRecentTemporaryProjectsAndExplicitAdditions(t *testing.T) {
 	}
 }
 
+func TestRecentCodexWorktreesAndExplicitAdditions(t *testing.T) {
+	base := t.TempDir()
+	worktrees := filepath.Join(base, ".codex", "worktrees")
+	worktree := filepath.Join(worktrees, "task", "Game")
+	regular := filepath.Join(base, "Game")
+	independent := filepath.Join(base, "other", "Game")
+	sibling := filepath.Join(base, ".codex", "worktrees-backup", "Game")
+	for _, path := range []string{worktree, regular, independent, sibling} {
+		writeProject(t, path, "2022.3.62t17")
+	}
+	recent := []recentEditorProject{{Path: worktree}, {Path: regular}, {Path: independent}, {Path: sibling}}
+	scan := func(p prefs, hubs []hub, roots []string) []projectEntry {
+		return scanProjectsWithRecentRoots(p, nil, hubs, roots, recent, filepath.Join(base, "temp"), []string{worktrees}, false)
+	}
+	if got := scan(prefs{}, nil, nil); len(got) != 3 {
+		t.Fatalf("automatic Codex worktree should be excluded; independent same-named projects should remain: %+v", got)
+	}
+	if got := scan(prefs{PinnedProjects: []string{worktree}}, nil, nil); len(got) != 4 {
+		t.Fatalf("explicitly added worktree missing: %+v", got)
+	}
+	if got := scan(prefs{LocalFavorites: map[string]bool{localProjectKey(worktree): true}}, nil, nil); len(got) != 4 {
+		t.Fatalf("favorited worktree missing: %+v", got)
+	}
+	if got := scan(prefs{}, nil, []string{worktree}); len(got) != 4 {
+		t.Fatalf("explicit worktree root missing: %+v", got)
+	}
+	h := hub{Kind: kindUnity, Registry: filepath.Join(base, "projects-v1.json"), Favorites: filepath.Join(base, "favoriteProjects.json")}
+	if err := h.addProject(projectEntry{Path: worktree, Name: "intentional", Version: "2022.3.62t17"}); err != nil {
+		t.Fatal(err)
+	}
+	if got := scan(prefs{}, []hub{h}, nil); len(got) != 4 {
+		t.Fatalf("Hub worktree missing: %+v", got)
+	}
+}
+
 func TestGeneratedProjectsInEditorRecentHistory(t *testing.T) {
 	base := t.TempDir()
 	parent := filepath.Join(base, "Game")

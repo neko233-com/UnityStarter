@@ -302,9 +302,27 @@ func scanProjectsMode(p prefs, editors []editorInstall, hubs []hub, withVCS bool
 // Ignore those automatic entries, while preserving explicit user additions,
 // configured project roots, and projects listed by a Hub.
 func scanProjectsWithRecent(p prefs, editors []editorInstall, hubs []hub, roots []string, recent []recentEditorProject, tempRoot string, withVCS bool) []projectEntry {
+	var worktreeRoots []string
+	if home, err := os.UserHomeDir(); err == nil && home != "" {
+		worktreeRoots = append(worktreeRoots, filepath.Join(home, ".codex", "worktrees"))
+	}
+	if codexHome := os.Getenv("CODEX_HOME"); filepath.IsAbs(codexHome) {
+		worktreeRoots = append(worktreeRoots, filepath.Join(codexHome, "worktrees"))
+	}
+	return scanProjectsWithRecentRoots(p, editors, hubs, roots, recent, tempRoot, worktreeRoots, withVCS)
+}
+
+func scanProjectsWithRecentRoots(p prefs, editors []editorInstall, hubs []hub, roots []string, recent []recentEditorProject, tempRoot string, worktreeRoots []string, withVCS bool) []projectEntry {
 	p.PinnedProjects = append([]string(nil), p.PinnedProjects...)
 	for _, entry := range recent {
-		if p.LocalFavorites[localProjectKey(entry.Path)] || (!pathWithinDirectory(entry.Path, tempRoot) && !generatedProjectPath(entry.Path)) {
+		automationWorktree := false
+		for _, root := range worktreeRoots {
+			if pathWithinDirectory(entry.Path, root) {
+				automationWorktree = true
+				break
+			}
+		}
+		if p.LocalFavorites[localProjectKey(entry.Path)] || (!automationWorktree && !pathWithinDirectory(entry.Path, tempRoot) && !generatedProjectPath(entry.Path)) {
 			p.PinnedProjects = append(p.PinnedProjects, entry.Path)
 		}
 	}
