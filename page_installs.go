@@ -21,29 +21,25 @@ func (a *app) installsPage(c *ui.Context) {
 		ui.Button(c, locales.ActionAddFolder()).OnClick(a.addEditorRoot)
 		ui.PrimaryButton(c, locales.InstallEditor()).OnClick(func() { _, _, page, _ := enginePages(engine); a.page = page })
 	})
-	ui.Row(c).Padding(0, 22, 10, 22).Gap(8).AlignItems(ui.Center).Children(func() {
+	ui.Row(c).Padding(0, 24, 10, 24).Gap(8).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, locales.SettingsInstallRoot()+":").FontSize(12).TextColor(t.TextMuted)
 		ui.Text(c, a.installRoot()).Grow(1).FontSize(12).TextColor(t.TextMuted).Clip().Tooltip(a.installRoot())
 		ui.Button(c, locales.InstallChooseLocation()).OnClick(a.chooseInstallRoot)
 	})
-	ui.Row(c).Padding(0, 22, 14, 22).Gap(8).AlignItems(ui.Center).Children(func() {
+	ui.Row(c).Padding(0, 24, 0, 24).Gap(6).Wrap().AlignItems(ui.Center).Children(func() {
 		for _, tab := range []struct{ id, label string }{{"", locales.InstallAll()}, {"official", locales.InstallOfficial()}, {"preview", locales.InstallPreview()}} {
 			tab := tab
-			if a.installFilter == tab.id {
-				ui.PrimaryButton(c, tab.label).OnClick(func() { a.installFilter = tab.id })
-			} else {
-				ui.Button(c, tab.label).OnClick(func() { a.installFilter = tab.id })
-			}
+			pageTab(c, tab.label, a.installFilter == tab.id, func() { a.installFilter = tab.id })
 		}
 		ui.Spacer(c)
-		ui.SearchField(c, &a.installQuery).Placeholder(locales.InstallSearch()).Width(210)
+		ui.SearchField(c, &a.installQuery).Placeholder(locales.InstallSearch()).Label(locales.InstallSearch()).Width(210).Margin(0, 0, 8, 0)
 	})
 	ui.Divider(c)
 
 	a.installs.Key = func(i int) any { return editors[i].Exe }
 	ui.List(c, &a.installs, len(editors), func(i int) {
 		e := editors[i]
-		ui.Column(c).Padding(6, 22).Children(func() {
+		ui.Column(c).Padding(8, 24).Children(func() {
 			ui.Row(c).Padding(16).Gap(14).AlignItems(ui.Center).Background(t.Surface).Border(1, t.Border).Radius(6).Children(func() {
 				ui.Box(c).Size(44, 44).Shrink(0).Radius(6).Background(t.Background).Center().Children(func() {
 					ui.Icon(c, iconBrand).Size(26, 26).TextColor(t.TextMuted)
@@ -101,7 +97,11 @@ func (a *app) installsPage(c *ui.Context) {
 		})
 	}).Grow(1).Children(func() {
 		if len(editors) == 0 {
-			a.emptyState(c, locales.InstallsEmptyTitle(), locales.InstallsEmptyHint())
+			if a.installQuery != "" || a.installFilter != "" {
+				a.searchEmpty(c, func() { a.installQuery, a.installFilter = "", "" })
+			} else {
+				a.emptyState(c, locales.InstallsEmptyTitle(), locales.InstallsEmptyHint())
+			}
 		}
 	})
 }

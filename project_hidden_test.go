@@ -68,6 +68,9 @@ func TestProjectMenuHideAndRestore(t *testing.T) {
 	}
 	a.page = pageSettings
 	tt.Frame()
+	if err := tt.Click(locales.SettingsProjectsTab()); err != nil {
+		t.Fatal(err)
+	}
 	if !tt.HasText(locales.HiddenProjectsTitle()) || !tt.HasText(a.projects[0].Path) {
 		t.Fatalf("hidden projects settings missing: %q", tt.Texts())
 	}

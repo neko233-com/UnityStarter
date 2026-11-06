@@ -12,54 +12,67 @@ import (
 )
 
 func (a *app) settingsPage(c *ui.Context) {
-	ui.Scroll(c).Grow(1).Children(func() {
-		ui.Column(c).Padding(24, 26).Gap(26).MaxWidth(780).Children(func() {
-			ui.Text(c, locales.SettingsTitle()).FontSize(24).Bold()
-			a.languageSection(c)
-			a.hubSection(c)
-			a.hiddenProjectsSection(c)
-
-			a.rootsSection(c, locales.SettingsProjectRoots(), locales.SettingsProjectRootsHint(), a.prefs.ProjectRoots,
-				func(next []string) {
-					a.prefs.ProjectRoots = next
-					a.save()
-					a.refresh()
-				},
-				func() {
-					a.pickFolder(locales.DialogChooseFolder(), func(dir string) {
-						a.prefs.ProjectRoots = dedupe(append(a.prefs.ProjectRoots, dir))
+	a.header(c, locales.SettingsTitle(), locales.SettingsHint(), nil)
+	ui.Row(c).Padding(0, 24).Gap(8).Children(func() {
+		for _, tab := range []struct{ id, label string }{
+			{"", locales.SettingsGeneral()}, {"projects", locales.SettingsProjectsTab()},
+			{"installs", locales.SettingsInstallsTab()}, {"about", locales.SettingsAbout()},
+		} {
+			tab := tab
+			pageTab(c, tab.label, a.settingsTab == tab.id, func() { a.settingsTab = tab.id })
+		}
+	})
+	ui.Divider(c)
+	c.Key(a.settingsTab)
+	ui.Scroll(c).Grow(1).MinHeight(0).Children(func() {
+		ui.Column(c).Padding(24).Gap(16).MaxWidth(1000).Children(func() {
+			switch a.settingsTab {
+			case "projects":
+				a.hiddenProjectsSection(c)
+				a.rootsSection(c, locales.SettingsProjectRoots(), locales.SettingsProjectRootsHint(), a.prefs.ProjectRoots,
+					func(next []string) {
+						a.prefs.ProjectRoots = next
 						a.save()
 						a.refresh()
+					},
+					func() {
+						a.pickFolder(locales.DialogChooseFolder(), func(dir string) {
+							a.prefs.ProjectRoots = dedupe(append(a.prefs.ProjectRoots, dir))
+							a.save()
+							a.refresh()
+						})
 					})
-				})
 
-			a.rootsSection(c, locales.SettingsEditorRoots(), locales.SettingsEditorRootsHint(), a.prefs.EditorRoots,
-				func(next []string) {
-					a.prefs.EditorRoots = next
-					a.save()
-					a.refresh()
-				},
-				func() {
-					a.pickFolder(locales.DialogChooseFolder(), func(dir string) {
-						a.prefs.EditorRoots = dedupe(append(a.prefs.EditorRoots, dir))
+				a.rootsSection(c, locales.SettingsPinnedProjects(), locales.SettingsPinnedProjectsHint(), a.prefs.PinnedProjects,
+					func(next []string) {
+						a.prefs.PinnedProjects = next
 						a.save()
 						a.refresh()
+					}, a.addProject)
+			case "installs":
+				a.installRootSection(c)
+				a.rootsSection(c, locales.SettingsEditorRoots(), locales.SettingsEditorRootsHint(), a.prefs.EditorRoots,
+					func(next []string) {
+						a.prefs.EditorRoots = next
+						a.save()
+						a.refresh()
+					},
+					func() {
+						a.pickFolder(locales.DialogChooseFolder(), func(dir string) {
+							a.prefs.EditorRoots = dedupe(append(a.prefs.EditorRoots, dir))
+							a.save()
+							a.refresh()
+						})
 					})
-				})
 
-			a.installRootSection(c)
-			a.downloadCacheSection(c)
-			a.demoSection(c)
-
-			a.rootsSection(c, locales.SettingsPinnedProjects(), locales.SettingsPinnedProjectsHint(), a.prefs.PinnedProjects,
-				func(next []string) {
-					a.prefs.PinnedProjects = next
-					a.save()
-					a.refresh()
-				},
-				a.addProject)
-
-			a.aboutSection(c)
+				a.downloadCacheSection(c)
+			case "about":
+				a.aboutSection(c)
+			default:
+				a.languageSection(c)
+				a.hubSection(c)
+				a.demoSection(c)
+			}
 		})
 	})
 }
@@ -73,7 +86,7 @@ func (a *app) hiddenProjectsSection(c *ui.Context) {
 		paths = append(paths, path)
 	}
 	sort.Strings(paths)
-	ui.Column(c).Gap(8).Children(func() {
+	panel(c, func() {
 		a.sectionTitle(c, locales.HiddenProjectsTitle(), locales.HiddenProjectsHint())
 		for _, path := range paths {
 			path := path
@@ -89,10 +102,10 @@ func (a *app) hiddenProjectsSection(c *ui.Context) {
 func (a *app) downloadCacheSection(c *ui.Context) {
 	t := c.Theme()
 	dir := downloadsDir()
-	ui.Column(c).Gap(8).Children(func() {
+	panel(c, func() {
 		a.sectionTitle(c, locales.SettingsDownloadCache(), locales.SettingsDownloadCacheHint())
 		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-			ui.Text(c, dir).FontSize(12).TextColor(t.TextMuted).Grow(1).Clip()
+			ui.Text(c, dir).FontSize(12).TextColor(t.TextMuted).Grow(1).SingleLine().Clip().Tooltip(dir)
 			ui.Button(c, locales.ActionFolder()).OnClick(func() {
 				if err := os.MkdirAll(dir, 0o755); err != nil {
 					a.alert(locales.OpenFailed(err.Error()))
@@ -128,7 +141,7 @@ func (a *app) languageSection(c *ui.Context) {
 	}
 	chosen := labels[index]
 
-	ui.Column(c).Gap(8).Children(func() {
+	panel(c, func() {
 		a.sectionTitle(c, locales.SettingsLanguage(), locales.SettingsLanguageHint())
 		ui.Select(c, &chosen, labels).Width(220)
 	})
@@ -146,15 +159,17 @@ func (a *app) languageSection(c *ui.Context) {
 // each.
 func (a *app) rootsSection(c *ui.Context, title, hint string, roots []string, set func([]string), add func()) {
 	t := c.Theme()
-	ui.Column(c).Gap(8).Children(func() {
+	c.Key(title)
+	panel(c, func() {
 		a.sectionTitle(c, title, hint)
 		if len(roots) == 0 {
 			ui.Text(c, locales.SettingsRootsEmpty()).FontSize(12).TextColor(t.TextMuted)
 		}
 		for i, root := range roots {
 			i, root := i, root
+			c.Key(root)
 			ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-				ui.Text(c, root).FontSize(12).Grow(1).Clip()
+				ui.Text(c, root).FontSize(12).Grow(1).MinWidth(0).SingleLine().Clip().Tooltip(root)
 				if ui.Button(c, locales.ActionRemove()).Clicked() {
 					next := append([]string{}, roots[:i]...)
 					next = append(next, roots[i+1:]...)
@@ -172,10 +187,10 @@ func (a *app) rootsSection(c *ui.Context, title, hint string, roots []string, se
 func (a *app) installRootSection(c *ui.Context) {
 	t := c.Theme()
 	root := a.installRoot()
-	ui.Column(c).Gap(8).Children(func() {
+	panel(c, func() {
 		a.sectionTitle(c, locales.SettingsInstallRoot(), locales.SettingsInstallRootHint())
 		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-			ui.Text(c, root).FontSize(12).TextColor(t.TextMuted).Grow(1).Clip()
+			ui.Text(c, root).FontSize(12).TextColor(t.TextMuted).Grow(1).MinWidth(0).SingleLine().Clip().Tooltip(root)
 			if ui.Button(c, locales.ActionFolder()).Clicked() {
 				_ = mygo.Shell.OpenPath(root)
 			}
@@ -203,7 +218,7 @@ func (a *app) setInstallRoot(dir string) {
 // demoSection turns installs into stand-ins, for trying the flow.
 func (a *app) demoSection(c *ui.Context) {
 	demo := a.prefs.DemoMode
-	ui.Column(c).Gap(8).Children(func() {
+	panel(c, func() {
 		a.sectionTitle(c, locales.SettingsDemo(), locales.SettingsDemoHint())
 		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
 			ui.Switch(c, &demo)
@@ -221,20 +236,23 @@ func (a *app) demoSection(c *ui.Context) {
 func (a *app) hubSection(c *ui.Context) {
 	t := c.Theme()
 	sync := !a.prefs.NoHubSync
-	ui.Column(c).Gap(8).Children(func() {
+	panel(c, func() {
 		a.sectionTitle(c, locales.SettingsHubs(), locales.SettingsHubsHint())
 		if len(a.hubs) == 0 {
 			ui.Text(c, locales.SettingsHubsNone()).FontSize(12).TextColor(t.TextMuted)
 		}
 		for _, h := range a.hubs {
 			h := h
+			c.Key(h.Kind)
 			ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
-				ui.Text(c, hubName(h.Kind)).FontSize(13).Bold()
-				ui.Badge(c, hubMode(h))
-				if h.Version != "" {
-					ui.Text(c, h.Version).FontSize(11).TextColor(t.TextMuted)
-				}
-				ui.Text(c, h.Dir).FontSize(11).TextColor(t.TextMuted).Grow(1).Clip()
+				ui.Column(c).Grow(1).MinWidth(0).Gap(4).Children(func() {
+					ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
+						ui.Text(c, hubName(h.Kind)).FontSize(13).Bold()
+						ui.Badge(c, hubMode(h))
+						ui.Text(c, h.Version).FontSize(11).TextColor(t.TextMuted)
+					})
+					ui.Text(c, h.Dir).FontSize(11).TextColor(t.TextMuted).SingleLine().Clip().Tooltip(h.Dir)
+				})
 				if ui.Button(c, locales.ActionOpenConfig()).Clicked() {
 					_ = mygo.Shell.OpenPath(h.Dir)
 				}
@@ -280,14 +298,14 @@ func (a *app) aboutSection(c *ui.Context) {
 	if version == "" {
 		version = appVersion
 	}
-	ui.Column(c).Gap(6).Children(func() {
+	panel(c, func() {
 		a.sectionTitle(c, locales.SettingsAbout(), locales.SettingsAboutText())
 		ui.Text(c, locales.SettingsVersion(version)).FontSize(12).TextColor(t.TextMuted)
-		ui.Text(c, prefsPath()).FontSize(11).TextColor(t.TextMuted).Clip()
+		ui.Text(c, prefsPath()).FontSize(11).TextColor(t.TextMuted).SingleLine().Clip().Tooltip(prefsPath())
 		if a.updateStatus != "" {
 			ui.Text(c, a.updateStatus).FontSize(12).TextColor(t.TextMuted)
 		}
-		ui.Row(c).Gap(8).Children(func() {
+		ui.Row(c).Gap(8).Wrap().Children(func() {
 			if ui.Button(c, locales.ActionOpenDataDir()).Clicked() {
 				if dir, err := mygo.App.Path(mygo.PathUserData); err == nil {
 					_ = mygo.Shell.OpenPath(dir)
@@ -296,7 +314,7 @@ func (a *app) aboutSection(c *ui.Context) {
 			if ui.Button(c, locales.ActionOpenLogs()).Clicked() {
 				_ = mygo.Shell.OpenPath(logPath())
 			}
-			if ui.Button(c, locales.ActionCheckUpdate()).Clicked() {
+			if ui.PrimaryButton(c, locales.ActionCheckUpdate()).Disabled(a.updateBusy).Clicked() {
 				a.checkUpdates()
 			}
 		})

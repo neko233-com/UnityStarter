@@ -31,8 +31,8 @@ func (a *app) projectsPage(c *ui.Context) {
 		ui.Button(c, locales.ActionAddProject()).OnClick(func() { a.addProjectForEngine(engine) })
 		ui.PrimaryButton(c, locales.ActionNewProject()).OnClick(a.openNewProject)
 	})
-	ui.Row(c).Padding(0, 22, 14, 22).Justify(ui.End).Children(func() {
-		ui.SearchField(c, &a.query).Placeholder(locales.ProjectsSearch()).Width(245)
+	ui.Row(c).Padding(0, 24, 16, 24).Justify(ui.End).Children(func() {
+		ui.SearchField(c, &a.query).Placeholder(locales.ProjectsSearch()).Label(locales.ProjectsSearch()).Width(245)
 	})
 	ui.Divider(c)
 	for _, pending := range a.pendingProjectList {
@@ -71,15 +71,15 @@ func (a *app) projectsPage(c *ui.Context) {
 			ui.Button(c, locales.NewProjectForget()).OnClick(func() { a.forgetPendingProject(p) })
 		})
 	}
-	ui.Row(c).Padding(5, 16).Gap(10).AlignItems(ui.Center).Background(c.Theme().Surface).Children(func() {
-		ui.Button(c, "★").Width(38).OnClick(func() { a.sortProjects("favorite") })
-		ui.Button(c, locales.ProjectColumnName()).Grow(1).OnClick(func() { a.sortProjects("name") })
+	ui.Row(c).Padding(4, 16).Gap(10).AlignItems(ui.Center).Background(c.Theme().Surface).Children(func() {
+		tableHeading(c, "★", "favorite", a.projectSort == "favorite", a.projectSortReverse, func() { a.sortProjects("favorite") }).Width(38)
+		tableHeading(c, locales.ProjectColumnName(), "name", a.projectSort == "name", a.projectSortReverse, func() { a.sortProjects("name") }).Grow(1).MinWidth(0)
 		dateWidth, versionWidth, actionsWidth := float32(110), float32(150), float32(190)
 		if compact {
-			dateWidth, versionWidth, actionsWidth = 76, 110, 104
+			dateWidth, versionWidth, actionsWidth = 76, 132, 104
 		}
-		ui.Button(c, locales.ProjectColumnModified()).Width(dateWidth).OnClick(func() { a.sortProjects("modified") })
-		ui.Button(c, locales.ProjectColumnEditor()).Width(versionWidth).OnClick(func() { a.sortProjects("version") })
+		tableHeading(c, locales.ProjectColumnModified(), "modified", a.projectSort == "modified" || a.projectSort == "", a.projectSortReverse, func() { a.sortProjects("modified") }).Width(dateWidth)
+		tableHeading(c, locales.ProjectColumnEditor(), "version", a.projectSort == "version", a.projectSortReverse, func() { a.sortProjects("version") }).Width(versionWidth)
 		ui.Text(c, "").Width(actionsWidth)
 	})
 
@@ -88,7 +88,9 @@ func (a *app) projectsPage(c *ui.Context) {
 		a.projectRow(c, items[i], compact)
 	}).Grow(1).Children(func() {
 		if len(items) == 0 {
-			if favoritesPage(a.page) && strings.TrimSpace(a.query) == "" {
+			if strings.TrimSpace(a.query) != "" {
+				a.searchEmpty(c, func() { a.query = "" })
+			} else if favoritesPage(a.page) {
 				a.emptyState(c, locales.FavoritesEmptyTitle(), locales.FavoritesEmptyHint())
 			} else {
 				a.emptyState(c, locales.ProjectsEmptyTitle(), locales.ProjectsEmptyHint())
@@ -144,8 +146,8 @@ func (a *app) filteredProjects() []projectEntry {
 }
 
 func (a *app) sortProjects(column string) {
-	if a.projectSort == column {
-		a.projectSortReverse = !a.projectSortReverse
+	if a.projectSort == column || a.projectSort == "" && column == "modified" {
+		a.projectSort, a.projectSortReverse = column, !a.projectSortReverse
 	} else {
 		a.projectSort, a.projectSortReverse = column, false
 	}
@@ -170,11 +172,10 @@ func (a *app) projectRow(c *ui.Context, p projectEntry, compact bool) {
 		if p.Favorite {
 			star, tip = "★", locales.FavoriteRemove()
 		}
-		ui.Button(c, star).Tooltip(tip).Width(38).OnClick(func() { a.toggleFavorite(p) })
+		ui.Button(c, star).Tooltip(tip).Label(tip).Width(38).Background(ui.Color{}).Border(0, ui.Color{}).OnClick(func() { a.toggleFavorite(p) })
 		ui.Column(c).Grow(1).Shrink(1).MinWidth(0).Clip().Gap(5).Children(func() {
 			ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-				ui.Text(c, p.Name).FontSize(16).Bold().SingleLine().Clip().Tooltip(p.Name)
-				ui.Badge(c, channelName(p.Kind))
+				ui.Text(c, p.Name).Grow(1).MinWidth(0).FontSize(14).Bold().SingleLine().Clip().Tooltip(p.Name)
 				if p.Pipeline != "" {
 					ui.Badge(c, pipelineName(p.Pipeline))
 				}
@@ -186,7 +187,7 @@ func (a *app) projectRow(c *ui.Context, p projectEntry, compact bool) {
 					if p.VCS.Dirty {
 						badge += " •"
 					}
-					b := ui.Badge(c, badge).FontSize(11)
+					b := ui.Badge(c, badge).FontSize(11).MaxWidth(130).Clip().Tooltip(badge)
 					if p.VCS.Dirty {
 						b.Tooltip(locales.VcsDirty())
 					}
@@ -196,7 +197,7 @@ func (a *app) projectRow(c *ui.Context, p projectEntry, compact bool) {
 		})
 		dateWidth, versionWidth, actionsWidth := float32(110), float32(150), float32(190)
 		if compact {
-			dateWidth, versionWidth, actionsWidth = 76, 110, 104
+			dateWidth, versionWidth, actionsWidth = 76, 132, 104
 		}
 		date := a.formatTime(p.Modified)
 		ui.Text(c, date).Width(dateWidth).FontSize(11).TextColor(t.TextMuted).SingleLine().Clip().Tooltip(date)
@@ -204,7 +205,10 @@ func (a *app) projectRow(c *ui.Context, p projectEntry, compact bool) {
 		if p.DisplayVersion != "" {
 			label = p.DisplayVersion
 		}
-		ui.Button(c, label+" ▾").Width(versionWidth).Tooltip(displayVersion(p.Version, p.DisplayVersion)).OnClick(func() { a.chooseProjectVersion(p) })
+		versionButton := ui.Button(c, label+" ▾").Width(versionWidth).Tooltip(displayVersion(p.Version, p.DisplayVersion)).OnClick(func() { a.chooseProjectVersion(p) })
+		if p.Editor == "" {
+			versionButton.TextColor(t.Warning).Tooltip(locales.EditorMissing(p.Version))
+		}
 		ui.Row(c).Gap(6).Width(actionsWidth).Justify(ui.End).Children(func() {
 			ui.Button(c, locales.ActionOpen()).OnClick(func() {
 				if p.Editor == "" || a.editorIsSimulated(p.Editor) {

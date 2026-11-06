@@ -34,7 +34,25 @@ func (a *app) activityJobs(activeOnly bool) []*downloadJob {
 		}
 		jobs = append(jobs, job)
 	}
-	sort.Slice(jobs, func(i, j int) bool { return jobKey(jobs[i].Entry) < jobKey(jobs[j].Entry) })
+	sort.Slice(jobs, func(i, j int) bool {
+		priority := func(status string) int {
+			switch status {
+			case "downloading", "installing", "clearing":
+				return 0
+			case "failedDownload", "failedInstall":
+				return 1
+			default:
+				return 2
+			}
+		}
+		if x, y := priority(jobs[i].Status), priority(jobs[j].Status); x != y {
+			return x < y
+		}
+		if jobs[i].Entry.Engine != jobs[j].Entry.Engine {
+			return jobs[i].Entry.Engine < jobs[j].Entry.Engine
+		}
+		return compareVersions(jobs[i].Entry.Version, jobs[j].Entry.Version) > 0
+	})
 	return jobs
 }
 
@@ -80,16 +98,17 @@ func (a *app) editorActivityBanner(c *ui.Context) {
 func (a *app) activityPage(c *ui.Context) {
 	jobs := a.activityJobs(false)
 	module := a.manageModules && (a.moduleBusy || a.moduleLoading || len(a.moduleQueue) > 0 || a.androidPlan != nil || a.moduleStatus != "")
-	a.header(c, locales.ActivityTitle(), "", func() {})
+	a.header(c, locales.ActivityTitle(), locales.ActivityBackgroundHint(), nil)
 	ui.Divider(c)
 	if len(jobs) == 0 && !module && a.visualStudioTask == nil {
 		a.emptyState(c, locales.ActivityEmpty(), "")
 		return
 	}
 	ui.Scroll(c).Grow(1).Children(func() {
-		ui.Column(c).Padding(24, 26).Gap(18).MaxWidth(900).Children(func() {
+		ui.Column(c).Padding(24).Gap(16).Children(func() {
 			if task := a.visualStudioTask; task != nil {
-				ui.Column(c).Gap(8).Children(func() {
+				c.Key("visual-studio")
+				panel(c, func() {
 					ui.Text(c, task.Module.Name).FontSize(14).Bold()
 					status := locales.VisualStudioWaiting()
 					if task.Status == "ready" {
@@ -107,7 +126,8 @@ func (a *app) activityPage(c *ui.Context) {
 				})
 			}
 			if module {
-				ui.Column(c).Gap(8).Children(func() {
+				c.Key("module-task")
+				panel(c, func() {
 					ui.Text(c, displayVersion(a.manageEditor.Version, a.manageEditor.DisplayVersion)+" · "+a.moduleCurrentName).FontSize(14).Bold()
 					status := a.moduleStatus
 					if a.androidPlan != nil {
@@ -132,11 +152,40 @@ func (a *app) activityPage(c *ui.Context) {
 			for _, job := range jobs {
 				job := job
 				c.Key(jobKey(job.Entry))
-				ui.Column(c).Gap(8).Children(func() {
-					ui.Text(c, channelName(job.Entry.Engine)+" · "+job.Entry.Version).FontSize(14).Bold()
+				panel(c, func() {
+					ui.Row(c).Gap(12).AlignItems(ui.Center).Children(func() {
+						ui.Icon(c, iconBrand).Size(26, 26).TextColor(c.Theme().TextMuted)
+						ui.Column(c).Grow(1).MinWidth(0).Gap(5).Children(func() {
+							ui.Text(c, channelName(job.Entry.Engine)+" · "+job.Entry.Version).FontSize(14).Bold().SingleLine().Clip()
+							if job.Total > 0 {
+								ui.Text(c, humanSize(job.Done)+" / "+humanSize(job.Total)).FontSize(11).TextColor(c.Theme().TextMuted)
+							}
+						})
+						badge := ui.Badge(c, downloadJobLabel(job))
+						if job.Status == "failedDownload" || job.Status == "failedInstall" {
+							badge.TextColor(c.Theme().Warning)
+						}
+					})
 					ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() { a.downloadAction(c, job.Entry) })
 				})
 			}
 		})
 	})
+}
+
+func downloadJobLabel(job *downloadJob) string {
+	switch job.Status {
+	case "downloading":
+		return locales.TaskDownloading()
+	case "downloaded":
+		return locales.TaskReady()
+	case "installing":
+		return locales.DownloadsInstalling()
+	case "clearing":
+		return locales.DownloadClearing()
+	case "failedInstall", "failedDownload":
+		return locales.TaskAttention()
+	default:
+		return locales.DownloadsInstalled()
+	}
 }

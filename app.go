@@ -55,6 +55,9 @@ type app struct {
 	projectSortReverse      bool
 	installQuery            string
 	installFilter           string
+	settingsTab             string
+	downloadFilterUnity     string
+	downloadFilterTuanjie   string
 	versionOpen             bool
 	versionConfirm          bool
 	versionProject          projectEntry
@@ -286,12 +289,12 @@ func (a *app) view(c *ui.Context) {
 			ui.Icon(c, iconBrand).Size(16, 16).TextColor(t.TextMuted)
 			ui.Text(c, locales.AppTitle()).FontSize(12).TextColor(t.TextMuted).SingleLine()
 		})
-		ui.Row(c).Grow(1).AlignItems(ui.Stretch).Children(func() {
-			ui.Column(c).Fill().Width(68).Background(t.Surface).Padding(10, 4).Gap(8).Children(func() {
+		ui.Row(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
+			ui.Column(c).Fill().Width(68).Background(ui.Hex("#202021")).Padding(12, 4).Gap(12).Children(func() {
 				a.engineTab(c, kindUnity)
 				a.engineTab(c, kindTuanjie)
 			})
-			ui.Column(c).Fill().Width(220).Background(t.Surface).Children(func() {
+			ui.Column(c).Fill().Width(220).MinHeight(0).Background(t.Surface).Children(func() {
 				ui.Row(c).Padding(20, 16, 16, 16).Gap(10).AlignItems(ui.Center).Children(func() {
 					ui.Icon(c, iconBrand).Size(24, 24).TextColor(t.Text)
 					ui.Text(c, channelName(a.activeEngine)).FontSize(15).Bold()
@@ -309,11 +312,18 @@ func (a *app) view(c *ui.Context) {
 						ui.SidebarItem(c, pageLearn, iconLearn, locales.PageLearn())
 						ui.SidebarItem(c, pageFeedback, iconFeedback, locales.PageFeedback())
 					})
-					ui.SidebarItem(c, pageActivity, iconDownload, locales.ActivityTitle())
+				}).Grow(1).Shrink(1).MinHeight(0)
+				ui.Divider(c)
+				ui.Sidebar(c, &a.page, func() {
+					ui.SidebarItem(c, pageActivity, iconDownload, locales.ActivityTitle()).Children(func() {
+						if n := len(a.activityJobs(true)); n > 0 {
+							ui.Badge(c, fmt.Sprint(n))
+						}
+					})
 					ui.SidebarItem(c, pageSettings, iconSettings, locales.SidebarSettings())
-				}).Grow(1)
+				}).Height(88).Shrink(0)
 			})
-			ui.Column(c).Grow(1).Fill().Children(func() {
+			ui.Column(c).Grow(1).MinWidth(0).MinHeight(0).Fill().Children(func() {
 				a.unityLicenseBanner(c)
 				a.uninstallGuardBanner(c)
 				a.uninstallActivityBanner(c)
@@ -399,6 +409,8 @@ func (a *app) switchEngine(engine string) {
 		a.page = favorites
 	case oldProjects:
 		a.page = projects
+	case pageStore, pagePublish, pageLicense, pageDocs, pageLearn, pageFeedback, pageSettings, pageActivity:
+		// Shared pages stay open while their engine context changes.
 	default:
 		a.page = projects
 	}
@@ -446,22 +458,48 @@ func (a *app) engineNavigation(c *ui.Context, engine, projects, installs, downlo
 // header is the title of a page, with its count and its actions.
 func (a *app) header(c *ui.Context, title, subtitle string, actions func()) {
 	t := c.Theme()
-	ui.Row(c).Padding(24, 26, 18, 26).Gap(10).AlignItems(ui.Center).Children(func() {
-		ui.Column(c).Gap(3).Children(func() {
-			ui.Text(c, title).FontSize(24).Bold()
-			ui.Text(c, subtitle).FontSize(12).TextColor(t.TextMuted)
+	width, _ := c.Size()
+	compact := width < 1100
+	ui.Column(c).Padding(24, 24, 18, 24).Gap(14).Shrink(0).Children(func() {
+		ui.Row(c).Gap(16).AlignItems(ui.Center).Children(func() {
+			ui.Column(c).Grow(1).MinWidth(0).Gap(5).Children(func() {
+				ui.Text(c, title).FontSize(24).Bold().SingleLine().Clip()
+				if subtitle != "" {
+					ui.Text(c, subtitle).FontSize(12).TextColor(t.TextMuted)
+				}
+			})
+			if !compact && actions != nil {
+				ui.Row(c).Gap(8).Shrink(0).Children(actions)
+			}
 		})
-		ui.Spacer(c)
-		actions()
+		if compact && actions != nil {
+			ui.Row(c).Gap(8).Wrap().Children(actions)
+		}
 	})
 }
 
 func (a *app) emptyState(c *ui.Context, title, hint string) {
 	t := c.Theme()
 	ui.Column(c).Fill().Center().Gap(8).Padding(40).Children(func() {
+		ui.Box(c).Size(56, 56).Radius(12).Background(t.Surface).Center().Margin(0, 0, 8, 0).Children(func() {
+			ui.Icon(c, iconForPage(a.page)).Size(28, 28).TextColor(t.TextMuted)
+		})
 		ui.Text(c, title).FontSize(16).Bold().TextColor(t.TextMuted)
 		ui.Text(c, hint).FontSize(12).TextColor(t.TextMuted).TextAlign(ui.Center).MaxWidth(420)
 	})
+}
+
+func iconForPage(page string) *ui.SVG {
+	switch page {
+	case pageInstalls, pageTuanjieInstalls:
+		return iconInstalls
+	case pageDownloads, pageTuanjieDownloads, pageActivity:
+		return iconDownload
+	case pageFavorites, pageTuanjieFavorites:
+		return iconFavorite
+	default:
+		return iconProjects
+	}
 }
 
 func (a *app) formatTime(t time.Time) string {

@@ -44,6 +44,126 @@ func (msgs Messages) AlertTitle() string {
 	return Catalog.Format(msgs.locale, "alertTitle", nil)
 }
 
+// SettingsGeneral says "General"
+// in the language the app shows.
+func SettingsGeneral() string { return In(i18n.Locale()).SettingsGeneral() }
+
+// SettingsGeneral says "General"
+// in the language of msgs.
+func (msgs Messages) SettingsGeneral() string {
+	return Catalog.Format(msgs.locale, "settingsGeneral", nil)
+}
+
+// SettingsHint says "Manage your workspace, Editor locations and application preferences."
+// in the language the app shows.
+func SettingsHint() string { return In(i18n.Locale()).SettingsHint() }
+
+// SettingsHint says "Manage your workspace, Editor locations and application preferences."
+// in the language of msgs.
+func (msgs Messages) SettingsHint() string {
+	return Catalog.Format(msgs.locale, "settingsHint", nil)
+}
+
+// SettingsProjectsTab says "Project settings"
+// in the language the app shows.
+func SettingsProjectsTab() string { return In(i18n.Locale()).SettingsProjectsTab() }
+
+// SettingsProjectsTab says "Project settings"
+// in the language of msgs.
+func (msgs Messages) SettingsProjectsTab() string {
+	return Catalog.Format(msgs.locale, "settingsProjectsTab", nil)
+}
+
+// SettingsInstallsTab says "Editors & downloads"
+// in the language the app shows.
+func SettingsInstallsTab() string { return In(i18n.Locale()).SettingsInstallsTab() }
+
+// SettingsInstallsTab says "Editors & downloads"
+// in the language of msgs.
+func (msgs Messages) SettingsInstallsTab() string {
+	return Catalog.Format(msgs.locale, "settingsInstallsTab", nil)
+}
+
+// ActivityBackgroundHint says "Downloads and installations continue while you use other pages. Keep UnityStarter open."
+// in the language the app shows.
+func ActivityBackgroundHint() string { return In(i18n.Locale()).ActivityBackgroundHint() }
+
+// ActivityBackgroundHint says "Downloads and installations continue while you use other pages. Keep UnityStarter open."
+// in the language of msgs.
+func (msgs Messages) ActivityBackgroundHint() string {
+	return Catalog.Format(msgs.locale, "activityBackgroundHint", nil)
+}
+
+// TaskDownloading says "Downloading"
+// in the language the app shows.
+func TaskDownloading() string { return In(i18n.Locale()).TaskDownloading() }
+
+// TaskDownloading says "Downloading"
+// in the language of msgs.
+func (msgs Messages) TaskDownloading() string {
+	return Catalog.Format(msgs.locale, "taskDownloading", nil)
+}
+
+// TaskReady says "Ready to install"
+// in the language the app shows.
+func TaskReady() string { return In(i18n.Locale()).TaskReady() }
+
+// TaskReady says "Ready to install"
+// in the language of msgs.
+func (msgs Messages) TaskReady() string {
+	return Catalog.Format(msgs.locale, "taskReady", nil)
+}
+
+// TaskAttention says "Needs attention"
+// in the language the app shows.
+func TaskAttention() string { return In(i18n.Locale()).TaskAttention() }
+
+// TaskAttention says "Needs attention"
+// in the language of msgs.
+func (msgs Messages) TaskAttention() string {
+	return Catalog.Format(msgs.locale, "taskAttention", nil)
+}
+
+// SearchEmpty says "No matching results"
+// in the language the app shows.
+func SearchEmpty() string { return In(i18n.Locale()).SearchEmpty() }
+
+// SearchEmpty says "No matching results"
+// in the language of msgs.
+func (msgs Messages) SearchEmpty() string {
+	return Catalog.Format(msgs.locale, "searchEmpty", nil)
+}
+
+// SearchEmptyHint says "Try a different search or clear the filters."
+// in the language the app shows.
+func SearchEmptyHint() string { return In(i18n.Locale()).SearchEmptyHint() }
+
+// SearchEmptyHint says "Try a different search or clear the filters."
+// in the language of msgs.
+func (msgs Messages) SearchEmptyHint() string {
+	return Catalog.Format(msgs.locale, "searchEmptyHint", nil)
+}
+
+// SearchClear says "Clear filters"
+// in the language the app shows.
+func SearchClear() string { return In(i18n.Locale()).SearchClear() }
+
+// SearchClear says "Clear filters"
+// in the language of msgs.
+func (msgs Messages) SearchClear() string {
+	return Catalog.Format(msgs.locale, "searchClear", nil)
+}
+
+// OpenExternal says "Open {title} in browser"
+// in the language the app shows.
+func OpenExternal(title string) string { return In(i18n.Locale()).OpenExternal(title) }
+
+// OpenExternal says "Open {title} in browser"
+// in the language of msgs.
+func (msgs Messages) OpenExternal(title string) string {
+	return Catalog.Format(msgs.locale, "openExternal", map[string]any{"title": title})
+}
+
 // ProjectColumnName says "Name"
 // in the language the app shows.
 func ProjectColumnName() string { return In(i18n.Locale()).ProjectColumnName() }
@@ -1198,11 +1318,11 @@ func (msgs Messages) PageDownloads() string {
 	return Catalog.Format(msgs.locale, "pageDownloads", nil)
 }
 
-// PageDownloadsHint says "Official Unity and Tuanjie downloads. Up to 6 connections when the server supports it."
+// PageDownloadsHint says "Choose an official Editor version. Downloads and installation run in the background."
 // in the language the app shows.
 func PageDownloadsHint() string { return In(i18n.Locale()).PageDownloadsHint() }
 
-// PageDownloadsHint says "Official Unity and Tuanjie downloads. Up to 6 connections when the server supports it."
+// PageDownloadsHint says "Choose an official Editor version. Downloads and installation run in the background."
 // in the language of msgs.
 func (msgs Messages) PageDownloadsHint() string {
 	return Catalog.Format(msgs.locale, "pageDownloadsHint", nil)

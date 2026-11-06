@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -106,12 +107,12 @@ func (a *app) downloadsPage(c *ui.Context) {
 		}
 		ui.Button(c, locales.ActionRefresh()).OnClick(func() { a.ensureDownloads(true) }).Disabled(a.downloadsBusy)
 	})
-	ui.Row(c).Padding(0, 26, 14, 26).Gap(8).AlignItems(ui.Center).Children(func() {
+	ui.Row(c).Padding(0, 24, 14, 24).Gap(8).AlignItems(ui.Center).Children(func() {
 		query := &a.downloadQueryUnity
 		if engine == kindTuanjie {
 			query = &a.downloadQueryTuanjie
 		}
-		ui.SearchField(c, query).Placeholder(locales.DownloadsSearchHint()).Label(locales.DownloadsSearchHint()).Width(250)
+		ui.SearchField(c, query).Placeholder(locales.DownloadsSearchHint()).Label(locales.DownloadsSearchHint()).Grow(1).MaxWidth(320).MinWidth(100)
 		if engine == kindUnity {
 			ui.Button(c, locales.DownloadsSearchOfficial()).Disabled(a.unitySearchBusy || strings.TrimSpace(*query) == "").OnClick(func() { a.searchUnityReleases(strings.TrimSpace(a.downloadQueryUnity)) })
 			if a.unitySearchBusy {
@@ -119,9 +120,32 @@ func (a *app) downloadsPage(c *ui.Context) {
 			}
 		}
 	})
+	ui.Row(c).Padding(0, 24).Gap(6).Children(func() {
+		for _, tab := range []struct{ id, label string }{{"", locales.InstallAll()}, {"official", locales.InstallOfficial()}, {"preview", locales.InstallPreview()}} {
+			tab := tab
+			pageTab(c, tab.label, a.downloadFilterForEngine(engine) == tab.id, func() {
+				if engine == kindTuanjie {
+					a.downloadFilterTuanjie = tab.id
+				} else {
+					a.downloadFilterUnity = tab.id
+				}
+			})
+		}
+	})
 	ui.Divider(c)
 
 	if len(entries) == 0 && len(active) == 0 {
+		searchError := engine == kindUnity && a.unitySearchQuery == strings.TrimSpace(a.downloadQueryUnity) && a.unitySearchErr != ""
+		if (a.downloadFilterForEngine(engine) != "" || strings.TrimSpace(a.downloadQueryForEngine(engine)) != "") && !searchError && !a.downloadsPending[engine] && a.downloadsErrs[engine] == "" {
+			a.searchEmpty(c, func() {
+				if engine == kindTuanjie {
+					a.downloadQueryTuanjie, a.downloadFilterTuanjie = "", ""
+				} else {
+					a.downloadQueryUnity, a.downloadFilterUnity = "", ""
+				}
+			})
+			return
+		}
 		if strings.TrimSpace(a.downloadQueryForEngine(engine)) != "" {
 			hint := locales.DownloadsSearchEmptyHint()
 			if engine == kindUnity && a.unitySearchQuery == strings.TrimSpace(a.downloadQueryUnity) && a.unitySearchErr != "" {
@@ -152,7 +176,7 @@ func (a *app) downloadsPage(c *ui.Context) {
 		}
 	}
 	ui.Scroll(c).Grow(1).Children(func() {
-		ui.Column(c).Padding(24, 26).Gap(20).MaxWidth(900).Children(func() {
+		ui.Column(c).Padding(24).Gap(24).Children(func() {
 			if engine == kindUnity && a.unitySearchQuery != "" && a.unitySearchQuery == strings.TrimSpace(a.downloadQueryUnity) && a.unitySearchErr == "" {
 				ui.Text(c, locales.DownloadsSearchLimit()).FontSize(11).TextColor(t.TextMuted)
 			}
@@ -165,7 +189,7 @@ func (a *app) downloadsPage(c *ui.Context) {
 			if len(active) > 0 {
 				a.downloadGroup(c, locales.DownloadsActive(), engine, active, installed)
 			}
-			if matchCount == 0 && strings.TrimSpace(a.downloadQueryForEngine(engine)) != "" {
+			if matchCount == 0 && (strings.TrimSpace(a.downloadQueryForEngine(engine)) != "" || a.downloadFilterForEngine(engine) != "") {
 				ui.Text(c, locales.DownloadsSearchEmpty()).FontSize(12).TextColor(t.TextMuted)
 			}
 			title := locales.DownloadsUnity()
@@ -201,17 +225,25 @@ func (a *app) visibleDownloads(engine string) []downloadEntry {
 		entries = a.unitySearchEntries
 	}
 	filtered := downloadsForEngine(entries, engine)
-	if query == "" {
-		return filtered
-	}
 	q := strings.ToLower(query)
 	result := filtered[:0]
 	for _, entry := range filtered {
-		if strings.Contains(strings.ToLower(entry.Version), q) {
+		preview := entry.Stream == "ALPHA" || entry.Stream == "BETA" || strings.ContainsAny(strings.ToLower(entry.Version), "ab")
+		if a.downloadFilterForEngine(engine) == "official" && preview || a.downloadFilterForEngine(engine) == "preview" && !preview {
+			continue
+		}
+		if q == "" || strings.Contains(strings.ToLower(entry.Version), q) {
 			result = append(result, entry)
 		}
 	}
 	return result
+}
+
+func (a *app) downloadFilterForEngine(engine string) string {
+	if engine == kindTuanjie {
+		return a.downloadFilterTuanjie
+	}
+	return a.downloadFilterUnity
 }
 
 func (a *app) searchUnityReleases(query string) {
@@ -262,32 +294,47 @@ func (a *app) downloadGroup(c *ui.Context, title, engine string, entries []downl
 		return
 	}
 	t := c.Theme()
-	ui.Column(c).Gap(4).Children(func() {
+	ui.Column(c).Gap(10).Children(func() {
 		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
 			ui.Text(c, title).FontSize(15).Bold()
-			ui.Badge(c, channelName(engine))
+			ui.Badge(c, fmt.Sprint(len(entries)))
 		})
 		for _, e := range entries {
 			e := e
 			job := a.jobs[jobKey(e)]
-			ui.Column(c).Padding(7, 0).Gap(5).Children(func() {
+			c.Key(jobKey(e))
+			ui.Column(c).Padding(16).Gap(12).Background(t.Surface).Border(1, t.Border).Radius(6).Children(func() {
 				ui.Row(c).Gap(12).AlignItems(ui.Center).Children(func() {
-					ui.Row(c).Gap(8).AlignItems(ui.Center).Width(260).Children(func() {
-						ui.Text(c, e.Version).FontSize(14).Bold()
-						if e.LTS {
-							ui.Badge(c, "LTS")
-						} else if e.Stream == "ALPHA" || e.Stream == "BETA" {
-							ui.Badge(c, e.Stream)
-						}
-						if installed[engine+" "+e.Version] {
-							ui.Badge(c, locales.DownloadsInstalled())
-						}
+					ui.Box(c).Size(36, 36).Shrink(0).Radius(5).Background(t.Background).Center().Children(func() {
+						ui.Icon(c, iconBrand).Size(24, 24).TextColor(t.TextMuted)
 					})
-					ui.Text(c, a.formatTime(e.Date)).FontSize(11).TextColor(t.TextMuted).Width(96)
-					ui.Text(c, humanSize(e.Size)).FontSize(11).TextColor(t.TextMuted).Width(80)
+					ui.Column(c).Grow(1).MinWidth(0).Gap(6).Children(func() {
+						ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
+							ui.Text(c, e.Version).FontSize(14).Bold().SingleLine().Clip()
+							if e.LTS {
+								ui.Badge(c, "LTS")
+							} else if e.Stream == "ALPHA" || e.Stream == "BETA" {
+								ui.Badge(c, e.Stream)
+							}
+							if installed[engine+" "+e.Version] && a.prefs.DemoMode {
+								ui.Badge(c, locales.DownloadsInstalled())
+							}
+						})
+						ui.Row(c).Gap(16).Children(func() {
+							if !e.Date.IsZero() {
+								ui.Text(c, a.formatTime(e.Date)).FontSize(11).TextColor(t.TextMuted)
+							}
+							ui.Text(c, humanSize(e.Size)).FontSize(11).TextColor(t.TextMuted)
+						})
+					})
+					if job == nil || job.Status == "installed" {
+						ui.Row(c).Gap(8).Shrink(0).Children(func() { a.downloadAction(c, e) })
+					} else {
+						ui.Badge(c, downloadJobLabel(job))
+					}
 				})
-				if !installed[engine+" "+e.Version] || (job != nil && job.Status != "installed") {
-					ui.Row(c).Gap(8).AlignItems(ui.Center).Justify(ui.End).Children(func() { a.downloadAction(c, e) })
+				if job != nil && job.Status != "installed" {
+					ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() { a.downloadAction(c, e) })
 				}
 			})
 		}
@@ -332,11 +379,11 @@ func (a *app) downloadAction(c *ui.Context, e downloadEntry) {
 			a.startDownload(e)
 		}
 	case job.Status == "downloading":
-		fraction := 0.0
+		fraction := -1.0
 		if job.Total > 0 {
-			fraction = float64(job.Done) / float64(job.Total)
+			fraction = min(1, max(0, float64(job.Done)/float64(job.Total)))
 		}
-		ui.Progress(c, fraction).Width(150)
+		ui.Progress(c, fraction).Grow(1).MinWidth(60).MaxWidth(360)
 		if job.Total > 0 {
 			ui.Textf(c, "%d%%", int(fraction*100)).FontSize(11).TextColor(t.TextMuted).Width(40)
 		} else {
@@ -356,7 +403,7 @@ func (a *app) downloadAction(c *ui.Context, e downloadEntry) {
 		ui.Spinner(c)
 		ui.Text(c, locales.DownloadsInstalling()).FontSize(11).TextColor(t.TextMuted)
 	case job.Status == "failedDownload":
-		ui.Text(c, locales.DownloadsFailed(job.Err)).FontSize(11).TextColor(t.Danger).NoWrap().Grow(1).Clip().Tooltip(job.Err)
+		ui.Text(c, locales.DownloadsFailed(job.Err)).FontSize(11).TextColor(t.Danger).Grow(1).MinWidth(0).SingleLine().Clip().Tooltip(job.Err)
 		if ui.Button(c, locales.ActionRetryDownload()).Clicked() {
 			a.startDownload(e)
 		}
@@ -367,7 +414,7 @@ func (a *app) downloadAction(c *ui.Context, e downloadEntry) {
 		ui.Spinner(c)
 		ui.Text(c, locales.DownloadClearing()).FontSize(11).TextColor(t.TextMuted)
 	case job.Status == "failedInstall":
-		ui.Text(c, locales.DownloadsInstallFailed(job.Err)).FontSize(11).TextColor(t.Danger).MaxWidth(220).Clip().Tooltip(job.Err)
+		ui.Text(c, locales.DownloadsInstallFailed(job.Err)).FontSize(11).TextColor(t.Danger).Grow(1).MinWidth(0).SingleLine().Clip().Tooltip(job.Err)
 		if ui.PrimaryButton(c, locales.ActionInstall()).Clicked() {
 			a.installJob(job)
 		}

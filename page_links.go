@@ -51,10 +51,10 @@ type linkGroup struct {
 
 // linksPage shows titled groups of links, with the app's header above them.
 func (a *app) linksPage(c *ui.Context, title, hint string, groups func(), extra func()) {
-	a.header(c, title, hint, func() {})
+	a.header(c, title, hint, nil)
 	ui.Divider(c)
 	ui.Scroll(c).Grow(1).Children(func() {
-		ui.Column(c).Padding(24, 26).Gap(22).MaxWidth(820).Children(func() {
+		ui.Column(c).Padding(24).Gap(20).MaxWidth(1000).Children(func() {
 			if extra != nil {
 				extra()
 			}
@@ -65,16 +65,23 @@ func (a *app) linksPage(c *ui.Context, title, hint string, groups func(), extra 
 
 func (a *app) linkGroup(c *ui.Context, title string, links []link) {
 	t := c.Theme()
-	ui.Column(c).Gap(4).Children(func() {
+	panel(c, func() {
 		ui.Text(c, title).FontSize(14).Bold()
-		for _, l := range links {
+		for i, l := range links {
 			l := l
-			ui.Row(c).Gap(12).AlignItems(ui.Center).Padding(6, 0).Children(func() {
-				ui.Column(c).Grow(1).Gap(2).Children(func() {
-					ui.Text(c, l.Title).FontSize(13)
+			if i > 0 {
+				ui.Divider(c)
+			}
+			c.Key(l.URL)
+			ui.Row(c).Gap(14).AlignItems(ui.Center).Padding(6, 0).Children(func() {
+				ui.Box(c).Size(36, 36).Shrink(0).Radius(6).Background(t.Background).Center().Children(func() {
+					ui.Icon(c, serviceIcon(a.page)).Size(20, 20).TextColor(t.TextMuted)
+				})
+				ui.Column(c).Grow(1).MinWidth(0).Gap(4).Children(func() {
+					ui.Text(c, l.Title).FontSize(13).Bold()
 					ui.Text(c, l.Detail).FontSize(11).TextColor(t.TextMuted)
 				})
-				if ui.Button(c, locales.ActionOpen()).Clicked() {
+				if ui.Button(c, locales.ActionOpen()+" ↗").Label(locales.OpenExternal(l.Title)).Tooltip(l.URL).Shrink(0).Clicked() {
 					_ = mygo.Shell.OpenExternal(l.URL)
 				}
 			})
@@ -82,12 +89,34 @@ func (a *app) linkGroup(c *ui.Context, title string, links []link) {
 	})
 }
 
+func serviceIcon(page string) *ui.SVG {
+	switch page {
+	case pageStore:
+		return iconStore
+	case pagePublish:
+		return iconPublish
+	case pageLicense:
+		return iconLicense
+	case pageLearn:
+		return iconLearn
+	default:
+		return iconDocs
+	}
+}
+
+func (a *app) engineLinks(unity, tuanjie link) []link {
+	if a.activeEngine == kindTuanjie {
+		return []link{tuanjie, unity}
+	}
+	return []link{unity, tuanjie}
+}
+
 func (a *app) storePage(c *ui.Context) {
 	a.linksPage(c, locales.PageStore(), locales.PageStoreHint(), func() {
-		a.linkGroup(c, locales.GroupStores(), []link{
-			{locales.LinkAssetStoreTuanjie(), locales.LinkAssetStoreTuanjieHint(), urlAssetStoreTuanjie},
-			{locales.LinkAssetStoreUnity(), locales.LinkAssetStoreUnityHint(), urlAssetStoreUnity},
-		})
+		a.linkGroup(c, locales.GroupStores(), a.engineLinks(
+			link{locales.LinkAssetStoreUnity(), locales.LinkAssetStoreUnityHint(), urlAssetStoreUnity},
+			link{locales.LinkAssetStoreTuanjie(), locales.LinkAssetStoreTuanjieHint(), urlAssetStoreTuanjie},
+		))
 		a.linkGroup(c, locales.GroupLearning(), []link{
 			{"Unity 中文课堂", locales.LinkLearnHint(), urlLearn},
 			{locales.LinkCommunity(), locales.LinkCommunityHint(), urlCommunity},
@@ -113,13 +142,13 @@ func (a *app) licensePage(c *ui.Context) {
 	t := c.Theme()
 	found := licenseLocations()
 	a.linksPage(c, locales.PageLicense(), locales.PageLicenseHint(), func() {
-		a.linkGroup(c, locales.GroupLicenses(), []link{
-			{locales.LinkLicenseTuanjie(), locales.LinkLicenseTuanjieHint(), urlLicenseTuanjie},
-			{locales.LinkLicenseUnity(), locales.LinkLicenseUnityHint(), urlLicenseUnity},
-			{locales.LinkAccount(), locales.LinkAccountHint(), urlUnityID},
-		})
+		links := a.engineLinks(
+			link{locales.LinkLicenseUnity(), locales.LinkLicenseUnityHint(), urlLicenseUnity},
+			link{locales.LinkLicenseTuanjie(), locales.LinkLicenseTuanjieHint(), urlLicenseTuanjie},
+		)
+		a.linkGroup(c, locales.GroupLicenses(), append(links, link{locales.LinkAccount(), locales.LinkAccountHint(), urlUnityID}))
 	}, func() {
-		ui.Column(c).Gap(4).Children(func() {
+		panel(c, func() {
 			ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
 				ui.Text(c, locales.LicenseUnityStatus()).FontSize(14).Bold().Grow(1)
 				ui.Button(c, locales.LicenseCheck()).Disabled(a.licenseCheckBusy).OnClick(a.checkUnityLicense)
@@ -139,19 +168,20 @@ func (a *app) licensePage(c *ui.Context) {
 				ui.Text(c, message).FontSize(12).TextColor(t.TextMuted)
 			}
 			ui.Text(c, locales.LicenseCheckHint()).FontSize(11).TextColor(t.TextMuted)
+			ui.Divider(c)
 			ui.Text(c, locales.LicensesFound()).FontSize(14).Bold()
 			ui.Text(c, locales.LicensesStatusHint()).FontSize(12).TextColor(t.TextMuted)
 			if len(found) == 0 {
 				ui.Text(c, locales.LicensesNone()).FontSize(12).TextColor(t.TextMuted)
 			}
 			for _, loc := range found {
+				c.Key(loc.Path)
 				ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
-					ui.Text(c, loc.Path).FontSize(12).Grow(1).Clip()
+					ui.Text(c, loc.Path).FontSize(12).Grow(1).MinWidth(0).SingleLine().Clip().Tooltip(loc.Path)
 					if loc.IsDir {
 						ui.Text(c, locales.LicensesFiles(loc.Files)).FontSize(11).TextColor(t.TextMuted)
 					}
 					ui.Text(c, humanSize(loc.Size)).FontSize(11).TextColor(t.TextMuted).Width(76)
-					ui.Text(c, a.formatTime(loc.Modified)).FontSize(11).TextColor(t.TextMuted).Width(96)
 					if ui.Button(c, locales.ActionFolder()).Clicked() {
 						mygo.Shell.ShowItemInFolder(loc.Path)
 					}
@@ -163,11 +193,11 @@ func (a *app) licensePage(c *ui.Context) {
 
 func (a *app) docsPage(c *ui.Context) {
 	a.linksPage(c, locales.PageDocs(), locales.PageDocsHint(), func() {
-		a.linkGroup(c, locales.GroupEngineDocs(), []link{
-			{locales.LinkDocsTuanjie(), locales.LinkDocsTuanjieHint(), urlDocsTuanjie},
-			{locales.LinkDocsUnity(), locales.LinkDocsUnityHint(), urlDocsUnity},
-			{locales.LinkScripting(), locales.LinkScriptingHint(), urlScriptingAPI},
-		})
+		links := a.engineLinks(
+			link{locales.LinkDocsUnity(), locales.LinkDocsUnityHint(), urlDocsUnity},
+			link{locales.LinkDocsTuanjie(), locales.LinkDocsTuanjieHint(), urlDocsTuanjie},
+		)
+		a.linkGroup(c, locales.GroupEngineDocs(), append(links, link{locales.LinkScripting(), locales.LinkScriptingHint(), urlScriptingAPI}))
 		a.linkGroup(c, locales.GroupProjectDocs(), []link{
 			{locales.LinkRepo(), locales.LinkRepoHint(), urlRepo},
 		})
@@ -185,13 +215,13 @@ func (a *app) offlineDocsGroup(c *ui.Context) {
 		return
 	}
 	t := c.Theme()
-	ui.Column(c).Gap(6).Children(func() {
+	panel(c, func() {
 		ui.Text(c, locales.OfflineDocsTitle()).FontSize(14).Bold()
 		for _, editor := range editors {
 			e := editor
 			c.Key(e.Exe)
 			ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-				ui.Column(c).Grow(1).Gap(2).Children(func() {
+				ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
 					ui.Text(c, displayVersion(e.Version, e.DisplayVersion)).FontSize(13)
 					ui.Text(c, e.OfflineDocs).FontSize(11).TextColor(t.TextMuted).Clip()
 				})
@@ -233,10 +263,12 @@ func (a *app) learnPage(c *ui.Context) {
 func (a *app) feedbackPage(c *ui.Context) {
 	t := c.Theme()
 	a.linksPage(c, locales.PageFeedback(), locales.PageFeedbackHint(), func() {}, func() {
-		ui.Column(c).Gap(8).Children(func() {
+		panel(c, func() {
 			ui.Text(c, locales.Diagnostics()).FontSize(14).Bold()
-			ui.Text(c, a.diagnostics()).FontSize(11).TextColor(t.TextMuted)
-			ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
+			ui.Scroll(c).Height(220).Children(func() {
+				ui.Text(c, a.diagnostics()).FontSize(12).TextColor(t.TextMuted)
+			})
+			ui.Row(c).Gap(8).Wrap().AlignItems(ui.Center).Children(func() {
 				if ui.PrimaryButton(c, locales.ActionReportIssue()).Clicked() {
 					_ = mygo.Shell.OpenExternal(a.issueURL())
 				}
