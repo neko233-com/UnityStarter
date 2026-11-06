@@ -503,7 +503,7 @@ func (a *app) openProject(p projectEntry) {
 		a.refresh()
 		return
 	}
-	if err := a.launchEditor(p.Editor, []string{"-projectPath", p.Path}, filepath.Dir(p.Editor)); err != nil {
+	if err := launchWithEditorLock(p.Editor, []string{"-projectPath", p.Path}, filepath.Dir(p.Editor), a.launchEditor); err != nil {
 		a.alert(locales.OpenFailed(err.Error()))
 	}
 }

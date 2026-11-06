@@ -78,25 +78,41 @@ func (a *app) installAndroidSDK(e editorInstall, plan androidInstallPlan) {
 		downloadFailed := false
 		last := time.Now()
 		recovered := false
+		var releaseEditor func()
+		defer func() {
+			if releaseEditor != nil {
+				releaseEditor()
+			}
+		}()
+		lockEditor := func() error {
+			if releaseEditor != nil {
+				return nil
+			}
+			var lockErr error
+			releaseEditor, lockErr = acquireEditorLock(e.Exe)
+			return lockErr
+		}
 		if err == nil {
 			_, pending, journalErr := readAndroidJournal(cache)
 			if journalErr != nil {
 				err = journalErr
 			} else if pending {
-				ready := make(chan bool, 1)
-				win.Update(func() {
-					if ctx.Err() != nil {
-						ready <- false
+				if err = lockEditor(); err == nil {
+					ready := make(chan bool, 1)
+					win.Update(func() {
+						if ctx.Err() != nil {
+							ready <- false
+						} else {
+							a.moduleInstalling = true
+							a.moduleStatus = locales.AndroidRecovering()
+							ready <- true
+						}
+					})
+					if !<-ready {
+						err = context.Canceled
 					} else {
-						a.moduleInstalling = true
-						a.moduleStatus = locales.AndroidRecovering()
-						ready <- true
+						recovered, err = recoverAndroidJournal(cache, e.Root)
 					}
-				})
-				if !<-ready {
-					err = context.Canceled
-				} else {
-					recovered, err = recoverAndroidJournal(cache, e.Root)
 				}
 			}
 		}
@@ -116,6 +132,9 @@ func (a *app) installAndroidSDK(e editorInstall, plan androidInstallPlan) {
 				downloadFailed = true
 				err = fmt.Errorf("Android SDK download failed")
 			}
+		}
+		if err == nil && !recovered {
+			err = lockEditor()
 		}
 		if err == nil && !recovered {
 			ready := make(chan bool, 1)

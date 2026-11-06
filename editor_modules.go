@@ -217,6 +217,13 @@ func (a *app) installEditorModule(e editorInstall, m editorModule) {
 			err = fmt.Errorf("module download failed")
 		}
 		if err == nil {
+			var release func()
+			release, err = acquireEditorLock(e.Exe)
+			if err == nil {
+				defer release()
+			}
+		}
+		if err == nil {
 			ready := make(chan bool, 1)
 			win.Update(func() {
 				if ctx.Err() != nil {

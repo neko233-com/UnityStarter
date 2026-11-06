@@ -73,7 +73,7 @@ func (a *app) installsPage(c *ui.Context) {
 					return
 				}
 				if ui.PrimaryButton(c, locales.InstallsLaunch()).Disabled(a.uninstallBusy && strings.EqualFold(e.Exe, a.manageEditor.Exe)).Clicked() {
-					if err := startDetached(e.Exe, nil, filepath.Dir(e.Exe)); err != nil {
+					if err := launchWithEditorLock(e.Exe, nil, filepath.Dir(e.Exe), startDetached); err != nil {
 						a.alert(locales.OpenFailed(err.Error()))
 					}
 				}

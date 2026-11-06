@@ -26,6 +26,11 @@ func uninstallVerifiedEditor(ctx context.Context, e editorInstall, running func(
 	if !filepath.IsAbs(e.Root) || !strings.EqualFold(filepath.Clean(e.Exe), filepath.Clean(expected)) {
 		return fmt.Errorf("invalid editor executable path")
 	}
+	release, err := acquireEditorLock(e.Exe)
+	if err != nil {
+		return err
+	}
+	defer release()
 	if info, err := os.Stat(e.Exe); err != nil || !info.Mode().IsRegular() {
 		return fmt.Errorf("editor executable not found")
 	}

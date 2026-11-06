@@ -245,7 +245,7 @@ func cliOpen(args []string, scanFn func(prefs) scanResult, out io.Writer) int {
 		fmt.Fprintln(out, locales.ProjectVersionChanged())
 		return 1
 	}
-	if err := startDetached(p.Editor, []string{"-projectPath", p.Path}, filepath.Dir(p.Editor)); err != nil {
+	if err := launchWithEditorLock(p.Editor, []string{"-projectPath", p.Path}, filepath.Dir(p.Editor), startDetached); err != nil {
 		fmt.Fprintln(out, err)
 		return 1
 	}

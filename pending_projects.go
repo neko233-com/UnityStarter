@@ -57,7 +57,7 @@ func startProjectCreation(dir string, editor editorInstall, launch func(string, 
 		_ = os.Remove(file)
 		return err
 	}
-	if err = launch(editor.Exe, []string{"-createProject", dir}, filepath.Dir(editor.Exe)); err != nil {
+	if err = launchWithEditorLock(editor.Exe, []string{"-createProject", dir}, filepath.Dir(editor.Exe), launch); err != nil {
 		_ = os.Remove(file)
 		return err
 	}

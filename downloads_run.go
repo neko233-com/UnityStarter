@@ -394,6 +394,15 @@ func installVerifiedEditorWith(entry downloadEntry, installer, dest string, run 
 	if !verified {
 		return fmt.Errorf("editor installer failed integrity verification")
 	}
+	name := "Unity.exe"
+	if entry.Engine == kindTuanjie {
+		name = "Tuanjie.exe"
+	}
+	release, err := acquireEditorLock(filepath.Join(dest, "Editor", name))
+	if err != nil {
+		return err
+	}
+	defer release()
 	if err := prepareEditorInstall(dest); err != nil {
 		return err
 	}
