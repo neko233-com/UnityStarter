@@ -23,6 +23,7 @@ import (
 type editorModule struct {
 	ID                    string `json:"id"`
 	Name                  string `json:"name"`
+	Category              string `json:"category,omitempty"`
 	URL                   string `json:"downloadUrl"`
 	Checksum              string `json:"checksum"`
 	Integrity             string `json:"integrity,omitempty"`
@@ -39,6 +40,7 @@ type editorModule struct {
 	Selected              bool   `json:"selected"`
 	PresenceUnverified    bool   `json:"-"`
 	DownloadSize          int64  `json:"downloadSize"`
+	InstalledSize         int64  `json:"installedSize,omitempty"`
 	DependencyFingerprint string `json:"-"`
 }
 
@@ -95,6 +97,12 @@ func moduleOutput(m editorModule) string {
 		return filepath.Join("ArmLinux", "Variations", "armlinux_arm64_development_il2cpp")
 	case "openharmony":
 		return "OpenHarmonyPlayer"
+	case "embeddedlinux":
+		return "EmbeddedLinux"
+	case "qnx":
+		return "QNX"
+	case "hmiandroid":
+		return "HMIAndroidPlayer"
 	case "linux-server":
 		return filepath.Join("LinuxStandaloneSupport", "Variations", "linux64_server_development_mono")
 	case "windows-server":
@@ -173,6 +181,9 @@ func moduleInstallSpec(e editorInstall, m editorModule) (integrity, player, exte
 	if sum, valid := openHarmonyNodeArchive(m); valid && e.Kind == kindTuanjie && parentModuleSelected(e.Modules, m.Parent) {
 		return sum, openHarmonyNodeModule, ".zip", true
 	}
+	if sum, valid := openHarmonySDKArchive(m); valid && e.Kind == kindTuanjie && parentModuleSelected(e.Modules, m.Parent) {
+		return sum, openHarmonySDKModule, ".tar.gz", true
+	}
 	if sum, version, valid := tuanjieDocumentationArchive(m); valid && e.Kind == kindTuanjie && version == e.Version {
 		return sum, documentationModule, ".zip", true
 	}
@@ -246,6 +257,9 @@ func (a *app) installEditorModule(e editorInstall, m editorModule) {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	a.moduleBusy, a.moduleInstalling, a.moduleCancel, a.moduleStatus = true, false, cancel, locales.InstallModuleProgress()
+	a.moduleCurrentName, a.moduleProgressDone, a.moduleProgressTotal = m.Name, 0, 0
+	a.moduleJobSequence++
+	sequence := a.moduleJobSequence
 	win := a.win
 	go func() {
 		defer cancel()
@@ -256,7 +270,10 @@ func (a *app) installEditorModule(e editorInstall, m editorModule) {
 			}
 			last = time.Now()
 			win.Update(func() {
-				if total > 0 {
+				if a.moduleBusy && !a.moduleInstalling && a.moduleJobSequence == sequence {
+					a.moduleProgressDone, a.moduleProgressTotal = done, total
+				}
+				if a.moduleBusy && !a.moduleInstalling && a.moduleJobSequence == sequence && total > 0 {
 					a.moduleStatus = fmt.Sprintf("%s %d%%", locales.InstallModuleProgress(), done*100/total)
 				}
 			})
@@ -268,6 +285,7 @@ func (a *app) installEditorModule(e editorInstall, m editorModule) {
 					ready <- false
 				} else {
 					a.moduleInstalling = true
+					a.moduleStatus = locales.DownloadsInstalling()
 					ready <- true
 				}
 			})
@@ -336,6 +354,8 @@ func executeEditorModule(ctx context.Context, e editorInstall, m editorModule, p
 		err = installDocumentation(e.Root, path, integrity, "en")
 	} else if player == openHarmonyNodeModule {
 		err = installOpenHarmonyNode(e.Root, path, integrity)
+	} else if player == openHarmonySDKModule {
+		err = installOpenHarmonySDK(e.Root, path, integrity)
 	} else if player != "" {
 		err = installOpenJDK(e.Root, path, player, integrity)
 	} else {
@@ -358,6 +378,7 @@ func executeEditorModule(ctx context.Context, e editorInstall, m editorModule, p
 
 func (a *app) finishEditorModuleInstall(e editorInstall, m editorModule, result moduleInstallResult) {
 	a.moduleBusy, a.moduleInstalling, a.moduleCancel = false, false, nil
+	a.moduleProgressDone, a.moduleProgressTotal = 0, 0
 	if errors.Is(result.err, context.Canceled) {
 		a.moduleStatus = ""
 		a.finishModuleQueueItem(m.ID, false)
@@ -404,9 +425,15 @@ func (a *app) editorManageDialog(c *ui.Context) {
 	}
 	t := c.Theme()
 	e := a.manageEditor
+	windowWidth, windowHeight := c.Size()
+	width, listHeight := float32(560), float32(300)
+	if a.manageModules && a.androidPlan == nil {
+		width = min(float32(920), max(float32(560), windowWidth-80))
+		listHeight = min(float32(500), max(float32(180), windowHeight-310))
+	}
 	ui.Modal(c, &a.manageOpen, func() {
-		ui.Column(c).Width(560).Gap(12).Children(func() {
-			ui.Text(c, e.Version+" · "+channelName(e.Kind)).FontSize(18).Bold()
+		ui.Column(c).Width(width).Gap(12).Children(func() {
+			ui.Text(c, displayVersion(e.Version, e.DisplayVersion)+" · "+channelName(e.Kind)).FontSize(18).Bold()
 			ui.Text(c, e.Exe).FontSize(12).TextColor(t.TextMuted).Clip()
 			if a.manageUninstall {
 				ui.Text(c, locales.InstallUninstallWarning()).FontSize(12).TextColor(t.TextMuted)
@@ -482,6 +509,7 @@ func (a *app) editorManageDialog(c *ui.Context) {
 								a.moduleStatus = ""
 							}
 						})
+						ui.Button(c, locales.ActionBackground()).OnClick(func() { a.manageOpen = false; a.page = pageActivity })
 						label := locales.AndroidLicenseAccept()
 						if plan.RecoveryPending {
 							label = locales.AndroidLicenseRecover()
@@ -493,6 +521,24 @@ func (a *app) editorManageDialog(c *ui.Context) {
 				ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
 					ui.Text(c, locales.InstallModuleHint()).Grow(1).FontSize(12).TextColor(t.TextMuted)
 					ui.Button(c, locales.InstallModuleRefresh()).Disabled(a.moduleLoading || a.moduleBusy).OnClick(func() { a.loadEditorModules(e) })
+				})
+				ui.Row(c).Gap(18).Justify(ui.End).Children(func() {
+					total, known := selectedModuleDownloadSize(e.Modules, a.moduleSelection)
+					size := humanSize(total)
+					if size == "" {
+						size = "0 B"
+					}
+					if !known {
+						if total > 0 {
+							size = "≥ " + size
+						} else {
+							size = "—"
+						}
+					}
+					ui.Text(c, locales.ModuleSelectedDownload(size)).FontSize(12).TextColor(t.TextMuted)
+					if a.moduleDiskKnown {
+						ui.Text(c, locales.ModuleDiskAvailable(humanSize(a.moduleDiskFree))).FontSize(12).TextColor(t.TextMuted)
+					}
 				})
 				if a.moduleLoading {
 					ui.Text(c, locales.InstallModuleLoading()).FontSize(12).TextColor(t.TextMuted)
@@ -506,53 +552,94 @@ func (a *app) editorManageDialog(c *ui.Context) {
 				if len(a.moduleQueue) > 0 {
 					ui.Text(c, locales.ModuleBatchProgress(a.moduleQueueTotal-len(a.moduleQueue)+1, a.moduleQueueTotal)).FontSize(12).TextColor(t.TextMuted)
 				}
-				ui.Scroll(c).Height(300).Children(func() {
-					ui.Column(c).Gap(5).Children(func() {
-						for _, module := range e.Modules {
-							m := module
-							if !m.Visible {
+				if a.moduleBusy {
+					a.moduleProgressView(c)
+				}
+				ui.Scroll(c).Height(listHeight).Children(func() {
+					ui.Column(c).Gap(10).Children(func() {
+						for _, group := range moduleLayout(e.Modules) {
+							if len(group.Rows) == 0 {
 								continue
 							}
-							c.Key(m.ID)
-							ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
-								if m.Selected {
-									ui.Text(c, m.Name).Grow(1).FontSize(12).Clip()
-									label := locales.DownloadsInstalled()
-									if m.PresenceUnverified {
-										label = locales.InstallModuleReported()
-									}
-									ui.Badge(c, label)
-								} else {
-									checked := a.moduleSelection[m.ID]
-									canSelect := moduleSelectable(e, m, a.moduleSelection)
-									checkbox := ui.Checkbox(c, &checked, m.Name).Grow(1).Disabled(a.moduleBusy || a.moduleLoading || len(a.moduleQueue) > 0 || (!canSelect && !checked)).OnClick(func() { a.setModuleSelection(e, m.ID, checked) })
-									if !canSelect && !checked {
-										checkbox.Tooltip(locales.InstallModuleUnavailable())
-									}
-									_, _, _, supported := moduleInstallSpec(e, m)
-									android := androidSDKCandidate(e, m)
-									button := ui.Button(c, locales.ActionInstall()).Disabled(a.moduleBusy || a.moduleLoading || len(a.moduleQueue) > 0 || (!supported && !android)).OnClick(func() {
-										if android {
-											a.prepareAndroidSDK(e, m)
-										} else {
-											a.installEditorModule(e, m)
-										}
-									})
-									if !supported && !android {
-										_, _, archive := openJDKArchive(m)
-										_, nodeArchive := openHarmonyNodeArchive(m)
-										if (archive || nodeArchive || (e.Kind == kindUnity && androidSDKMetadata(m)) || (e.Kind == kindTuanjie && legacyAndroidSDKMetadata(m))) && !parentModuleSelected(e.Modules, m.Parent) {
-											button.Tooltip(locales.InstallModuleNeedsParent())
-										} else {
-											button.Tooltip(locales.InstallModuleUnavailable())
-										}
-									}
-								}
+							label := locales.ModuleGroupOther()
+							switch group.Kind {
+							case "tools":
+								label = locales.ModuleGroupTools()
+							case "platforms":
+								label = locales.ModuleGroupPlatforms()
+							case "docs":
+								label = locales.ModuleGroupDocs()
+							case "languages":
+								label = locales.ModuleGroupLanguages()
+							}
+							ui.Row(c).Padding(8, 10).Gap(8).Background(t.Surface).AlignItems(ui.Center).Children(func() {
+								ui.Text(c, label).Grow(1).Bold().FontSize(12)
+								ui.Text(c, locales.ModuleDownloadSize()).Width(100).FontSize(11).TextColor(t.TextMuted).TextAlign(ui.End)
+								ui.Text(c, locales.ModuleDiskSize()).Width(100).FontSize(11).TextColor(t.TextMuted).TextAlign(ui.End)
+								ui.Text(c, "").Width(70)
 							})
+							for _, item := range group.Rows {
+								m := item.Module
+								c.Key(m.ID)
+								ui.Row(c).Padding(3, 10).Gap(8).AlignItems(ui.Center).Children(func() {
+									if item.Depth > 0 {
+										ui.Text(c, "↳").Width(18).FontSize(12).TextColor(t.TextMuted)
+									}
+									if m.Selected {
+										ui.Text(c, m.Name).Grow(1).FontSize(12).Clip().Tooltip(m.Name)
+									} else {
+										checked := a.moduleSelection[m.ID]
+										canSelect := moduleSelectable(e, m, a.moduleSelection)
+										checkbox := ui.Checkbox(c, &checked, m.Name).Grow(1).Disabled(a.moduleBusy || a.moduleLoading || len(a.moduleQueue) > 0 || (!canSelect && !checked)).OnClick(func() { a.setModuleSelection(e, m.ID, checked) })
+										if !canSelect && !checked {
+											checkbox.Tooltip(locales.InstallModuleUnavailable())
+										}
+									}
+									downloadSize, diskSize := "—", "—"
+									if m.DownloadSize > 0 {
+										downloadSize = humanSize(m.DownloadSize)
+									}
+									if m.InstalledSize > 0 {
+										diskSize = humanSize(m.InstalledSize)
+									}
+									ui.Text(c, downloadSize).Width(100).FontSize(11).TextColor(t.TextMuted).TextAlign(ui.End)
+									ui.Text(c, diskSize).Width(100).FontSize(11).TextColor(t.TextMuted).TextAlign(ui.End)
+									if m.Selected {
+										label := locales.DownloadsInstalled()
+										if m.PresenceUnverified {
+											label = locales.InstallModuleReported()
+										}
+										ui.Text(c, label).Width(70).FontSize(11).TextColor(t.TextMuted).Clip().Tooltip(label)
+									} else {
+										_, _, _, supported := moduleInstallSpec(e, m)
+										android := androidSDKCandidate(e, m)
+										button := ui.Button(c, locales.ActionInstall()).Width(70).Disabled(a.moduleBusy || a.moduleLoading || len(a.moduleQueue) > 0 || (!supported && !android)).OnClick(func() {
+											if android {
+												a.prepareAndroidSDK(e, m)
+											} else {
+												a.installEditorModule(e, m)
+											}
+										})
+										if !supported && !android {
+											_, _, archive := openJDKArchive(m)
+											_, nodeArchive := openHarmonyNodeArchive(m)
+											_, sdkArchive := openHarmonySDKArchive(m)
+											if (archive || nodeArchive || sdkArchive || (e.Kind == kindUnity && androidSDKMetadata(m)) || (e.Kind == kindTuanjie && legacyAndroidSDKMetadata(m))) && !parentModuleSelected(e.Modules, m.Parent) {
+												button.Tooltip(locales.InstallModuleNeedsParent())
+											} else {
+												button.Tooltip(locales.InstallModuleUnavailable())
+											}
+										}
+									}
+								})
+							}
 						}
 					})
 				})
 				ui.Row(c).Gap(8).Justify(ui.End).Children(func() {
+					if a.moduleBusy || a.moduleLoading || len(a.moduleQueue) > 0 {
+						ui.Button(c, locales.ActionBackground()).OnClick(func() { a.manageOpen = false; a.page = pageActivity })
+					}
 					if a.moduleBusy && !a.moduleInstalling {
 						ui.Button(c, locales.ActionCancel()).OnClick(func() {
 							if a.moduleCancel != nil {

@@ -105,6 +105,18 @@ func (a *app) openEditorManagement(e editorInstall) {
 		return
 	}
 	a.manageEditor, a.manageOpen = e, true
+	a.moduleDiskFree, a.moduleDiskKnown = 0, false
+	if a.win != nil {
+		win := a.win
+		go func() {
+			free, ok := moduleDiskSpace(e.Root)
+			win.Update(func() {
+				if strings.EqualFold(a.manageEditor.Exe, e.Exe) {
+					a.moduleDiskFree, a.moduleDiskKnown = free, ok
+				}
+			})
+		}()
+	}
 	a.manageModules, a.manageUninstall = false, false
 	a.moduleStatus, a.androidPlan = "", nil
 	a.moduleSelection, a.moduleQueue, a.moduleQueueTotal = nil, nil, 0
@@ -138,7 +150,7 @@ func (a *app) uninstallActivityBanner(c *ui.Context) {
 // route back to its status and cancellation on every page and engine tab.
 func (a *app) moduleActivityBanner(c *ui.Context) {
 	active := a.moduleBusy || a.moduleLoading || len(a.moduleQueue) > 0 || a.androidPlan != nil
-	if a.manageOpen || (!active && (!a.manageModules || a.moduleStatus == "")) {
+	if a.manageOpen || a.page == pageActivity || (!active && (!a.manageModules || a.moduleStatus == "")) {
 		return
 	}
 	status := a.moduleStatus
@@ -150,10 +162,13 @@ func (a *app) moduleActivityBanner(c *ui.Context) {
 		}
 	}
 	ui.Row(c).Padding(8, 22).Gap(10).AlignItems(ui.Center).Background(c.Theme().Surface).Children(func() {
-		if active {
+		if active && a.androidPlan == nil {
 			ui.Spinner(c)
 		}
-		ui.Text(c, displayVersion(a.manageEditor.Version, a.manageEditor.DisplayVersion)+" · "+status).Grow(1).FontSize(12).Clip()
+		ui.Text(c, displayVersion(a.manageEditor.Version, a.manageEditor.DisplayVersion)+" · "+a.moduleCurrentName+" · "+status).Grow(1).FontSize(12).Clip()
+		if a.moduleBusy {
+			ui.Progress(c, a.moduleProgressFraction()).Width(130)
+		}
 		ui.Button(c, locales.InstallModules()).OnClick(func() { a.openEditorManagement(a.manageEditor) })
 	})
 }

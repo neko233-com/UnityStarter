@@ -15,6 +15,7 @@ import (
 
 const parallelMinimumSize = 8 << 20
 const parallelWorkers = 6
+const downloadUserAgent = "UnityStarter/1.0"
 
 func downloadSegmentBoundary(total int64, index int) int64 {
 	return (total/parallelWorkers)*int64(index) + (total%parallelWorkers)*int64(index)/parallelWorkers
@@ -41,6 +42,7 @@ func probeParallelDownload(ctx context.Context, from string, expectedSize int64)
 		return 0, "", false, err
 	}
 	req.Header.Set("Accept-Encoding", "identity")
+	req.Header.Set("User-Agent", downloadUserAgent)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		if ctx.Err() != nil {
@@ -70,6 +72,7 @@ func probeParallelDownload(ctx context.Context, from string, expectedSize int64)
 	}
 	req.Header.Set("Range", "bytes=0-0")
 	req.Header.Set("Accept-Encoding", "identity")
+	req.Header.Set("User-Agent", downloadUserAgent)
 	resp, err = http.DefaultClient.Do(req)
 	if err != nil {
 		if ctx.Err() != nil {
@@ -317,6 +320,7 @@ func downloadRangeWithIdle(ctx context.Context, from string, file *os.File, star
 	req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", start, end))
 	req.Header.Set("If-Range", validator)
 	req.Header.Set("Accept-Encoding", "identity")
+	req.Header.Set("User-Agent", downloadUserAgent)
 	resp, err := watch.request(http.DefaultClient, req)
 	if err != nil {
 		return 0, err

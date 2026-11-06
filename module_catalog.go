@@ -23,6 +23,7 @@ var unityModuleCatalogURL = "https://services.api.unity.com/unity/editor/release
 type unityModule struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`
+	Category    string `json:"category"`
 	URL         string `json:"url"`
 	Integrity   string `json:"integrity"`
 	Destination string `json:"destination"`
@@ -40,6 +41,9 @@ type unityModule struct {
 	DownloadSize struct {
 		Value int64 `json:"value"`
 	} `json:"downloadSize"`
+	InstalledSize struct {
+		Value int64 `json:"value"`
+	} `json:"installedSize"`
 }
 
 func appendUnityModules(out *[]editorModule, modules []unityModule, parent string) {
@@ -56,7 +60,7 @@ func appendUnityModules(out *[]editorModule, modules []unityModule, parent strin
 		} else if len(m.EULA) > 1 {
 			eula = "multiple"
 		}
-		*out = append(*out, editorModule{ID: m.ID, Name: m.Name, URL: m.URL, Checksum: checksum, Integrity: m.Integrity, Destination: m.Destination, Command: m.Command, Parent: parent, Required: m.Required, RenameFrom: m.Rename.From, RenameTo: m.Rename.To, EULA: eula, Visible: !m.Hidden, DownloadSize: m.DownloadSize.Value})
+		*out = append(*out, editorModule{ID: m.ID, Name: m.Name, Category: m.Category, URL: m.URL, Checksum: checksum, Integrity: m.Integrity, Destination: m.Destination, Command: m.Command, Parent: parent, Required: m.Required, RenameFrom: m.Rename.From, RenameTo: m.Rename.To, EULA: eula, Visible: !m.Hidden, DownloadSize: m.DownloadSize.Value, InstalledSize: m.InstalledSize.Value})
 		appendUnityModules(out, m.Children, m.ID)
 	}
 }

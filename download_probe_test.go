@@ -61,6 +61,48 @@ func TestParallelDownloadWhenHeadIsRejected(t *testing.T) {
 	}
 }
 
+func TestDownloadSendsApplicationUserAgent(t *testing.T) {
+	for _, parallel := range []bool{false, true} {
+		t.Run(fmt.Sprintf("parallel=%t", parallel), func(t *testing.T) {
+			size := 1024
+			if parallel {
+				size = parallelMinimumSize + 1024
+			}
+			payload := bytes.Repeat([]byte("x"), size)
+			var heads, probes, ranges, streams atomic.Int32
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.UserAgent() != downloadUserAgent {
+					w.WriteHeader(http.StatusForbidden)
+					return
+				}
+				if r.Method == http.MethodHead {
+					heads.Add(1)
+					w.WriteHeader(http.StatusMethodNotAllowed)
+					return
+				}
+				w.Header().Set("ETag", `"stable"`)
+				if r.Header.Get("Range") == "bytes=0-0" {
+					probes.Add(1)
+				} else if r.Header.Get("Range") != "" {
+					ranges.Add(1)
+				} else {
+					streams.Add(1)
+				}
+				http.ServeContent(w, r, "file", time.Time{}, bytes.NewReader(payload))
+			}))
+			defer server.Close()
+			sum := sha256.Sum256(payload)
+			dest := filepath.Join(t.TempDir(), "file")
+			if err := downloadFileVerifiedSize(context.Background(), server.URL, dest, "sha256-"+base64.StdEncoding.EncodeToString(sum[:]), int64(len(payload)), func(int64, int64) {}); err != nil {
+				t.Fatal(err)
+			}
+			if heads.Load() != 1 || probes.Load() != 1 || (parallel && ranges.Load() != parallelWorkers) || (!parallel && streams.Load() != 1) {
+				t.Fatalf("heads=%d probes=%d ranges=%d streams=%d", heads.Load(), probes.Load(), ranges.Load(), streams.Load())
+			}
+		})
+	}
+}
+
 func TestRangeProbeWhenHeadOmitsRangeSupport(t *testing.T) {
 	payload := bytes.Repeat([]byte("x"), parallelMinimumSize+1)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

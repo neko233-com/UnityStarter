@@ -76,6 +76,19 @@ func TestLiveTuanjieAdditionalPlatforms(t *testing.T) {
 				t.Fatal(err)
 			}
 			if !standaloneModule(m) || !moduleFilesPresent(root, m) {
+				base := filepath.Join(root, "Editor", "Data", "PlaybackEngines")
+				count := 0
+				_ = filepath.WalkDir(base, func(path string, entry os.DirEntry, err error) error {
+					if err != nil {
+						return nil
+					}
+					rel, _ := filepath.Rel(base, path)
+					if count < 100 && len(strings.Split(rel, string(os.PathSeparator))) <= 6 && (entry.IsDir() || strings.EqualFold(filepath.Ext(path), ".dll") || strings.EqualFold(filepath.Ext(path), ".so")) {
+						t.Logf("installed: %s", rel)
+						count++
+					}
+					return nil
+				})
 				t.Fatal("official platform module files were not recognized")
 			}
 			if err := markModuleInstalled(root, m); err != nil {

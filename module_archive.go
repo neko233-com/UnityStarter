@@ -84,6 +84,9 @@ func moduleFilesVerifiable(m editorModule) bool {
 	if _, ok := openHarmonyNodeArchive(m); ok {
 		return true
 	}
+	if _, ok := openHarmonySDKArchive(m); ok {
+		return true
+	}
 	_, _, ok := openJDKArchive(m)
 	return ok
 }
@@ -155,6 +158,54 @@ func moduleFilesPresent(root string, m editorModule) bool {
 		}
 		return true
 	}
+	if m.ID == "embeddedlinux" {
+		base := filepath.Join(root, "Editor", "Data", "PlaybackEngines", "EmbeddedLinux")
+		paths := []string{"UnityEditor.EmbeddedLinux.Extensions.dll"}
+		for _, config := range []string{"Development", "Release"} {
+			for _, arch := range []string{"arm32", "arm64", "x64", "x86"} {
+				paths = append(paths, filepath.Join("Variations", config, "embeddedlinux_"+arch+"_il2cpp", "TuanjiePlayer.so"))
+			}
+		}
+		for _, rel := range paths {
+			info, err := os.Stat(filepath.Join(base, rel))
+			if err != nil || !info.Mode().IsRegular() || info.Size() == 0 {
+				return false
+			}
+		}
+		return true
+	}
+	if m.ID == "qnx" {
+		base := filepath.Join(root, "Editor", "Data", "PlaybackEngines", "QNX")
+		paths := []string{"UnityEditor.QNX.Extensions.dll"}
+		for _, config := range []string{"Development", "Release"} {
+			for _, variant := range []string{"qnx70_arm32", "qnx70_arm64", "qnx70_x64", "qnx70_x86", "qnx71_arm32", "qnx71_arm64", "qnx71_x64", "qnx80_arm64", "qnx80_x64"} {
+				paths = append(paths, filepath.Join("Variations", config, variant+"_il2cpp", "TuanjiePlayer.so"))
+			}
+		}
+		for _, rel := range paths {
+			info, err := os.Stat(filepath.Join(base, rel))
+			if err != nil || !info.Mode().IsRegular() || info.Size() == 0 {
+				return false
+			}
+		}
+		return true
+	}
+	if m.ID == "hmiandroid" {
+		base := filepath.Join(root, "Editor", "Data", "PlaybackEngines", "HMIAndroidPlayer")
+		paths := []string{"UnityEditor.HMIAndroid.Extensions.dll"}
+		for _, config := range []string{"Development", "Release"} {
+			for _, arch := range []string{"arm64-v8a", "armeabi-v7a", "armv9", "x86", "x86_64"} {
+				paths = append(paths, filepath.Join("Variations", "il2cpp", config, "Libs", arch, "libtuanjie.so"))
+			}
+		}
+		for _, rel := range paths {
+			info, err := os.Stat(filepath.Join(base, rel))
+			if err != nil || !info.Mode().IsRegular() || info.Size() == 0 {
+				return false
+			}
+		}
+		return true
+	}
 	if language, _, ok := editorLanguageModule(m); ok {
 		file := filepath.Join(root, "Editor", "Data", "Localization", language+".po")
 		info, err := os.Lstat(file)
@@ -179,6 +230,9 @@ func moduleFilesPresent(root string, m editorModule) bool {
 	}
 	if _, ok := openHarmonyNodeArchive(m); ok {
 		return openHarmonyNodeFilesPresent(filepath.Join(root, "Editor", "Data", "PlaybackEngines", "OpenHarmonyPlayer", "Nodejs"))
+	}
+	if _, ok := openHarmonySDKArchive(m); ok {
+		return openHarmonySDKFilesPresent(root)
 	}
 	output := moduleOutput(m)
 	if output == "" {

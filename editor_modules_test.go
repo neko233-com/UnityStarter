@@ -228,6 +228,96 @@ func TestAppleUWPAndTuanjieModuleFileChecks(t *testing.T) {
 	}
 }
 
+func TestEmbeddedLinuxModuleRequiresPlayerVariants(t *testing.T) {
+	root := t.TempDir()
+	m := editorModule{ID: "embeddedlinux", URL: "https://download.tuanjie.cn/module.exe", Checksum: strings.Repeat("a", 32), Destination: "{UNITY_PATH}"}
+	if !standaloneModule(m) {
+		t.Fatal("official metadata rejected")
+	}
+	base := filepath.Join(root, "Editor", "Data", "PlaybackEngines", "EmbeddedLinux")
+	paths := []string{"UnityEditor.EmbeddedLinux.Extensions.dll"}
+	for _, config := range []string{"Development", "Release"} {
+		for _, arch := range []string{"arm32", "arm64", "x64", "x86"} {
+			paths = append(paths, filepath.Join("Variations", config, "embeddedlinux_"+arch+"_il2cpp", "TuanjiePlayer.so"))
+		}
+	}
+	for i, rel := range paths {
+		if moduleFilesPresent(root, m) {
+			t.Fatalf("partial module accepted at %d", i)
+		}
+		file := filepath.Join(base, rel)
+		if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(file, []byte("fixture"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if !moduleFilesPresent(root, m) {
+		t.Fatal("complete module not detected")
+	}
+}
+
+func TestQNXModuleRequiresPlayerVariants(t *testing.T) {
+	root := t.TempDir()
+	m := editorModule{ID: "qnx", URL: "https://download.tuanjie.cn/module.exe", Checksum: strings.Repeat("a", 32), Destination: "{UNITY_PATH}"}
+	if !standaloneModule(m) {
+		t.Fatal("official metadata rejected")
+	}
+	base := filepath.Join(root, "Editor", "Data", "PlaybackEngines", "QNX")
+	paths := []string{"UnityEditor.QNX.Extensions.dll"}
+	for _, config := range []string{"Development", "Release"} {
+		for _, variant := range []string{"qnx70_arm32", "qnx70_arm64", "qnx70_x64", "qnx70_x86", "qnx71_arm32", "qnx71_arm64", "qnx71_x64", "qnx80_arm64", "qnx80_x64"} {
+			paths = append(paths, filepath.Join("Variations", config, variant+"_il2cpp", "TuanjiePlayer.so"))
+		}
+	}
+	for i, rel := range paths {
+		if moduleFilesPresent(root, m) {
+			t.Fatalf("partial module accepted at %d", i)
+		}
+		file := filepath.Join(base, rel)
+		if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(file, []byte("fixture"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if !moduleFilesPresent(root, m) {
+		t.Fatal("complete module not detected")
+	}
+}
+
+func TestHMIAndroidModuleRequiresPlayerVariants(t *testing.T) {
+	root := t.TempDir()
+	m := editorModule{ID: "hmiandroid", URL: "https://download.tuanjie.cn/module.exe", Checksum: strings.Repeat("a", 32), Destination: "{UNITY_PATH}"}
+	if !standaloneModule(m) {
+		t.Fatal("official metadata rejected")
+	}
+	base := filepath.Join(root, "Editor", "Data", "PlaybackEngines", "HMIAndroidPlayer")
+	paths := []string{"UnityEditor.HMIAndroid.Extensions.dll"}
+	for _, config := range []string{"Development", "Release"} {
+		for _, arch := range []string{"arm64-v8a", "armeabi-v7a", "armv9", "x86", "x86_64"} {
+			paths = append(paths, filepath.Join("Variations", "il2cpp", config, "Libs", arch, "libtuanjie.so"))
+		}
+	}
+	for i, rel := range paths {
+		if moduleFilesPresent(root, m) {
+			t.Fatalf("partial module accepted at %d", i)
+		}
+		file := filepath.Join(base, rel)
+		if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(file, []byte("fixture"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if !moduleFilesPresent(root, m) {
+		t.Fatal("complete module not detected")
+	}
+}
+
 func TestAppleModulesRecognizeUnity7Layout(t *testing.T) {
 	for _, tc := range []struct{ id, dir, extension, framework string }{
 		{"appletv", "AppleTVSupport", "UnityEditor.AppleTV.Extensions.dll", "UnityRuntime-tvOS"},

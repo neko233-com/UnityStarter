@@ -274,11 +274,133 @@ func (msgs Messages) InstallModules() string {
 	return Catalog.Format(msgs.locale, "installModules", nil)
 }
 
-// InstallModuleHint says "Supports standalone modules, OpenJDK, Unity and Tuanjie documentation and language packs, and some Android SDK/NDK re…"
+// ModuleGroupTools says "Developer tools"
+// in the language the app shows.
+func ModuleGroupTools() string { return In(i18n.Locale()).ModuleGroupTools() }
+
+// ModuleGroupTools says "Developer tools"
+// in the language of msgs.
+func (msgs Messages) ModuleGroupTools() string {
+	return Catalog.Format(msgs.locale, "moduleGroupTools", nil)
+}
+
+// ModuleGroupPlatforms says "Platforms"
+// in the language the app shows.
+func ModuleGroupPlatforms() string { return In(i18n.Locale()).ModuleGroupPlatforms() }
+
+// ModuleGroupPlatforms says "Platforms"
+// in the language of msgs.
+func (msgs Messages) ModuleGroupPlatforms() string {
+	return Catalog.Format(msgs.locale, "moduleGroupPlatforms", nil)
+}
+
+// ModuleGroupDocs says "Documentation"
+// in the language the app shows.
+func ModuleGroupDocs() string { return In(i18n.Locale()).ModuleGroupDocs() }
+
+// ModuleGroupDocs says "Documentation"
+// in the language of msgs.
+func (msgs Messages) ModuleGroupDocs() string {
+	return Catalog.Format(msgs.locale, "moduleGroupDocs", nil)
+}
+
+// ModuleGroupLanguages says "Language packs"
+// in the language the app shows.
+func ModuleGroupLanguages() string { return In(i18n.Locale()).ModuleGroupLanguages() }
+
+// ModuleGroupLanguages says "Language packs"
+// in the language of msgs.
+func (msgs Messages) ModuleGroupLanguages() string {
+	return Catalog.Format(msgs.locale, "moduleGroupLanguages", nil)
+}
+
+// ModuleGroupOther says "Other"
+// in the language the app shows.
+func ModuleGroupOther() string { return In(i18n.Locale()).ModuleGroupOther() }
+
+// ModuleGroupOther says "Other"
+// in the language of msgs.
+func (msgs Messages) ModuleGroupOther() string {
+	return Catalog.Format(msgs.locale, "moduleGroupOther", nil)
+}
+
+// ModuleDownloadSize says "Download est."
+// in the language the app shows.
+func ModuleDownloadSize() string { return In(i18n.Locale()).ModuleDownloadSize() }
+
+// ModuleDownloadSize says "Download est."
+// in the language of msgs.
+func (msgs Messages) ModuleDownloadSize() string {
+	return Catalog.Format(msgs.locale, "moduleDownloadSize", nil)
+}
+
+// ModuleDiskSize says "Disk est."
+// in the language the app shows.
+func ModuleDiskSize() string { return In(i18n.Locale()).ModuleDiskSize() }
+
+// ModuleDiskSize says "Disk est."
+// in the language of msgs.
+func (msgs Messages) ModuleDiskSize() string {
+	return Catalog.Format(msgs.locale, "moduleDiskSize", nil)
+}
+
+// ModuleSelectedDownload says "Download estimate: {size}"
+// in the language the app shows.
+func ModuleSelectedDownload(size string) string {
+	return In(i18n.Locale()).ModuleSelectedDownload(size)
+}
+
+// ModuleSelectedDownload says "Download estimate: {size}"
+// in the language of msgs.
+func (msgs Messages) ModuleSelectedDownload(size string) string {
+	return Catalog.Format(msgs.locale, "moduleSelectedDownload", map[string]any{"size": size})
+}
+
+// ModuleDiskAvailable says "Available: {size}"
+// in the language the app shows.
+func ModuleDiskAvailable(size string) string { return In(i18n.Locale()).ModuleDiskAvailable(size) }
+
+// ModuleDiskAvailable says "Available: {size}"
+// in the language of msgs.
+func (msgs Messages) ModuleDiskAvailable(size string) string {
+	return Catalog.Format(msgs.locale, "moduleDiskAvailable", map[string]any{"size": size})
+}
+
+// ActivityTitle says "Downloads"
+// in the language the app shows.
+func ActivityTitle() string { return In(i18n.Locale()).ActivityTitle() }
+
+// ActivityTitle says "Downloads"
+// in the language of msgs.
+func (msgs Messages) ActivityTitle() string {
+	return Catalog.Format(msgs.locale, "activityTitle", nil)
+}
+
+// ActivityEmpty says "No downloads or installations"
+// in the language the app shows.
+func ActivityEmpty() string { return In(i18n.Locale()).ActivityEmpty() }
+
+// ActivityEmpty says "No downloads or installations"
+// in the language of msgs.
+func (msgs Messages) ActivityEmpty() string {
+	return Catalog.Format(msgs.locale, "activityEmpty", nil)
+}
+
+// ActionBackground says "Run in background"
+// in the language the app shows.
+func ActionBackground() string { return In(i18n.Locale()).ActionBackground() }
+
+// ActionBackground says "Run in background"
+// in the language of msgs.
+func (msgs Messages) ActionBackground() string {
+	return Catalog.Format(msgs.locale, "actionBackground", nil)
+}
+
+// InstallModuleHint says "Select modules to install together. Dependencies require their platform module."
 // in the language the app shows.
 func InstallModuleHint() string { return In(i18n.Locale()).InstallModuleHint() }
 
-// InstallModuleHint says "Supports standalone modules, OpenJDK, Unity and Tuanjie documentation and language packs, and some Android SDK/NDK re…"
+// InstallModuleHint says "Select modules to install together. Dependencies require their platform module."
 // in the language of msgs.
 func (msgs Messages) InstallModuleHint() string {
 	return Catalog.Format(msgs.locale, "installModuleHint", nil)

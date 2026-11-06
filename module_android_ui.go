@@ -17,6 +17,7 @@ func (a *app) prepareAndroidSDK(e editorInstall, m editorModule) {
 	}
 	a.moduleLoading = true
 	a.moduleStatus = locales.AndroidPrepare()
+	a.moduleCurrentName = m.Name
 	win := a.win
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 40*time.Second)
@@ -47,7 +48,7 @@ func (a *app) prepareAndroidSDK(e editorInstall, m editorModule) {
 		}
 		win.Update(func() {
 			a.moduleLoading = false
-			if (!a.manageOpen && len(a.moduleQueue) == 0) || !a.manageModules || a.manageEditor.Exe != e.Exe {
+			if !a.manageModules || a.manageEditor.Exe != e.Exe {
 				return
 			}
 			if err != nil {
@@ -68,6 +69,9 @@ func (a *app) installAndroidSDK(e editorInstall, plan androidInstallPlan) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Hour)
 	a.moduleBusy, a.moduleInstalling, a.moduleCancel, a.moduleStatus = true, false, cancel, locales.InstallModuleProgress()
+	a.moduleCurrentName, a.moduleProgressDone, a.moduleProgressTotal = plan.Module.Name, 0, 0
+	a.moduleJobSequence++
+	sequence := a.moduleJobSequence
 	win := a.win
 	go func() {
 		defer cancel()
@@ -125,6 +129,10 @@ func (a *app) installAndroidSDK(e editorInstall, plan androidInstallPlan) {
 				last = time.Now()
 				win.Update(func() {
 					if a.moduleBusy && !a.moduleInstalling && total > 0 {
+						if a.moduleJobSequence != sequence {
+							return
+						}
+						a.moduleProgressDone, a.moduleProgressTotal = done, total
 						a.moduleStatus = fmt.Sprintf("%s %d%%", locales.InstallModuleProgress(), done*100/total)
 					}
 				})
@@ -144,6 +152,7 @@ func (a *app) installAndroidSDK(e editorInstall, plan androidInstallPlan) {
 					ready <- false
 				} else {
 					a.moduleInstalling = true
+					a.moduleStatus = locales.DownloadsInstalling()
 					ready <- true
 				}
 			})
@@ -177,6 +186,7 @@ func (a *app) installAndroidSDK(e editorInstall, plan androidInstallPlan) {
 		}
 		win.Update(func() {
 			a.moduleBusy, a.moduleInstalling, a.moduleCancel = false, false, nil
+			a.moduleProgressDone, a.moduleProgressTotal = 0, 0
 			if errors.Is(err, context.Canceled) {
 				a.moduleStatus = ""
 				if cacheErr != nil {

@@ -261,6 +261,7 @@ func downloadFileVerifiedSize(ctx context.Context, from, to, integrity string, e
 	if err != nil {
 		return err
 	}
+	req.Header.Set("User-Agent", downloadUserAgent)
 	resp, err := watch.request(http.DefaultClient, req)
 	if err != nil {
 		return err

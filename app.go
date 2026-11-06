@@ -33,6 +33,7 @@ const (
 	pageLearn            = "/learn"
 	pageFeedback         = "/feedback"
 	pageSettings         = "/settings"
+	pageActivity         = "/activity"
 
 	// appVersion is what the CLI prints and what the window shows when MyGo
 	// does not know the packaged version.
@@ -82,6 +83,12 @@ type app struct {
 	moduleSelectionStore    func(editorInstall, map[string]bool) error
 	moduleSelectionLoad     func(editorInstall) (map[string]bool, error)
 	moduleSelectionRestored bool
+	moduleCurrentName       string
+	moduleProgressDone      int64
+	moduleProgressTotal     int64
+	moduleJobSequence       uint64
+	moduleDiskFree          int64
+	moduleDiskKnown         bool
 	licenseCheckBusy        bool
 	licenseCheckState       string
 	moduleCancel            context.CancelFunc
@@ -299,6 +306,7 @@ func (a *app) view(c *ui.Context) {
 						ui.SidebarItem(c, pageLearn, iconLearn, locales.PageLearn())
 						ui.SidebarItem(c, pageFeedback, iconFeedback, locales.PageFeedback())
 					})
+					ui.SidebarItem(c, pageActivity, iconDownload, locales.ActivityTitle())
 					ui.SidebarItem(c, pageSettings, iconSettings, locales.SidebarSettings())
 				}).Grow(1)
 			})
@@ -306,6 +314,7 @@ func (a *app) view(c *ui.Context) {
 				a.uninstallGuardBanner(c)
 				a.uninstallActivityBanner(c)
 				a.moduleActivityBanner(c)
+				a.editorActivityBanner(c)
 				a.updateBanner(c)
 				switch a.page {
 				case pageProjects, pageFavorites, pageTuanjieProjects, pageTuanjieFavorites:
@@ -328,6 +337,8 @@ func (a *app) view(c *ui.Context) {
 					a.feedbackPage(c)
 				case pageSettings:
 					a.settingsPage(c)
+				case pageActivity:
+					a.activityPage(c)
 				default:
 					a.projectsPage(c)
 				}

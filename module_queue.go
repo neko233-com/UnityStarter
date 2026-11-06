@@ -13,6 +13,9 @@ func moduleRequiredParent(m editorModule) string {
 	if _, ok := openHarmonyNodeArchive(m); ok {
 		return m.Parent
 	}
+	if _, ok := openHarmonySDKArchive(m); ok {
+		return m.Parent
+	}
 	if _, _, ok := openJDKArchive(m); ok || androidSDKMetadata(m) || legacyAndroidSDKMetadata(m) {
 		return m.Parent
 	}
