@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"path/filepath"
 	"sort"
 	"strings"
 
@@ -83,9 +82,7 @@ func (a *app) installsPage(c *ui.Context) {
 						return
 					}
 					if ui.PrimaryButton(c, locales.InstallsLaunch()).Disabled(a.uninstallBusy && strings.EqualFold(e.Exe, a.manageEditor.Exe)).Clicked() {
-						if err := launchWithEditorLock(e.Exe, nil, filepath.Dir(e.Exe), startDetached); err != nil {
-							a.alert(locales.OpenFailed(err.Error()))
-						}
+						a.launchInstalledEditor(e)
 					}
 					if ui.Button(c, locales.ActionFolder()).Clicked() {
 						mygo.Shell.ShowItemInFolder(e.Exe)

@@ -18,6 +18,7 @@ import (
 
 func fixture() *app {
 	a := newApp()
+	a.licenseRunner = activeUnityLicenseRunner
 	a.projects = []projectEntry{
 		{
 			Path:     `D:\Code\Games\demo`,

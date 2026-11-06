@@ -96,6 +96,14 @@ type app struct {
 	moduleDiskKnown         bool
 	licenseCheckBusy        bool
 	licenseCheckState       string
+	licenseStage            string
+	licensePersonalConsent  bool
+	licenseFlowOpen         bool
+	licensePending          func()
+	licensePendingLabel     string
+	licenseCancel           context.CancelFunc
+	licenseSequence         uint64
+	licenseRunner           unityLicenseRunner
 	moduleCancel            context.CancelFunc
 	visualStudioTask        *visualStudioTask
 	androidPlan             *androidInstallPlan
@@ -377,6 +385,7 @@ func (a *app) view(c *ui.Context) {
 	a.editorManageDialog(c)
 	a.uninstallGuardDialog(c)
 	a.availableUpdateDialog(c)
+	a.unityLicenseDialog(c)
 	a.alertDialog(c)
 }
 
@@ -565,6 +574,10 @@ func (a *app) openProject(p projectEntry) {
 // chosen. Rechecking the current scan prevents a replaced editor at the same
 // path from silently turning an ordinary open into a version migration.
 func (a *app) openProjectWithEditor(p projectEntry, expected editorInstall) {
+	a.openProjectWithEditorChecked(p, expected, false)
+}
+
+func (a *app) openProjectWithEditorChecked(p projectEntry, expected editorInstall, licensed bool) {
 	if a.uninstallBusy && strings.EqualFold(p.Editor, a.manageEditor.Exe) {
 		a.alert(locales.InstallUninstallBusy())
 		return
@@ -592,6 +605,15 @@ func (a *app) openProjectWithEditor(p projectEntry, expected editorInstall) {
 	}
 	if current.Simulated {
 		a.alert(locales.SimulatedOpen())
+		return
+	}
+	if !licensed && current.Kind == kindUnity {
+		if actual := editorExecutableVersion(p.Editor); actual != "" && !strings.EqualFold(actual, expected.Version) {
+			a.alert(locales.ProjectEditorChanged())
+			a.refresh()
+			return
+		}
+		a.withUnityLicense(current, func() { a.openProjectWithEditorChecked(p, expected, true) })
 		return
 	}
 	if err := launchVersionCheckedEditor(p.Editor, expected.Version, []string{"-projectPath", p.Path}, filepath.Dir(p.Editor), a.launchEditor); err != nil {

@@ -190,7 +190,7 @@ func (a *app) startTemplateDownload(e editorInstall, t projectTemplate) {
 }
 
 func (a *app) newProjectDialog(c *ui.Context) {
-	if !a.newOpen {
+	if !a.newOpen || a.licenseFlowOpen {
 		return
 	}
 	t := c.Theme()

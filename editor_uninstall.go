@@ -79,6 +79,9 @@ func uninstallVerifiedEditor(ctx context.Context, e editorInstall, running func(
 }
 
 func (a *app) editorWorkActive() bool {
+	if a.licenseCheckBusy || a.licensePending != nil {
+		return true
+	}
 	if a.templateWorkBusy() {
 		return true
 	}

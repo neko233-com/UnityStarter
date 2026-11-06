@@ -467,6 +467,10 @@ func (a *app) defaultProjectDir() string {
 
 // createProject has the chosen editor make the project, and opens it.
 func (a *app) createProject() {
+	a.createProjectChecked(false)
+}
+
+func (a *app) createProjectChecked(licensed bool) {
 	name := strings.TrimSpace(a.newName)
 	if name == "" || a.newDir == "" || a.newEditor == "" {
 		a.newError = locales.NewProjectIncomplete()
@@ -496,6 +500,10 @@ func (a *app) createProject() {
 		return
 	}
 	if a.newCreating {
+		return
+	}
+	if !licensed && editor.Kind == kindUnity {
+		a.withUnityLicense(editor, func() { a.createProjectChecked(true) })
 		return
 	}
 	launch := a.launchEditor

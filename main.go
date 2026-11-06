@@ -65,6 +65,11 @@ func main() {
 			a.win.SetTitle(locales.AppTitle())
 		})
 		mygo.App.OnBeforeQuit(func(event *mygo.QuitEvent) {
+			if a.licenseCheckBusy {
+				event.PreventDefault()
+				a.licenseFlowOpen = true
+				return
+			}
 			if a.templateWorkBusy() {
 				event.PreventDefault()
 				if a.newCreating {

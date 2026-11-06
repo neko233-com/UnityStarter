@@ -2720,11 +2720,11 @@ func (msgs Messages) LicenseActive() string {
 	return Catalog.Format(msgs.locale, "licenseActive", nil)
 }
 
-// LicenseInactive says "The Unity CLI reports no active license. Unity Personal requires activation through Unity Hub."
+// LicenseInactive says "No active Unity license was found. Complete official activation below; your pending action resumes after verification."
 // in the language the app shows.
 func LicenseInactive() string { return In(i18n.Locale()).LicenseInactive() }
 
-// LicenseInactive says "The Unity CLI reports no active license. Unity Personal requires activation through Unity Hub."
+// LicenseInactive says "No active Unity license was found. Complete official activation below; your pending action resumes after verification."
 // in the language of msgs.
 func (msgs Messages) LicenseInactive() string {
 	return Catalog.Format(msgs.locale, "licenseInactive", nil)
@@ -2770,14 +2770,194 @@ func (msgs Messages) LicenseCheckFailed() string {
 	return Catalog.Format(msgs.locale, "licenseCheckFailed", nil)
 }
 
-// LicenseCheckHint says "Checks use the official Unity CLI, which may send anonymous usage data; account and license details are not displayed."
+// LicenseCheckHint says "Checks and activation use the official Unity CLI, which may send anonymous usage data. Unity manages accounts, creden…"
 // in the language the app shows.
 func LicenseCheckHint() string { return In(i18n.Locale()).LicenseCheckHint() }
 
-// LicenseCheckHint says "Checks use the official Unity CLI, which may send anonymous usage data; account and license details are not displayed."
+// LicenseCheckHint says "Checks and activation use the official Unity CLI, which may send anonymous usage data. Unity manages accounts, creden…"
 // in the language of msgs.
 func (msgs Messages) LicenseCheckHint() string {
 	return Catalog.Format(msgs.locale, "licenseCheckHint", nil)
+}
+
+// LicenseLaunchTitle says "Check license before launch"
+// in the language the app shows.
+func LicenseLaunchTitle() string { return In(i18n.Locale()).LicenseLaunchTitle() }
+
+// LicenseLaunchTitle says "Check license before launch"
+// in the language of msgs.
+func (msgs Messages) LicenseLaunchTitle() string {
+	return Catalog.Format(msgs.locale, "licenseLaunchTitle", nil)
+}
+
+// LicenseLaunchHint says "Unity Editor and project launches check the license automatically. No CLI call is made at app startup."
+// in the language the app shows.
+func LicenseLaunchHint() string { return In(i18n.Locale()).LicenseLaunchHint() }
+
+// LicenseLaunchHint says "Unity Editor and project launches check the license automatically. No CLI call is made at app startup."
+// in the language of msgs.
+func (msgs Messages) LicenseLaunchHint() string {
+	return Catalog.Format(msgs.locale, "licenseLaunchHint", nil)
+}
+
+// LicensePersonalTitle says "Activate Unity Personal"
+// in the language the app shows.
+func LicensePersonalTitle() string { return In(i18n.Locale()).LicensePersonalTitle() }
+
+// LicensePersonalTitle says "Activate Unity Personal"
+// in the language of msgs.
+func (msgs Messages) LicensePersonalTitle() string {
+	return Catalog.Format(msgs.locale, "licensePersonalTitle", nil)
+}
+
+// LicensePersonalHint says "Already signed in? Activation runs automatically. Otherwise, sign in in the official browser window. Your pending act…"
+// in the language the app shows.
+func LicensePersonalHint() string { return In(i18n.Locale()).LicensePersonalHint() }
+
+// LicensePersonalHint says "Already signed in? Activation runs automatically. Otherwise, sign in in the official browser window. Your pending act…"
+// in the language of msgs.
+func (msgs Messages) LicensePersonalHint() string {
+	return Catalog.Format(msgs.locale, "licensePersonalHint", nil)
+}
+
+// LicensePersonalConsent says "I am eligible for Personal and accept the Unity Software Terms"
+// in the language the app shows.
+func LicensePersonalConsent() string { return In(i18n.Locale()).LicensePersonalConsent() }
+
+// LicensePersonalConsent says "I am eligible for Personal and accept the Unity Software Terms"
+// in the language of msgs.
+func (msgs Messages) LicensePersonalConsent() string {
+	return Catalog.Format(msgs.locale, "licensePersonalConsent", nil)
+}
+
+// LicenseActivatePersonal says "Sign in and activate Personal"
+// in the language the app shows.
+func LicenseActivatePersonal() string { return In(i18n.Locale()).LicenseActivatePersonal() }
+
+// LicenseActivatePersonal says "Sign in and activate Personal"
+// in the language of msgs.
+func (msgs Messages) LicenseActivatePersonal() string {
+	return Catalog.Format(msgs.locale, "licenseActivatePersonal", nil)
+}
+
+// LicenseTerms says "Read eligibility and terms ↗"
+// in the language the app shows.
+func LicenseTerms() string { return In(i18n.Locale()).LicenseTerms() }
+
+// LicenseTerms says "Read eligibility and terms ↗"
+// in the language of msgs.
+func (msgs Messages) LicenseTerms() string {
+	return Catalog.Format(msgs.locale, "licenseTerms", nil)
+}
+
+// LicenseOpenHub says "Use Unity Hub"
+// in the language the app shows.
+func LicenseOpenHub() string { return In(i18n.Locale()).LicenseOpenHub() }
+
+// LicenseOpenHub says "Use Unity Hub"
+// in the language of msgs.
+func (msgs Messages) LicenseOpenHub() string {
+	return Catalog.Format(msgs.locale, "licenseOpenHub", nil)
+}
+
+// LicenseReady says "Verified"
+// in the language the app shows.
+func LicenseReady() string { return In(i18n.Locale()).LicenseReady() }
+
+// LicenseReady says "Verified"
+// in the language of msgs.
+func (msgs Messages) LicenseReady() string {
+	return Catalog.Format(msgs.locale, "licenseReady", nil)
+}
+
+// LicenseStop says "Stop"
+// in the language the app shows.
+func LicenseStop() string { return In(i18n.Locale()).LicenseStop() }
+
+// LicenseStop says "Stop"
+// in the language of msgs.
+func (msgs Messages) LicenseStop() string {
+	return Catalog.Format(msgs.locale, "licenseStop", nil)
+}
+
+// LicenseSigningIn says "Complete sign-in in the official browser window. This flow will continue automatically."
+// in the language the app shows.
+func LicenseSigningIn() string { return In(i18n.Locale()).LicenseSigningIn() }
+
+// LicenseSigningIn says "Complete sign-in in the official browser window. This flow will continue automatically."
+// in the language of msgs.
+func (msgs Messages) LicenseSigningIn() string {
+	return Catalog.Format(msgs.locale, "licenseSigningIn", nil)
+}
+
+// LicenseActivating says "Activating Personal through Unity's official service…"
+// in the language the app shows.
+func LicenseActivating() string { return In(i18n.Locale()).LicenseActivating() }
+
+// LicenseActivating says "Activating Personal through Unity's official service…"
+// in the language of msgs.
+func (msgs Messages) LicenseActivating() string {
+	return Catalog.Format(msgs.locale, "licenseActivating", nil)
+}
+
+// LicenseBackgroundHint says "Working in the background. The window stays responsive; Cancel stops this flow."
+// in the language the app shows.
+func LicenseBackgroundHint() string { return In(i18n.Locale()).LicenseBackgroundHint() }
+
+// LicenseBackgroundHint says "Working in the background. The window stays responsive; Cancel stops this flow."
+// in the language of msgs.
+func (msgs Messages) LicenseBackgroundHint() string {
+	return Catalog.Format(msgs.locale, "licenseBackgroundHint", nil)
+}
+
+// LicenseSignInFailed says "Official sign-in did not complete or timed out. Retry, or sign in and activate in Unity Hub, then check again."
+// in the language the app shows.
+func LicenseSignInFailed() string { return In(i18n.Locale()).LicenseSignInFailed() }
+
+// LicenseSignInFailed says "Official sign-in did not complete or timed out. Retry, or sign in and activate in Unity Hub, then check again."
+// in the language of msgs.
+func (msgs Messages) LicenseSignInFailed() string {
+	return Catalog.Format(msgs.locale, "licenseSignInFailed", nil)
+}
+
+// LicenseActivationFailed says "The official service did not confirm activation. Check account entitlement, Personal eligibility or connectivity in U…"
+// in the language the app shows.
+func LicenseActivationFailed() string { return In(i18n.Locale()).LicenseActivationFailed() }
+
+// LicenseActivationFailed says "The official service did not confirm activation. Check account entitlement, Personal eligibility or connectivity in U…"
+// in the language of msgs.
+func (msgs Messages) LicenseActivationFailed() string {
+	return Catalog.Format(msgs.locale, "licenseActivationFailed", nil)
+}
+
+// LicenseCancelled says "This flow was cancelled or timed out. The Editor was not launched. You can check or activate again."
+// in the language the app shows.
+func LicenseCancelled() string { return In(i18n.Locale()).LicenseCancelled() }
+
+// LicenseCancelled says "This flow was cancelled or timed out. The Editor was not launched. You can check or activate again."
+// in the language of msgs.
+func (msgs Messages) LicenseCancelled() string {
+	return Catalog.Format(msgs.locale, "licenseCancelled", nil)
+}
+
+// LicenseEditorCheck says "Let the Editor check"
+// in the language the app shows.
+func LicenseEditorCheck() string { return In(i18n.Locale()).LicenseEditorCheck() }
+
+// LicenseEditorCheck says "Let the Editor check"
+// in the language of msgs.
+func (msgs Messages) LicenseEditorCheck() string {
+	return Catalog.Format(msgs.locale, "licenseEditorCheck", nil)
+}
+
+// LicenseEditorCheckHint says "Available only when the CLI cannot determine status. The Editor still performs official license validation."
+// in the language the app shows.
+func LicenseEditorCheckHint() string { return In(i18n.Locale()).LicenseEditorCheckHint() }
+
+// LicenseEditorCheckHint says "Available only when the CLI cannot determine status. The Editor still performs official license validation."
+// in the language of msgs.
+func (msgs Messages) LicenseEditorCheckHint() string {
+	return Catalog.Format(msgs.locale, "licenseEditorCheckHint", nil)
 }
 
 // LicensesNone says "No license file found."

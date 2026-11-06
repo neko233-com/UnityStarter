@@ -100,6 +100,7 @@ func TestScanEditorsKeepsDistinctInstallationsOfSameVersion(t *testing.T) {
 	a := newApp()
 	a.editors = editors
 	a.projects = projects
+	a.licenseRunner = activeUnityLicenseRunner
 	var launched string
 	a.launchEditor = func(exe string, _ []string, _ string) error { launched = exe; return nil }
 	a.chooseProjectVersion(projects[0])

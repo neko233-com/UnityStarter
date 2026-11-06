@@ -47,32 +47,55 @@ type boundedOutput struct{ bytes.Buffer }
 
 func (b *boundedOutput) Write(p []byte) (int, error) {
 	if b.Len()+len(p) > 1<<20 {
-		return 0, fmt.Errorf("license status response too large")
+		return 0, fmt.Errorf("Unity CLI response too large")
 	}
 	return b.Buffer.Write(p)
 }
 
-func unityLicenseStatus(ctx context.Context) (string, error) {
+type unityLicenseRunner func(context.Context, ...string) ([]byte, error)
+
+func runUnityLicenseCommand(ctx context.Context, args ...string) ([]byte, error) {
 	if runtime.GOOS != "windows" || os.Getenv("LOCALAPPDATA") == "" {
-		return "", errUnityLicenseCLIUnavailable
+		return nil, errUnityLicenseCLIUnavailable
 	}
 	// Unity Hub installs the standalone CLI here. Do not search PATH for
 	// "unity": it could resolve to the Editor executable instead.
 	exe := filepath.Join(os.Getenv("LOCALAPPDATA"), "Unity", "bin", "unity.exe")
 	if info, err := os.Stat(exe); err != nil || !info.Mode().IsRegular() {
-		return "", errUnityLicenseCLIUnavailable
+		return nil, errUnityLicenseCLIUnavailable
 	}
-	cmd := exec.CommandContext(ctx, exe, "license", "status", "--format", "json", "--non-interactive")
+	args = append(append([]string(nil), args...), "--format", "json", "--no-banner", "--no-log-proxy")
+	if len(args) < 2 || args[0] != "auth" || args[1] != "login" {
+		args = append(args, "--non-interactive")
+	}
+	cmd := exec.CommandContext(ctx, exe, args...)
 	hideWindowCmd(cmd)
 	var output boundedOutput
 	cmd.Stdout = &output
 	err := cmd.Run()
 	if ctx.Err() != nil {
-		return "", ctx.Err()
+		return nil, ctx.Err()
+	}
+	return output.Bytes(), err
+}
+
+func unityLicenseStatus(ctx context.Context) (string, error) {
+	return unityLicenseStatusWith(ctx, runUnityLicenseCommand)
+}
+
+func unityLicenseStatusWith(ctx context.Context, run unityLicenseRunner) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+	output, err := run(ctx, "license", "status")
+	if errors.Is(err, errUnityLicenseCLIUnavailable) || ctx.Err() != nil {
+		if ctx.Err() != nil {
+			err = ctx.Err()
+		}
+		return "", err
 	}
 	// The CLI reports an inactive license with a nonzero exit code and a
 	// structured LICENSE_NOT_ACTIVE response. Other failures remain unknown.
-	state, parseErr := parseUnityLicenseStatus(output.Bytes())
+	state, parseErr := parseUnityLicenseStatus(output)
 	if parseErr != nil || (err != nil && state != "inactive") {
 		return "", fmt.Errorf("Unity license status could not be verified")
 	}
@@ -80,34 +103,11 @@ func unityLicenseStatus(ctx context.Context) (string, error) {
 }
 
 func (a *app) checkUnityLicense() {
-	if a.win == nil || a.licenseCheckBusy {
-		return
-	}
-	a.licenseCheckBusy = true
-	win := a.win
-	parent := a.updateCtx
-	if parent == nil {
-		parent = context.Background()
-	}
-	go func() {
-		ctx, cancel := context.WithTimeout(parent, 20*time.Second)
-		defer cancel()
-		state, err := unityLicenseStatus(ctx)
-		if err != nil {
-			state = "failed"
-			if errors.Is(err, errUnityLicenseCLIUnavailable) {
-				state = "unavailable"
-			}
-		}
-		if parent.Err() != nil {
-			return
-		}
-		win.Update(func() { a.licenseCheckState, a.licenseCheckBusy = state, false })
-	}()
+	a.startUnityLicenseFlow(false)
 }
 
-// Surface only an explicit check's result; invoking Unity's CLI automatically
-// would also invoke its own telemetry and change the app's privacy behavior.
+// No CLI invocation on startup: checks are triggered by an explicit check,
+// activation, or Editor launch. Unity CLI may send its own usage telemetry.
 func (a *app) unityLicenseBanner(c *ui.Context) {
 	if a.licenseCheckState != "inactive" || a.page == pageLicense {
 		return
