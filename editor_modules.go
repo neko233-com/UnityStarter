@@ -89,6 +89,8 @@ func moduleOutput(m editorModule) string {
 		return filepath.Join("LinuxStandaloneSupport", "Variations", "linux64_player_development_il2cpp")
 	case "linux-mono":
 		return filepath.Join("LinuxStandaloneSupport", "Variations", "linux64_player_development_mono")
+	case "linux-coreclr":
+		return filepath.Join("LinuxStandaloneSupport", "Variations", "linux64_player_development_coreclr")
 	case "linux-server":
 		return filepath.Join("LinuxStandaloneSupport", "Variations", "linux64_server_development_mono")
 	case "windows-server":

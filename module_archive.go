@@ -192,6 +192,8 @@ func modulePlayerVariants(id string) ([]string, string) {
 		return []string{"linux64_player_development_il2cpp", "linux64_player_nondevelopment_il2cpp"}, "UnityPlayer.so"
 	case "linux-mono":
 		return []string{"linux64_player_development_mono", "linux64_player_nondevelopment_mono"}, "UnityPlayer.so"
+	case "linux-coreclr":
+		return []string{"linux64_player_development_coreclr", "linux64_player_nondevelopment_coreclr"}, "UnityPlayer.so"
 	case "linux-server":
 		return []string{"linux64_server_development_mono", "linux64_server_nondevelopment_mono", "linux64_server_development_il2cpp", "linux64_server_nondevelopment_il2cpp"}, "UnityPlayer.so"
 	case "windows-server":

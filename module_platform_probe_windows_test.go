@@ -102,6 +102,9 @@ func TestLiveUnityAdditionalPlatforms(t *testing.T) {
 			if !installed[0].Selected {
 				t.Fatal("platform module state was not recorded")
 			}
+			if variants, player := modulePlayerVariants(id); len(variants) > 0 {
+				t.Logf("verified player %s in variants %v", player, variants)
+			}
 		})
 	}
 }

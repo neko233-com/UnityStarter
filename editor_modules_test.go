@@ -164,7 +164,7 @@ func TestLinuxIL2CPPModuleRequiresBothPlayers(t *testing.T) {
 }
 
 func TestAdditionalPlatformModulesRequireAllPlayerVariants(t *testing.T) {
-	for _, id := range []string{"linux-mono", "linux-server", "windows-server", "mac-coreclr", "mac-server-coreclr", "mac-mono", "mac-server"} {
+	for _, id := range []string{"linux-mono", "linux-coreclr", "linux-server", "windows-server", "mac-coreclr", "mac-server-coreclr", "mac-mono", "mac-server"} {
 		t.Run(id, func(t *testing.T) {
 			m := editorModule{ID: id, URL: "https://download.unity3d.com/module.exe", Checksum: strings.Repeat("a", 32), Destination: "{UNITY_PATH}"}
 			if !standaloneModule(m) {
