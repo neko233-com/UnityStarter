@@ -100,7 +100,47 @@ func moduleFilesPresent(root string, m editorModule) bool {
 			}
 			return modulePlayerVariantsPresent(base, coreclr, player)
 		}
+		if m.ID == "mac-server" {
+			coreclr, coreclrPlayer := modulePlayerVariants("mac-server-coreclr")
+			return modulePlayerVariantsPresent(base, coreclr, coreclrPlayer)
+		}
 		return false
+	}
+	if m.ID == "appletv" || m.ID == "visionos" {
+		base := filepath.Join(root, "Editor", "Data", "PlaybackEngines", moduleOutput(m))
+		extension := "UnityEditor.AppleTV.Extensions.dll"
+		if m.ID == "visionos" {
+			extension = "UnityEditor.VisionOS.Extensions.dll"
+		}
+		info, err := os.Stat(filepath.Join(base, extension))
+		if err != nil || !info.Mode().IsRegular() || info.Size() == 0 {
+			return false
+		}
+		entries, err := os.ReadDir(filepath.Join(base, "Variations", "il2cpp", "Releasearm64_managed"))
+		if err == nil && len(entries) > 0 {
+			return true
+		}
+		// Unity 7 places runtime files in the Trampoline frameworks instead.
+		managed, err := os.ReadDir(filepath.Join(base, "Variations", "il2cpp", "Managed"))
+		if err != nil || len(managed) == 0 {
+			return false
+		}
+		framework := "UnityRuntime-tvOS"
+		if m.ID == "visionos" {
+			framework = "UnityRuntime-il2cpp"
+		}
+		runtime, err := os.ReadDir(filepath.Join(base, "Trampoline", "Frameworks", framework))
+		return err == nil && len(runtime) > 0
+	}
+	if m.ID == "universal-windows-platform" {
+		base := filepath.Join(root, "Editor", "Data", "PlaybackEngines", "MetroSupport")
+		for _, rel := range []string{"UnityEditor.UWP.Extensions.dll", "Players/UAP/il2cpp/x64/debug/UnityPlayer.dll", "Players/UAP/il2cpp/x64/release/UnityPlayer.dll", "Players/UAP/il2cpp/x64/master/UnityPlayer.dll"} {
+			info, err := os.Stat(filepath.Join(base, filepath.FromSlash(rel)))
+			if err != nil || !info.Mode().IsRegular() || info.Size() == 0 {
+				return false
+			}
+		}
+		return true
 	}
 	if language, _, ok := editorLanguageModule(m); ok {
 		file := filepath.Join(root, "Editor", "Data", "Localization", language+".po")
@@ -156,6 +196,14 @@ func modulePlayerVariants(id string) ([]string, string) {
 		return []string{"linux64_server_development_mono", "linux64_server_nondevelopment_mono", "linux64_server_development_il2cpp", "linux64_server_nondevelopment_il2cpp"}, "UnityPlayer.so"
 	case "windows-server":
 		return []string{"win64_server_development_mono", "win64_server_nondevelopment_mono", "win64_server_development_il2cpp", "win64_server_nondevelopment_il2cpp"}, "UnityPlayer.dll"
+	case "mac-coreclr":
+		return []string{"macos_arm64_player_development_coreclr", "macos_arm64_player_nondevelopment_coreclr"}, filepath.Join("UnityPlayer.app", "Contents", "MacOS", "UnityPlayer")
+	case "mac-server-coreclr":
+		return []string{"macos_arm64_server_development_coreclr", "macos_arm64_server_nondevelopment_coreclr"}, filepath.Join("UnityPlayer", "UnityPlayer")
+	case "mac-mono":
+		return []string{"macos_arm64_player_development_mono", "macos_arm64_player_nondevelopment_mono", "macos_x64_player_development_mono", "macos_x64_player_nondevelopment_mono"}, filepath.Join("UnityPlayer.app", "Contents", "MacOS", "UnityPlayer")
+	case "mac-server":
+		return []string{"macos_arm64_server_development_mono", "macos_arm64_server_nondevelopment_mono", "macos_x64_server_development_mono", "macos_x64_server_nondevelopment_mono"}, filepath.Join("UnityPlayer", "UnityPlayer")
 	default:
 		return nil, ""
 	}

@@ -164,7 +164,7 @@ func TestLinuxIL2CPPModuleRequiresBothPlayers(t *testing.T) {
 }
 
 func TestAdditionalPlatformModulesRequireAllPlayerVariants(t *testing.T) {
-	for _, id := range []string{"linux-mono", "linux-server", "windows-server"} {
+	for _, id := range []string{"linux-mono", "linux-server", "windows-server", "mac-coreclr", "mac-server-coreclr", "mac-mono", "mac-server"} {
 		t.Run(id, func(t *testing.T) {
 			m := editorModule{ID: id, URL: "https://download.unity3d.com/module.exe", Checksum: strings.Repeat("a", 32), Destination: "{UNITY_PATH}"}
 			if !standaloneModule(m) {
@@ -177,16 +177,78 @@ func TestAdditionalPlatformModulesRequireAllPlayerVariants(t *testing.T) {
 				if moduleFilesPresent(root, m) {
 					t.Fatalf("partial module accepted after %d of %d files", i, len(variants))
 				}
-				dir := filepath.Join(base, variant)
+				dir := filepath.Dir(filepath.Join(base, variant, player))
 				if err := os.MkdirAll(dir, 0o755); err != nil {
 					t.Fatal(err)
 				}
-				if err := os.WriteFile(filepath.Join(dir, player), []byte("fixture"), 0o644); err != nil {
+				if err := os.WriteFile(filepath.Join(base, variant, player), []byte("fixture"), 0o644); err != nil {
 					t.Fatal(err)
 				}
 			}
 			if !moduleFilesPresent(root, m) {
 				t.Fatal("complete module was not recognized")
+			}
+		})
+	}
+}
+
+func TestAppleAndUWPModuleFileChecks(t *testing.T) {
+	for _, tc := range []struct {
+		id    string
+		files []string
+	}{
+		{"appletv", []string{"AppleTVSupport/UnityEditor.AppleTV.Extensions.dll", "AppleTVSupport/Variations/il2cpp/Releasearm64_managed/fixture"}},
+		{"visionos", []string{"VisionOSPlayer/UnityEditor.VisionOS.Extensions.dll", "VisionOSPlayer/Variations/il2cpp/Releasearm64_managed/fixture"}},
+		{"universal-windows-platform", []string{"MetroSupport/UnityEditor.UWP.Extensions.dll", "MetroSupport/Players/UAP/il2cpp/x64/debug/UnityPlayer.dll", "MetroSupport/Players/UAP/il2cpp/x64/release/UnityPlayer.dll", "MetroSupport/Players/UAP/il2cpp/x64/master/UnityPlayer.dll"}},
+	} {
+		t.Run(tc.id, func(t *testing.T) {
+			m := editorModule{ID: tc.id, URL: "https://download.unity3d.com/module.exe", Checksum: strings.Repeat("a", 32), Destination: "{UNITY_PATH}"}
+			if !standaloneModule(m) {
+				t.Fatal("module metadata rejected")
+			}
+			base := filepath.Join(t.TempDir(), "Editor", "Data", "PlaybackEngines")
+			root := filepath.Dir(filepath.Dir(filepath.Dir(base)))
+			for i, rel := range tc.files {
+				if moduleFilesPresent(root, m) {
+					t.Fatalf("partial module accepted at %d", i)
+				}
+				file := filepath.Join(base, filepath.FromSlash(rel))
+				if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(file, []byte("fixture"), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if !moduleFilesPresent(root, m) {
+				t.Fatal("complete module was not detected")
+			}
+		})
+	}
+}
+
+func TestAppleModulesRecognizeUnity7Layout(t *testing.T) {
+	for _, tc := range []struct{ id, dir, extension, framework string }{
+		{"appletv", "AppleTVSupport", "UnityEditor.AppleTV.Extensions.dll", "UnityRuntime-tvOS"},
+		{"visionos", "VisionOSPlayer", "UnityEditor.VisionOS.Extensions.dll", "UnityRuntime-il2cpp"},
+	} {
+		t.Run(tc.id, func(t *testing.T) {
+			root := t.TempDir()
+			base := filepath.Join(root, "Editor", "Data", "PlaybackEngines", tc.dir)
+			for i, rel := range []string{tc.extension, "Variations/il2cpp/Managed/fixture", "Trampoline/Frameworks/" + tc.framework + "/fixture"} {
+				if moduleFilesPresent(root, editorModule{ID: tc.id}) {
+					t.Fatalf("incomplete Unity 7 module accepted at %d", i)
+				}
+				file := filepath.Join(base, filepath.FromSlash(rel))
+				if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(file, []byte("fixture"), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if !moduleFilesPresent(root, editorModule{ID: tc.id}) {
+				t.Fatal("Unity 7 Apple module not recognized")
 			}
 		})
 	}

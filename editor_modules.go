@@ -93,6 +93,20 @@ func moduleOutput(m editorModule) string {
 		return filepath.Join("LinuxStandaloneSupport", "Variations", "linux64_server_development_mono")
 	case "windows-server":
 		return filepath.Join("WindowsStandaloneSupport", "Variations", "win64_server_development_mono")
+	case "mac-coreclr":
+		return filepath.Join("MacStandaloneSupport", "Variations", "macos_arm64_player_development_coreclr")
+	case "mac-server-coreclr":
+		return filepath.Join("MacStandaloneSupport", "Variations", "macos_arm64_server_development_coreclr")
+	case "mac-mono":
+		return filepath.Join("MacStandaloneSupport", "Variations", "macos_arm64_player_development_mono")
+	case "mac-server":
+		return filepath.Join("MacStandaloneSupport", "Variations", "macos_arm64_server_development_mono")
+	case "appletv":
+		return "AppleTVSupport"
+	case "visionos":
+		return "VisionOSPlayer"
+	case "universal-windows-platform":
+		return "MetroSupport"
 	case "weixinminigame":
 		return "WeixinMiniGameSupport"
 	case "playableads":
