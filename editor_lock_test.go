@@ -82,7 +82,13 @@ func TestUninstallHoldsEditorLockUntilRemoval(t *testing.T) {
 		result <- uninstallVerifiedEditor(context.Background(), e, func(string) (bool, error) { return false, nil }, func(string) error {
 			close(started)
 			<-continueUninstall
-			return os.Remove(e.Exe)
+			if err := os.Remove(e.Exe); err != nil {
+				return err
+			}
+			if err := os.Remove(filepath.Join(e.Root, "Editor", "Uninstall.exe")); err != nil {
+				return err
+			}
+			return os.Remove(filepath.Join(e.Root, "Editor"))
 		})
 	}()
 	select {
@@ -198,6 +204,21 @@ func TestBuiltCLICannotOpenLockedEditor(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := child.Wait(); err != nil {
+		t.Fatal(err)
+	}
+	guardEditor := editorInstall{Root: root, Exe: exe, Kind: kindUnity, Version: "6000.0.2f1"}
+	if _, err := writeUninstallGuard(guardEditor); err != nil {
+		t.Fatal(err)
+	}
+	output, err = exec.CommandContext(ctx, app, "open", project).CombinedOutput()
+	if err == nil || !strings.Contains(string(output), errUninstallProtected.Error()) {
+		t.Fatalf("CLI did not reject the persistent uninstall protection: %v, %s", err, output)
+	}
+	guards := uninstallGuards()
+	if len(guards) != 1 {
+		t.Fatal("persistent protection record not found")
+	}
+	if err := clearUninstallGuard(guards[0]); err != nil {
 		t.Fatal(err)
 	}
 }

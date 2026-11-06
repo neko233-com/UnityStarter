@@ -17,4 +17,6 @@ SectionEnd
 Section "Uninstall"
   Sleep 1500
   Delete "$INSTDIR\Unity.exe"
+  Delete "$INSTDIR\Uninstall.exe"
+  RMDir "$INSTDIR"
 SectionEnd

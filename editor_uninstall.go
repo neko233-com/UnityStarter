@@ -12,7 +12,7 @@ import (
 	"unitystarter/locales"
 )
 
-var errUninstallUnconfirmed = errors.New("editor executable is still present; uninstall completion could not be confirmed")
+var errUninstallUnconfirmed = errors.New("editor directory remains; uninstall completion could not be confirmed")
 
 func uninstallVerifiedEditor(ctx context.Context, e editorInstall, running func(string) (bool, error), run func(string) error) error {
 	if e.Simulated || (e.Kind != kindUnity && e.Kind != kindTuanjie) {
@@ -48,6 +48,10 @@ func uninstallVerifiedEditor(ctx context.Context, e editorInstall, running func(
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+	guard, err := writeUninstallGuard(e)
+	if err != nil {
+		return fmt.Errorf("cannot record uninstall protection: %w", err)
+	}
 	if err := run(uninstaller); err != nil {
 		return err
 	}
@@ -56,8 +60,11 @@ func uninstallVerifiedEditor(ctx context.Context, e editorInstall, running func(
 	ticker := time.NewTicker(300 * time.Millisecond)
 	defer ticker.Stop()
 	for {
-		_, err := os.Stat(e.Exe)
+		_, err := os.Stat(filepath.Join(e.Root, "Editor"))
 		if os.IsNotExist(err) {
+			if err := os.Remove(guard); err != nil {
+				return fmt.Errorf("editor directory removed but protection could not be cleared: %w", err)
+			}
 			return nil
 		}
 		if err != nil {

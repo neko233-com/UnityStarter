@@ -4,15 +4,16 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"os"
 	"path/filepath"
 )
 
 // Coordinate GUI and CLI operations on the same physical editor directory.
 // The lock is held only while launching, but throughout an uninstall.
-func acquireEditorLock(exe string) (func(), error) {
+func editorLockID(exe string) (string, error) {
 	dir, err := filepath.Abs(filepath.Dir(exe))
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	// During a fresh install the Editor directory may not exist yet; resolve
 	// the closest existing ancestor so aliases use the same lock later.
@@ -32,9 +33,37 @@ func acquireEditorLock(exe string) (func(), error) {
 		suffix = append(suffix, filepath.Base(current))
 	}
 	sum := sha256.Sum256([]byte(localProjectKey(dir)))
-	release, err := acquireDownloadLock("editor-" + hex.EncodeToString(sum[:]))
+	return hex.EncodeToString(sum[:]), nil
+}
+
+func acquireEditorLockRaw(exe string) (func(), error) {
+	id, err := editorLockID(exe)
+	if err != nil {
+		return nil, err
+	}
+	release, err := acquireDownloadLock("editor-" + id)
 	if err != nil {
 		return nil, fmt.Errorf("editor is busy in another UnityStarter operation: %w", err)
+	}
+	return release, nil
+}
+
+func acquireEditorLock(exe string) (func(), error) {
+	release, err := acquireEditorLockRaw(exe)
+	if err != nil {
+		return nil, err
+	}
+	path, err := uninstallGuardPath(exe)
+	if err == nil {
+		_, err = os.Lstat(path)
+	}
+	if err == nil {
+		release()
+		return nil, errUninstallProtected
+	}
+	if !os.IsNotExist(err) {
+		release()
+		return nil, fmt.Errorf("cannot check uninstall protection: %w", err)
 	}
 	return release, nil
 }

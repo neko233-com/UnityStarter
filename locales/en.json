@@ -61,6 +61,13 @@
   "installUninstallBusy": "Wait for editor uninstall to finish.",
   "installUninstallWaitWork": "Finish or cancel the current download, install, or module operation first.",
   "installUninstallHide": "Hide",
+  "uninstallGuardBanner": "An editor uninstall is unconfirmed; its operations are protected.",
+  "uninstallGuardReview": "Review",
+  "uninstallGuardTitle": "Review uninstall protection",
+  "uninstallGuardUnreadable": "Unreadable protection record",
+  "uninstallGuardExplanation": "Make sure the official uninstaller has stopped before releasing protection. This only removes the protection record; it does not delete files.",
+  "uninstallGuardRelease": "Release protection",
+  "uninstallGuardConfirm": "Uninstaller stopped; release",
   "installUninstallDone": "Editor executable removed. Some files may remain.",
   "installUninstallFailed": "Uninstall was not confirmed: {error}",
   "@installUninstallFailed": {

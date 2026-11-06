@@ -628,6 +628,76 @@ func (msgs Messages) InstallUninstallHide() string {
 	return Catalog.Format(msgs.locale, "installUninstallHide", nil)
 }
 
+// UninstallGuardBanner says "An editor uninstall is unconfirmed; its operations are protected."
+// in the language the app shows.
+func UninstallGuardBanner() string { return In(i18n.Locale()).UninstallGuardBanner() }
+
+// UninstallGuardBanner says "An editor uninstall is unconfirmed; its operations are protected."
+// in the language of msgs.
+func (msgs Messages) UninstallGuardBanner() string {
+	return Catalog.Format(msgs.locale, "uninstallGuardBanner", nil)
+}
+
+// UninstallGuardReview says "Review"
+// in the language the app shows.
+func UninstallGuardReview() string { return In(i18n.Locale()).UninstallGuardReview() }
+
+// UninstallGuardReview says "Review"
+// in the language of msgs.
+func (msgs Messages) UninstallGuardReview() string {
+	return Catalog.Format(msgs.locale, "uninstallGuardReview", nil)
+}
+
+// UninstallGuardTitle says "Review uninstall protection"
+// in the language the app shows.
+func UninstallGuardTitle() string { return In(i18n.Locale()).UninstallGuardTitle() }
+
+// UninstallGuardTitle says "Review uninstall protection"
+// in the language of msgs.
+func (msgs Messages) UninstallGuardTitle() string {
+	return Catalog.Format(msgs.locale, "uninstallGuardTitle", nil)
+}
+
+// UninstallGuardUnreadable says "Unreadable protection record"
+// in the language the app shows.
+func UninstallGuardUnreadable() string { return In(i18n.Locale()).UninstallGuardUnreadable() }
+
+// UninstallGuardUnreadable says "Unreadable protection record"
+// in the language of msgs.
+func (msgs Messages) UninstallGuardUnreadable() string {
+	return Catalog.Format(msgs.locale, "uninstallGuardUnreadable", nil)
+}
+
+// UninstallGuardExplanation says "Make sure the official uninstaller has stopped before releasing protection. This only removes the protection record; …"
+// in the language the app shows.
+func UninstallGuardExplanation() string { return In(i18n.Locale()).UninstallGuardExplanation() }
+
+// UninstallGuardExplanation says "Make sure the official uninstaller has stopped before releasing protection. This only removes the protection record; …"
+// in the language of msgs.
+func (msgs Messages) UninstallGuardExplanation() string {
+	return Catalog.Format(msgs.locale, "uninstallGuardExplanation", nil)
+}
+
+// UninstallGuardRelease says "Release protection"
+// in the language the app shows.
+func UninstallGuardRelease() string { return In(i18n.Locale()).UninstallGuardRelease() }
+
+// UninstallGuardRelease says "Release protection"
+// in the language of msgs.
+func (msgs Messages) UninstallGuardRelease() string {
+	return Catalog.Format(msgs.locale, "uninstallGuardRelease", nil)
+}
+
+// UninstallGuardConfirm says "Uninstaller stopped; release"
+// in the language the app shows.
+func UninstallGuardConfirm() string { return In(i18n.Locale()).UninstallGuardConfirm() }
+
+// UninstallGuardConfirm says "Uninstaller stopped; release"
+// in the language of msgs.
+func (msgs Messages) UninstallGuardConfirm() string {
+	return Catalog.Format(msgs.locale, "uninstallGuardConfirm", nil)
+}
+
 // InstallUninstallDone says "Editor executable removed. Some files may remain."
 // in the language the app shows.
 func InstallUninstallDone() string { return In(i18n.Locale()).InstallUninstallDone() }

@@ -44,37 +44,41 @@ const (
 // app is the state of the window: what was found on this machine, the page
 // shown, and the dialog being filled.
 type app struct {
-	win                *mygo.Window
-	page               string
-	query              string
-	queryEngine        string
-	activeEngine       string
-	projectSort        string
-	projectSortReverse bool
-	installQuery       string
-	installFilter      string
-	versionOpen        bool
-	versionConfirm     bool
-	versionProject     projectEntry
-	versionEditor      string
-	launchEditor       func(string, []string, string) error
-	manageOpen         bool
-	manageEditor       editorInstall
-	manageModules      bool
-	manageUninstall    bool
-	uninstallBusy      bool
-	uninstallStatus    string
-	moduleBusy         bool
-	moduleLoading      bool
-	moduleInstalling   bool
-	moduleStatus       string
-	moduleCancel       context.CancelFunc
-	androidPlan        *androidInstallPlan
-	alertOpen          bool
-	alertMessage       string
-	availableOpen      bool
-	availableVersion   string
-	availableURL       string
+	win                    *mygo.Window
+	page                   string
+	query                  string
+	queryEngine            string
+	activeEngine           string
+	projectSort            string
+	projectSortReverse     bool
+	installQuery           string
+	installFilter          string
+	versionOpen            bool
+	versionConfirm         bool
+	versionProject         projectEntry
+	versionEditor          string
+	launchEditor           func(string, []string, string) error
+	manageOpen             bool
+	manageEditor           editorInstall
+	manageModules          bool
+	manageUninstall        bool
+	uninstallBusy          bool
+	uninstallStatus        string
+	uninstallGuards        []uninstallGuard
+	uninstallGuardOpen     bool
+	uninstallGuardConfirm  bool
+	uninstallGuardSelected uninstallGuard
+	moduleBusy             bool
+	moduleLoading          bool
+	moduleInstalling       bool
+	moduleStatus           string
+	moduleCancel           context.CancelFunc
+	androidPlan            *androidInstallPlan
+	alertOpen              bool
+	alertMessage           string
+	availableOpen          bool
+	availableVersion       string
+	availableURL           string
 
 	editors        []editorInstall
 	projects       []projectEntry
@@ -285,6 +289,7 @@ func (a *app) view(c *ui.Context) {
 				}).Grow(1)
 			})
 			ui.Column(c).Grow(1).Fill().Children(func() {
+				a.uninstallGuardBanner(c)
 				a.uninstallActivityBanner(c)
 				a.moduleActivityBanner(c)
 				a.updateBanner(c)
@@ -318,6 +323,7 @@ func (a *app) view(c *ui.Context) {
 	a.newProjectDialog(c)
 	a.projectVersionDialog(c)
 	a.editorManageDialog(c)
+	a.uninstallGuardDialog(c)
 	a.availableUpdateDialog(c)
 	a.alertDialog(c)
 }
@@ -655,13 +661,14 @@ func (a *app) startHubWatch() {
 					win.Update(a.refresh)
 				}
 				pending := pendingProjects()
+				guards := uninstallGuards()
 				var ready []pendingProject
 				for _, p := range pending {
 					if pendingProjectReady(p) {
 						ready = append(ready, p)
 					}
 				}
-				win.Update(func() { a.pendingProjectList = pending; a.finishPendingProjects(ready) })
+				win.Update(func() { a.pendingProjectList = pending; a.uninstallGuards = guards; a.finishPendingProjects(ready) })
 			}
 		}
 	}()
