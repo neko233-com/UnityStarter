@@ -5,6 +5,10 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/egoist/mygo/ui"
+
+	"unitystarter/locales"
 )
 
 func writeProject(t *testing.T, dir, version string) {
@@ -66,6 +70,124 @@ func TestKindOfVersion(t *testing.T) {
 		if got := kindOfVersion(version); got != want {
 			t.Errorf("%s: %s, want %s", version, got, want)
 		}
+	}
+}
+
+func TestScanEditorsKeepsDistinctInstallationsOfSameVersion(t *testing.T) {
+	first, second := t.TempDir(), t.TempDir()
+	for _, root := range []string{first, second} {
+		dir := filepath.Join(root, "6000.0.2f1", "Editor")
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, "Unity.exe"), []byte("fixture"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	editors := scanEditorsIn([]string{first, second, first})
+	if len(editors) != 2 {
+		t.Fatalf("expected both installations once: %+v", editors)
+	}
+	if editors[0].Root != filepath.Join(first, "6000.0.2f1") || editors[1].Root != filepath.Join(second, "6000.0.2f1") {
+		t.Fatalf("root precedence changed: %+v", editors)
+	}
+	project := filepath.Join(t.TempDir(), "game")
+	writeProject(t, project, "6000.0.2f1")
+	projects := scanProjectsInMode(prefs{PinnedProjects: []string{project}}, editors, nil, nil, false)
+	if len(projects) != 1 || projects[0].Editor != editors[0].Exe {
+		t.Fatalf("preferred editor did not follow root precedence: %+v", projects)
+	}
+	a := newApp()
+	a.editors = editors
+	a.projects = projects
+	var launched string
+	a.launchEditor = func(exe string, _ []string, _ string) error { launched = exe; return nil }
+	a.chooseProjectVersion(projects[0])
+	if choices := a.projectEditors(projects[0]); len(choices) != 2 || a.versionEditor != editors[0].Exe {
+		t.Fatalf("project version picker missing installations: %+v", choices)
+	}
+	tt := ui.NewTester(a.view, 1180, 760)
+	path, ok := tt.Find(editors[1].Exe)
+	if !ok {
+		t.Fatalf("second editor path missing from picker: %q", tt.Texts())
+	}
+	tt.ClickAt(path.X-100, path.Y+path.H/2)
+	if a.versionEditor != editors[1].Exe {
+		t.Fatalf("second editor was not selected: %q", a.versionEditor)
+	}
+	if err := tt.Click(locales.ProjectVersionOpen()); err != nil {
+		t.Fatal(err)
+	}
+	if launched != editors[1].Exe {
+		t.Fatalf("wrong editor launched: %q", launched)
+	}
+}
+
+func TestScanEditorFromVersionOrEditorFolder(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "6000.0.2f1")
+	editorDir := filepath.Join(root, "Editor")
+	if err := os.MkdirAll(editorDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(editorDir, "Unity.exe"), []byte("fixture"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	for _, selected := range []string{root, editorDir, filepath.Dir(root)} {
+		editors := scanEditorsIn([]string{selected})
+		if len(editors) != 1 || editors[0].Root != root || editors[0].Version != "6000.0.2f1" {
+			t.Fatalf("selecting %q: %+v", selected, editors)
+		}
+	}
+}
+
+func TestEditorProductVersion(t *testing.T) {
+	for product, want := range map[string]string{
+		"7000.0.0a16_0745a91df592":  "7000.0.0a16",
+		"2022.3.62t17_f267bc08c82e": "2022.3.62t17",
+		"6000.0.1f1":                "6000.0.1f1",
+		"7000.0.0.476585":           "",
+		"7000.0.0a16_untrusted":     "",
+	} {
+		if got := parseEditorProductVersion(product); got != want {
+			t.Errorf("%q: got %q, want %q", product, got, want)
+		}
+	}
+}
+
+func TestLiveEditorVersionInCustomFolder(t *testing.T) {
+	source := os.Getenv("UNITYSTARTER_LIVE_EDITOR")
+	if source == "" {
+		t.Skip("set UNITYSTARTER_LIVE_EDITOR to a real Unity executable")
+	}
+	content, err := os.ReadFile(source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := filepath.Join(t.TempDir(), "custom installation")
+	exe := filepath.Join(root, "Editor", "Unity.exe")
+	if err := os.MkdirAll(filepath.Dir(exe), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(exe, content, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	editors := scanEditorsIn([]string{root})
+	if len(editors) != 1 || editors[0].Version != "7000.0.0a16" || editors[0].Exe != exe {
+		t.Fatalf("real editor version was not read from executable: %+v", editors)
+	}
+}
+
+func TestLiveTuanjieEditorVersion(t *testing.T) {
+	exe := os.Getenv("UNITYSTARTER_LIVE_TUANJIE_EDITOR")
+	if exe == "" {
+		t.Skip("set UNITYSTARTER_LIVE_TUANJIE_EDITOR to a real Tuanjie executable")
+	}
+	if got := editorExecutableVersion(exe); got != "2022.3.62t17" {
+		t.Fatalf("real Tuanjie product version: %q", got)
+	}
+	editors := scanEditorsIn([]string{filepath.Dir(exe)})
+	if len(editors) != 1 || editors[0].Kind != kindTuanjie || editors[0].Version != "2022.3.62t17" {
+		t.Fatalf("real Tuanjie editor scan: %+v", editors)
 	}
 }
 

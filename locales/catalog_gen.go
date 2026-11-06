@@ -2144,11 +2144,11 @@ func (msgs Messages) SettingsEditorRoots() string {
 	return Catalog.Format(msgs.locale, "settingsEditorRoots", nil)
 }
 
-// SettingsEditorRootsHint says "Folders that hold editor versions, as D:\\IDE\\UnityEditor."
+// SettingsEditorRootsHint says "Choose a folder containing versions, a version folder, or its Editor folder."
 // in the language the app shows.
 func SettingsEditorRootsHint() string { return In(i18n.Locale()).SettingsEditorRootsHint() }
 
-// SettingsEditorRootsHint says "Folders that hold editor versions, as D:\\IDE\\UnityEditor."
+// SettingsEditorRootsHint says "Choose a folder containing versions, a version folder, or its Editor folder."
 // in the language of msgs.
 func (msgs Messages) SettingsEditorRootsHint() string {
 	return Catalog.Format(msgs.locale, "settingsEditorRootsHint", nil)

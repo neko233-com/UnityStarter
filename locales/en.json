@@ -292,7 +292,7 @@
   "settingsProjectRoots": "Project folders",
   "settingsProjectRootsHint": "Folders scanned for projects, which have a ProjectSettings folder.",
   "settingsEditorRoots": "Editor folders",
-  "settingsEditorRootsHint": "Folders that hold editor versions, as D:\\IDE\\UnityEditor.",
+  "settingsEditorRootsHint": "Choose a folder containing versions, a version folder, or its Editor folder.",
   "settingsPinnedProjects": "Added projects",
   "settingsPinnedProjectsHint": "Projects you added by hand.",
   "settingsRootsEmpty": "None yet.",

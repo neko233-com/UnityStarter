@@ -207,23 +207,30 @@ func displayVersion(version, display string) string {
 }
 
 func scanEditors(extraRoots []string) []editorInstall {
-	roots := dedupe(append(defaultEditorRoots(), extraRoots...))
+	return scanEditorsIn(append(defaultEditorRoots(), extraRoots...))
+}
+
+func scanEditorsIn(roots []string) []editorInstall {
+	roots = dedupe(roots)
 	var out []editorInstall
 	seen := map[string]bool{}
-	// One entry per version, as the hubs list them, preferring the first
-	// folder that has it.
-	seenVersion := map[string]bool{}
 	for _, root := range roots {
-		entries, err := os.ReadDir(root)
-		if err != nil {
-			continue
+		// Users may choose either the version directory or its Editor child,
+		// as well as a parent containing many version directories.
+		candidateRoot := root
+		if strings.EqualFold(filepath.Base(root), "Editor") {
+			candidateRoot = filepath.Dir(root)
 		}
-		for _, entry := range entries {
-			if !entry.IsDir() {
-				continue
+		candidates := []string{candidateRoot}
+		entries, err := os.ReadDir(root)
+		if err == nil {
+			for _, entry := range entries {
+				if entry.IsDir() {
+					candidates = append(candidates, filepath.Join(root, entry.Name()))
+				}
 			}
-			version := entry.Name()
-			dir := filepath.Join(root, version)
+		}
+		for _, dir := range candidates {
 			if _, err := os.Stat(filepath.Join(dir, installMarker)); err == nil {
 				continue
 			}
@@ -237,7 +244,16 @@ func scanEditors(extraRoots []string) []editorInstall {
 				if err != nil || info.IsDir() {
 					continue
 				}
-				key := strings.ToLower(exe)
+				key, err := filepath.Abs(exe)
+				if err != nil {
+					key = filepath.Clean(exe)
+				}
+				if resolved, err := filepath.EvalSymlinks(key); err == nil {
+					key = resolved
+				}
+				if runtime.GOOS == "windows" {
+					key = strings.ToLower(key)
+				}
 				if seen[key] {
 					continue
 				}
@@ -246,15 +262,16 @@ func scanEditors(extraRoots []string) []editorInstall {
 				if strings.HasPrefix(name, "Tuanjie") {
 					kind = kindTuanjie
 				}
-				if seenVersion[kind+" "+version] {
-					continue
+				version := filepath.Base(dir)
+				if actual := editorExecutableVersion(exe); actual != "" {
+					version = actual
 				}
-				seenVersion[kind+" "+version] = true
 				out = append(out, editorInstall{Version: version, Kind: kind, Exe: exe, Root: dir, Simulated: isSimulatedEditor(dir), Modules: readEditorModules(dir)})
 			}
 		}
 	}
-	sort.Slice(out, func(i, j int) bool {
+	// Keep the preferred root first when versions and engines are equal.
+	sort.SliceStable(out, func(i, j int) bool {
 		if c := compareVersions(out[i].Version, out[j].Version); c != 0 {
 			return c > 0
 		}

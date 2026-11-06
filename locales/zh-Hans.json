@@ -213,7 +213,7 @@
   "settingsProjectRoots": "项目文件夹",
   "settingsProjectRootsHint": "用于扫描工程，工程目录内需有 ProjectSettings 文件夹。",
   "settingsEditorRoots": "编辑器安装目录",
-  "settingsEditorRootsHint": "存放各版本编辑器的目录，例如 D:\\IDE\\UnityEditor。",
+  "settingsEditorRootsHint": "可选择版本父目录、单个版本目录或其 Editor 文件夹。",
   "settingsPinnedProjects": "手动添加的项目",
   "settingsPinnedProjectsHint": "你手动添加过的工程。",
   "settingsRootsEmpty": "暂无。",
