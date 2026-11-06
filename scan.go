@@ -306,11 +306,28 @@ func scanProjectsMode(p prefs, editors []editorInstall, hubs []hub, withVCS bool
 func scanProjectsWithRecent(p prefs, editors []editorInstall, hubs []hub, roots []string, recent []recentEditorProject, tempRoot string, withVCS bool) []projectEntry {
 	p.PinnedProjects = append([]string(nil), p.PinnedProjects...)
 	for _, entry := range recent {
-		if p.LocalFavorites[localProjectKey(entry.Path)] || !pathWithinDirectory(entry.Path, tempRoot) {
+		if p.LocalFavorites[localProjectKey(entry.Path)] || (!pathWithinDirectory(entry.Path, tempRoot) && !generatedProjectPath(entry.Path)) {
 			p.PinnedProjects = append(p.PinnedProjects, entry.Path)
 		}
 	}
 	return scanProjectsInMode(p, editors, hubs, roots, withVCS)
+}
+
+// A project created inside another project's generated folders is usually an
+// automation workspace, not a user project. Apply this only to recent history:
+// an explicit project root, pin or Hub entry still expresses user intent.
+func generatedProjectPath(path string) bool {
+	if !filepath.IsAbs(path) {
+		return false
+	}
+	for dir := filepath.Dir(filepath.Clean(path)); ; dir = filepath.Dir(dir) {
+		if (strings.EqualFold(filepath.Base(dir), "Library") || strings.EqualFold(filepath.Base(dir), "Temp")) && isProject(filepath.Dir(dir)) {
+			return true
+		}
+		if parent := filepath.Dir(dir); parent == dir {
+			return false
+		}
+	}
 }
 
 func pathWithinDirectory(path, root string) bool {

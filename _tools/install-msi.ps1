@@ -17,8 +17,12 @@ foreach ($proc in Get-CimInstance Win32_Process -Filter "Name='UnityStarter.exe'
     if ($proc.ExecutablePath -and ($proc.ExecutablePath -ieq $managed -or $proc.ExecutablePath -ieq $legacy)) {
         $app = Get-Process -Id $proc.ProcessId -ErrorAction SilentlyContinue
         if ($app -and -not $app.HasExited) {
-            if (-not $app.CloseMainWindow()) { throw "Could not close UnityStarter process $($proc.ProcessId)." }
-            if (-not $app.WaitForExit(20000)) { throw "UnityStarter did not close: $($proc.ProcessId)." }
+            $closed = $app.CloseMainWindow() -and $app.WaitForExit(5000)
+            if (-not $closed) {
+                if ($env:UNITYSTARTER_FORCE_CLOSE -ne '1') { throw "UnityStarter did not close: $($proc.ProcessId)." }
+                Stop-Process -Id $proc.ProcessId -Force -ErrorAction Stop
+                $app.WaitForExit()
+            }
         }
     }
 }

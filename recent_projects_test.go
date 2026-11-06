@@ -81,6 +81,40 @@ func TestRecentTemporaryProjectsAndExplicitAdditions(t *testing.T) {
 	}
 }
 
+func TestGeneratedProjectsInEditorRecentHistory(t *testing.T) {
+	base := t.TempDir()
+	parent := filepath.Join(base, "Game")
+	generated := filepath.Join(parent, "Library", "UniCli", "workbench", "Project~")
+	temporary := filepath.Join(parent, "Temp", "Project")
+	legitimate := filepath.Join(base, "Library", "Game")
+	for _, project := range []string{parent, generated, temporary, legitimate} {
+		writeProject(t, project, "2022.3.62t17")
+	}
+	recent := []recentEditorProject{{Path: parent}, {Path: generated}, {Path: temporary}, {Path: legitimate}}
+	scan := func(p prefs, hubs []hub, roots []string) []projectEntry {
+		return scanProjectsWithRecent(p, nil, hubs, roots, recent, filepath.Join(base, "unrelated-temp"), false)
+	}
+	if got := scan(prefs{}, nil, nil); len(got) != 2 {
+		t.Fatalf("generated recent projects must be excluded; standalone Library project must remain: %+v", got)
+	}
+	if got := scan(prefs{PinnedProjects: []string{generated}}, nil, nil); len(got) != 3 {
+		t.Fatalf("explicitly added project missing: %+v", got)
+	}
+	if got := scan(prefs{LocalFavorites: map[string]bool{localProjectKey(generated): true}}, nil, nil); len(got) != 3 {
+		t.Fatalf("favorited project missing: %+v", got)
+	}
+	if got := scan(prefs{}, nil, []string{generated}); len(got) != 3 {
+		t.Fatalf("explicit project root missing: %+v", got)
+	}
+	h := hub{Kind: kindUnity, Registry: filepath.Join(base, "projects-v1.json"), Favorites: filepath.Join(base, "favoriteProjects.json")}
+	if err := h.addProject(projectEntry{Path: generated, Name: "intentional", Version: "2022.3.62t17"}); err != nil {
+		t.Fatal(err)
+	}
+	if got := scan(prefs{}, []hub{h}, nil); len(got) != 3 {
+		t.Fatalf("Hub project missing: %+v", got)
+	}
+}
+
 func TestLiveRecentTemporaryFilter(t *testing.T) {
 	want := os.Getenv("UNITYSTARTER_EXPECT_TEMP_PROJECT")
 	if want == "" {

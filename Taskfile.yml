@@ -27,3 +27,8 @@ tasks:
     desc: Install and open a verified MSI (MSI_PATH, MSI_SHA256, EXE_SHA256)
     cmds:
       - pwsh -NoProfile -File _tools/install-msi.ps1
+  install-local:
+    desc: Build, replace the local installation, and open the current app without publishing
+    cmds:
+      - task: build
+      - pwsh -NoProfile -File _tools/install-local.ps1

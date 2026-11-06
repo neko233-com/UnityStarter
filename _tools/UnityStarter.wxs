@@ -1,7 +1,7 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
   <Package Name="UnityStarter" Manufacturer="neko233" Version="$(var.Version)"
            UpgradeCode="b3373319-8b2b-4b88-a782-725de6fb774a" Scope="perUser">
-    <MajorUpgrade Schedule="afterInstallInitialize" DowngradeErrorMessage="A newer UnityStarter is already installed." />
+    <MajorUpgrade Schedule="afterInstallInitialize" AllowSameVersionUpgrades="yes" DowngradeErrorMessage="A newer UnityStarter is already installed." />
     <MediaTemplate EmbedCab="yes" />
     <StandardDirectory Id="LocalAppDataFolder">
       <Directory Id="ProgramsDir" Name="Programs">
