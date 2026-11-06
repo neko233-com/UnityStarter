@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -19,37 +20,92 @@ func downloadSegmentBoundary(total int64, index int) int64 {
 	return (total/parallelWorkers)*int64(index) + (total%parallelWorkers)*int64(index)/parallelWorkers
 }
 
-// parallelDownload uses only the original URL. A strong validator and byte
-// ranges are required, so different versions of an object cannot be mixed.
-// handled=false leaves servers without range support to the streaming path.
-func parallelDownload(ctx context.Context, from, to, integrity string, expectedSize int64, progress func(int64, int64)) (handled bool, err error) {
-	probeCtx, cancelProbe := context.WithTimeout(ctx, 10*time.Second)
-	defer cancelProbe()
+func rangeValidator(header http.Header) string {
+	validator := header.Get("ETag")
+	if strings.HasPrefix(validator, "W/") {
+		validator = ""
+	}
+	if validator == "" {
+		validator = header.Get("Last-Modified")
+	}
+	return validator
+}
+
+// Some CDNs reject HEAD or omit Accept-Ranges even though GET supports it.
+// A one-byte GET proves range support without downloading the full file.
+func probeParallelDownload(ctx context.Context, from string, expectedSize int64) (total int64, validator string, supported bool, err error) {
+	probeCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
 	req, err := http.NewRequestWithContext(probeCtx, http.MethodHead, from, nil)
 	if err != nil {
-		return true, err
+		return 0, "", false, err
 	}
 	req.Header.Set("Accept-Encoding", "identity")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		if ctx.Err() != nil {
-			return true, ctx.Err()
+			return 0, "", false, ctx.Err()
 		}
-		return false, nil
+		return 0, "", false, nil
 	}
 	resp.Body.Close()
-	total := resp.ContentLength
-	if resp.StatusCode == http.StatusOK && expectedSize > 0 && total >= 0 && total != expectedSize {
-		return true, fmt.Errorf("download size mismatch")
+	if resp.StatusCode == http.StatusOK {
+		total = resp.ContentLength
+		if expectedSize > 0 && total >= 0 && total != expectedSize {
+			return 0, "", false, fmt.Errorf("download size mismatch")
+		}
+		validator = rangeValidator(resp.Header)
+		if total >= parallelMinimumSize && strings.EqualFold(resp.Header.Get("Accept-Ranges"), "bytes") && validator != "" {
+			return total, validator, true, nil
+		}
+		if total >= 0 && total < parallelMinimumSize {
+			return 0, "", false, nil
+		}
+	} else if resp.StatusCode != http.StatusMethodNotAllowed && resp.StatusCode != http.StatusNotImplemented && resp.StatusCode != http.StatusForbidden {
+		return 0, "", false, nil
 	}
-	validator := resp.Header.Get("ETag")
-	if strings.HasPrefix(validator, "W/") {
-		validator = ""
+	req, err = http.NewRequestWithContext(probeCtx, http.MethodGet, from, nil)
+	if err != nil {
+		return 0, "", false, err
 	}
-	if validator == "" {
-		validator = resp.Header.Get("Last-Modified")
+	req.Header.Set("Range", "bytes=0-0")
+	req.Header.Set("Accept-Encoding", "identity")
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		if ctx.Err() != nil {
+			return 0, "", false, ctx.Err()
+		}
+		return 0, "", false, nil
 	}
-	if resp.StatusCode != http.StatusOK || total < parallelMinimumSize || !strings.EqualFold(resp.Header.Get("Accept-Ranges"), "bytes") || validator == "" {
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusPartialContent || (resp.ContentLength >= 0 && resp.ContentLength != 1) {
+		return 0, "", false, nil
+	}
+	prefix := "bytes 0-0/"
+	contentRange := resp.Header.Get("Content-Range")
+	if !strings.HasPrefix(contentRange, prefix) {
+		return 0, "", false, nil
+	}
+	total, err = strconv.ParseInt(strings.TrimPrefix(contentRange, prefix), 10, 64)
+	if err != nil || total < parallelMinimumSize {
+		return 0, "", false, nil
+	}
+	if expectedSize > 0 && total != expectedSize {
+		return 0, "", false, fmt.Errorf("download size mismatch")
+	}
+	validator = rangeValidator(resp.Header)
+	return total, validator, validator != "", nil
+}
+
+// parallelDownload uses only the original URL. A strong validator and byte
+// ranges are required, so different versions of an object cannot be mixed.
+// handled=false leaves servers without range support to the streaming path.
+func parallelDownload(ctx context.Context, from, to, integrity string, expectedSize int64, progress func(int64, int64)) (handled bool, err error) {
+	total, validator, supported, err := probeParallelDownload(ctx, from, expectedSize)
+	if err != nil {
+		return true, err
+	}
+	if !supported {
 		return false, nil
 	}
 	if err := os.MkdirAll(filepath.Dir(to), 0o755); err != nil {
