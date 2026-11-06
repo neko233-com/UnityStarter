@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -56,10 +57,12 @@ type projectEntry struct {
 
 // prefs is what the app keeps between launches.
 type prefs struct {
-	Locale         string   `json:"locale"`
-	ProjectRoots   []string `json:"projectRoots"`
-	EditorRoots    []string `json:"editorRoots"`
-	PinnedProjects []string `json:"pinnedProjects"`
+	Locale         string          `json:"locale"`
+	ActiveEngine   string          `json:"activeEngine,omitempty"`
+	ProjectRoots   []string        `json:"projectRoots"`
+	EditorRoots    []string        `json:"editorRoots"`
+	PinnedProjects []string        `json:"pinnedProjects"`
+	LocalFavorites map[string]bool `json:"localFavorites,omitempty"`
 	// InstallRoot is where downloaded editors are installed, a folder per
 	// version.
 	InstallRoot string `json:"installRoot"`
@@ -142,6 +145,12 @@ func savePrefsTo(path string, p prefs) error {
 
 // scan reads the hubs, the editors and the projects of this machine.
 func scan(p prefs) ([]editorInstall, []projectEntry, []hub) {
+	return scanWithVCS(p, true)
+}
+
+// The window can show projects immediately and fill in slower VCS status
+// separately. CLI consumers retain the complete synchronous scan.
+func scanWithVCS(p prefs, withVCS bool) ([]editorInstall, []projectEntry, []hub) {
 	hubs := detectHubs()
 	roots := append([]string{}, p.EditorRoots...)
 	if p.InstallRoot != "" {
@@ -151,7 +160,7 @@ func scan(p prefs) ([]editorInstall, []projectEntry, []hub) {
 	}
 	roots = append(roots, legacyInstallRoots()...)
 	editors := scanEditors(roots)
-	projects := scanProjects(p, editors, hubs)
+	projects := scanProjectsMode(p, editors, hubs, withVCS)
 	versions := readTuanjieVersionMap(hubConfigDirs())
 	for i := range editors {
 		if editors[i].Kind == kindTuanjie {
@@ -255,12 +264,23 @@ func scanEditors(extraRoots []string) []editorInstall {
 }
 
 func scanProjects(p prefs, editors []editorInstall, hubs []hub) []projectEntry {
-	return scanProjectsIn(p, editors, hubs, append(defaultProjectRoots(), p.ProjectRoots...))
+	return scanProjectsMode(p, editors, hubs, true)
+}
+
+func scanProjectsMode(p prefs, editors []editorInstall, hubs []hub, withVCS bool) []projectEntry {
+	for _, recent := range recentEditorProjects() {
+		p.PinnedProjects = append(p.PinnedProjects, recent.Path)
+	}
+	return scanProjectsInMode(p, editors, hubs, append(defaultProjectRoots(), p.ProjectRoots...), withVCS)
 }
 
 // scanProjectsIn reads the projects of the hubs, of the roots and of the
 // projects added by hand.
 func scanProjectsIn(p prefs, editors []editorInstall, hubs []hub, roots []string) []projectEntry {
+	return scanProjectsInMode(p, editors, hubs, roots, true)
+}
+
+func scanProjectsInMode(p prefs, editors []editorInstall, hubs []hub, roots []string, withVCS bool) []projectEntry {
 	byVersion := map[string]string{}
 	kindByVersion := map[string]string{}
 	for _, e := range editors {
@@ -287,13 +307,21 @@ func scanProjectsIn(p prefs, editors []editorInstall, hubs []hub, roots []string
 			name = hint.Title
 		}
 		modified := hint.Modified
-		if modified.IsZero() {
+		if modified.IsZero() && info != nil {
 			modified = info.ModTime()
 		}
 		kind := kindOfVersion(version)
 		// An installed editor of that version knows its engine best.
 		if k, ok := kindByVersion[version]; ok {
 			kind = k
+		}
+		vcs := vcsInfo{}
+		if withVCS {
+			vcs = detectVSCCached(dir)
+		}
+		favorite := hint.Favorite
+		if local, ok := p.LocalFavorites[localProjectKey(dir)]; ok {
+			favorite = local
 		}
 		found[dir] = projectEntry{
 			Path:     dir,
@@ -303,9 +331,9 @@ func scanProjectsIn(p prefs, editors []editorInstall, hubs []hub, roots []string
 			Modified: modified,
 			Editor:   byVersion[version],
 			Hub:      hint.Hub,
-			Favorite: hint.Favorite,
+			Favorite: favorite,
 			Pipeline: detectPipeline(dir),
-			VCS:      detectVSCCached(dir),
+			VCS:      vcs,
 		}
 	}
 
@@ -330,6 +358,14 @@ func scanProjectsIn(p prefs, editors []editorInstall, hubs []hub, roots []string
 		return strings.ToLower(out[i].Name) < strings.ToLower(out[j].Name)
 	})
 	return out
+}
+
+func localProjectKey(path string) string {
+	path = filepath.Clean(path)
+	if runtime.GOOS == "windows" {
+		path = strings.ToLower(path)
+	}
+	return path
 }
 
 // projectHint is what a hub knows about a project before it is read.

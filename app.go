@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"maps"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -33,7 +35,7 @@ const (
 
 	// appVersion is what the CLI prints and what the window shows when MyGo
 	// does not know the packaged version.
-	appVersion = "1.6.1"
+	appVersion = "1.6.2"
 	// appName is the name of the executable and of the app's data folder, as
 	// mygo.json names the app; the window shows a name with a space.
 	appName = "UnityStarter"
@@ -65,12 +67,20 @@ type app struct {
 	moduleInstalling   bool
 	moduleStatus       string
 	moduleCancel       context.CancelFunc
+	alertOpen          bool
+	alertMessage       string
+	availableOpen      bool
+	availableVersion   string
+	availableURL       string
 
-	editors  []editorInstall
-	projects []projectEntry
-	hubs     []hub
-	prefs    prefs
-	scanning bool
+	editors        []editorInstall
+	projects       []projectEntry
+	hubs           []hub
+	prefs          prefs
+	scanning       bool
+	scanAgain      bool
+	scanGeneration uint64
+	scanCancel     context.CancelFunc
 
 	// hubWriteAt is when this app last wrote a hub's files, so that the
 	// change the write itself reports is not read as the hub's.
@@ -117,24 +127,98 @@ func (a *app) load() {
 	if a.prefs.Locale != "" {
 		mygo.App.SetLocale(a.prefs.Locale)
 	}
+	if a.prefs.ActiveEngine == kindTuanjie {
+		a.activeEngine, a.page = kindTuanjie, pageTuanjieProjects
+	}
 }
 
 // refresh scans the machine again, off the main thread.
 func (a *app) refresh() {
-	if a.scanning || a.win == nil {
+	if a.win == nil {
 		return
 	}
+	if a.scanning {
+		a.scanAgain = true
+		return
+	}
+	if a.scanCancel != nil {
+		a.scanCancel()
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	a.scanCancel = cancel
+	a.scanGeneration++
+	generation := a.scanGeneration
 	a.scanning = true
 	settings := a.prefs
+	settings.ProjectRoots = slices.Clone(settings.ProjectRoots)
+	settings.EditorRoots = slices.Clone(settings.EditorRoots)
+	settings.PinnedProjects = slices.Clone(settings.PinnedProjects)
+	settings.LocalFavorites = maps.Clone(settings.LocalFavorites)
+	win := a.win
 	go func() {
 		started := time.Now()
-		editors, projects, hubs := scan(settings)
+		editors, projects, hubs := scanWithVCS(settings, false)
 		logger.Printf("scan: %d editors, %d projects, %d hubs in %s",
 			len(editors), len(projects), len(hubs), time.Since(started).Round(time.Millisecond))
-		a.win.Update(func() {
+		if ctx.Err() != nil {
+			return
+		}
+		win.Update(func() {
+			if generation != a.scanGeneration {
+				return
+			}
 			a.editors, a.projects, a.hubs = editors, projects, hubs
 			a.scanning = false
+			if a.scanAgain {
+				a.scanAgain = false
+				a.refresh()
+				return
+			}
+			a.enrichProjectVCS(ctx, generation, projects)
 		})
+	}()
+}
+
+func (a *app) enrichProjectVCS(ctx context.Context, generation uint64, projects []projectEntry) {
+	win := a.win
+	paths := make([]string, len(projects))
+	for i := range projects {
+		paths[i] = projects[i].Path
+	}
+	jobs := make(chan string)
+	for i := 0; i < 4; i++ {
+		go func() {
+			for path := range jobs {
+				if ctx.Err() != nil {
+					return
+				}
+				info := detectVSCCached(path)
+				if ctx.Err() != nil {
+					return
+				}
+				win.Update(func() {
+					if generation != a.scanGeneration {
+						return
+					}
+					for i := range a.projects {
+						if strings.EqualFold(a.projects[i].Path, path) {
+							a.projects[i].VCS = info
+							break
+						}
+					}
+				})
+			}
+		}()
+	}
+	go func() {
+		defer close(jobs)
+		for _, path := range paths {
+			select {
+			case <-ctx.Done():
+				return
+			case jobs <- path:
+			}
+		}
 	}()
 }
 
@@ -155,63 +239,72 @@ func (a *app) save() {
 func (a *app) view(c *ui.Context) {
 	c.SetTheme(starterTheme)
 	t := c.Theme()
-	ui.Row(c).Fill().AlignItems(ui.Stretch).Children(func() {
-		ui.Column(c).Fill().Width(68).Background(t.Surface).Padding(10, 4).Gap(8).Children(func() {
-			a.engineTab(c, kindUnity)
-			a.engineTab(c, kindTuanjie)
+	bar := c.TitleBar()
+	ui.Column(c).Fill().Children(func() {
+		ui.Row(c).Height(36).Shrink(0).Padding(0, bar.Right+12, 0, bar.Left+14).Gap(8).AlignItems(ui.Center).Background(t.Surface).DragWindow().Children(func() {
+			ui.Icon(c, iconBrand).Size(16, 16).TextColor(t.TextMuted)
+			ui.Text(c, locales.AppTitle()).FontSize(12).TextColor(t.TextMuted).SingleLine()
 		})
-		ui.Column(c).Fill().Width(220).Background(t.Surface).Children(func() {
-			ui.Row(c).Padding(20, 16, 16, 16).Gap(10).AlignItems(ui.Center).Children(func() {
-				ui.Icon(c, iconBrand).Size(24, 24).TextColor(t.Text)
-				ui.Text(c, channelName(a.activeEngine)).FontSize(15).Bold()
+		ui.Row(c).Grow(1).AlignItems(ui.Stretch).Children(func() {
+			ui.Column(c).Fill().Width(68).Background(t.Surface).Padding(10, 4).Gap(8).Children(func() {
+				a.engineTab(c, kindUnity)
+				a.engineTab(c, kindTuanjie)
 			})
-			ui.Sidebar(c, &a.page, func() {
-				projects, installs, downloads, favorites := enginePages(a.activeEngine)
-				a.engineNavigation(c, a.activeEngine, projects, installs, downloads, favorites)
-				ui.SidebarSection(c, locales.SidebarServices(), nil, func() {
-					ui.SidebarItem(c, pageStore, iconStore, locales.PageStore())
-					ui.SidebarItem(c, pagePublish, iconPublish, locales.PagePublish())
-					ui.SidebarItem(c, pageLicense, iconLicense, locales.PageLicense())
+			ui.Column(c).Fill().Width(220).Background(t.Surface).Children(func() {
+				ui.Row(c).Padding(20, 16, 16, 16).Gap(10).AlignItems(ui.Center).Children(func() {
+					ui.Icon(c, iconBrand).Size(24, 24).TextColor(t.Text)
+					ui.Text(c, channelName(a.activeEngine)).FontSize(15).Bold()
 				})
-				ui.SidebarSection(c, locales.SidebarHelp(), nil, func() {
-					ui.SidebarItem(c, pageDocs, iconDocs, locales.PageDocs())
-					ui.SidebarItem(c, pageLearn, iconLearn, locales.PageLearn())
-					ui.SidebarItem(c, pageFeedback, iconFeedback, locales.PageFeedback())
-				})
-				ui.SidebarItem(c, pageSettings, iconSettings, locales.SidebarSettings())
-			}).Grow(1)
-		})
-		ui.Column(c).Grow(1).Fill().Children(func() {
-			a.updateBanner(c)
-			switch a.page {
-			case pageProjects, pageFavorites, pageTuanjieProjects, pageTuanjieFavorites:
-				a.projectsPage(c)
-			case pageInstalls, pageTuanjieInstalls:
-				a.installsPage(c)
-			case pageDownloads, pageTuanjieDownloads:
-				a.downloadsPage(c)
-			case pageStore:
-				a.storePage(c)
-			case pagePublish:
-				a.publishPage(c)
-			case pageLicense:
-				a.licensePage(c)
-			case pageDocs:
-				a.docsPage(c)
-			case pageLearn:
-				a.learnPage(c)
-			case pageFeedback:
-				a.feedbackPage(c)
-			case pageSettings:
-				a.settingsPage(c)
-			default:
-				a.projectsPage(c)
-			}
+				ui.Sidebar(c, &a.page, func() {
+					projects, installs, downloads, favorites := enginePages(a.activeEngine)
+					a.engineNavigation(c, a.activeEngine, projects, installs, downloads, favorites)
+					ui.SidebarSection(c, locales.SidebarServices(), nil, func() {
+						ui.SidebarItem(c, pageStore, iconStore, locales.PageStore())
+						ui.SidebarItem(c, pagePublish, iconPublish, locales.PagePublish())
+						ui.SidebarItem(c, pageLicense, iconLicense, locales.PageLicense())
+					})
+					ui.SidebarSection(c, locales.SidebarHelp(), nil, func() {
+						ui.SidebarItem(c, pageDocs, iconDocs, locales.PageDocs())
+						ui.SidebarItem(c, pageLearn, iconLearn, locales.PageLearn())
+						ui.SidebarItem(c, pageFeedback, iconFeedback, locales.PageFeedback())
+					})
+					ui.SidebarItem(c, pageSettings, iconSettings, locales.SidebarSettings())
+				}).Grow(1)
+			})
+			ui.Column(c).Grow(1).Fill().Children(func() {
+				a.updateBanner(c)
+				switch a.page {
+				case pageProjects, pageFavorites, pageTuanjieProjects, pageTuanjieFavorites:
+					a.projectsPage(c)
+				case pageInstalls, pageTuanjieInstalls:
+					a.installsPage(c)
+				case pageDownloads, pageTuanjieDownloads:
+					a.downloadsPage(c)
+				case pageStore:
+					a.storePage(c)
+				case pagePublish:
+					a.publishPage(c)
+				case pageLicense:
+					a.licensePage(c)
+				case pageDocs:
+					a.docsPage(c)
+				case pageLearn:
+					a.learnPage(c)
+				case pageFeedback:
+					a.feedbackPage(c)
+				case pageSettings:
+					a.settingsPage(c)
+				default:
+					a.projectsPage(c)
+				}
+			})
 		})
 	})
 	a.newProjectDialog(c)
 	a.projectVersionDialog(c)
 	a.editorManageDialog(c)
+	a.availableUpdateDialog(c)
+	a.alertDialog(c)
 }
 
 func enginePages(engine string) (string, string, string, string) {
@@ -237,6 +330,9 @@ func (a *app) engineTab(c *ui.Context, engine string) {
 }
 
 func (a *app) switchEngine(engine string) {
+	if engine != kindUnity && engine != kindTuanjie {
+		return
+	}
 	if engine == a.activeEngine {
 		return
 	}
@@ -255,6 +351,10 @@ func (a *app) switchEngine(engine string) {
 		a.page = projects
 	}
 	a.activeEngine = engine
+	a.prefs.ActiveEngine = engine
+	if a.win != nil {
+		a.save()
+	}
 }
 
 func engineForPage(page string) string {
@@ -323,18 +423,30 @@ func (a *app) formatTime(t time.Time) string {
 	return i18n.FormatDate(formats, t, i18n.DateOptions{Skeleton: "yMMMd"})
 }
 
-// alert reports a problem, which needs no answer.
+// alert reports a problem in the app's own UI and is safe from workers.
 func (a *app) alert(message string) {
 	logger.Printf("alert: %s", message)
 	win := a.win
-	go func() {
-		_, _ = mygo.Dialog.Message(mygo.MessageOptions{
-			Parent:  win,
-			Type:    mygo.MessageWarning,
-			Message: message,
-			Buttons: []string{locales.DialogOK()},
+	if win == nil {
+		a.alertMessage, a.alertOpen = message, true
+		return
+	}
+	win.Update(func() { a.alertMessage, a.alertOpen = message, true })
+}
+
+func (a *app) alertDialog(c *ui.Context) {
+	if !a.alertOpen {
+		return
+	}
+	ui.Modal(c, &a.alertOpen, func() {
+		ui.Column(c).Width(460).Gap(16).Children(func() {
+			ui.Text(c, locales.AlertTitle()).FontSize(18).Bold()
+			ui.Text(c, a.alertMessage).FontSize(13).MaxWidth(460)
+			ui.Row(c).Justify(ui.End).Children(func() {
+				ui.PrimaryButton(c, locales.DialogOK()).OnClick(func() { a.alertOpen = false })
+			})
 		})
-	}()
+	})
 }
 
 // pickFolder asks for a folder, and runs fn with it on the main thread.
@@ -401,35 +513,51 @@ func (a *app) hubFor(p projectEntry) (hub, bool) {
 	return hub{}, false
 }
 
-// toggleFavorite stars a project in its hub, or unstars it.
+// Favorites work locally even when the matching Hub is unavailable or sync is disabled.
 func (a *app) toggleFavorite(p projectEntry) {
 	h, ok := a.hubFor(p)
-	if !ok {
-		if a.prefs.NoHubSync {
-			a.alert(locales.HubSyncDisabled())
-		} else {
-			a.alert(locales.HubSyncOff())
-		}
-		return
-	}
 	on := !p.Favorite
-	if h.Kind != p.Hub && h.writable() {
-		if err := h.addProject(p); err != nil {
+	key := localProjectKey(p.Path)
+	if ok {
+		if h.Kind != p.Hub && h.writable() {
+			if err := h.addProject(p); err != nil {
+				a.alert(locales.HubWriteFailed(err.Error()))
+				return
+			}
+		}
+		if err := h.setFavorite(p.Path, on); err != nil {
 			a.alert(locales.HubWriteFailed(err.Error()))
 			return
 		}
+		a.hubWriteAt = time.Now()
+		if _, exists := a.prefs.LocalFavorites[key]; exists {
+			delete(a.prefs.LocalFavorites, key)
+			a.save()
+		}
+	} else {
+		if a.prefs.LocalFavorites == nil {
+			a.prefs.LocalFavorites = map[string]bool{}
+		}
+		previous, existed := a.prefs.LocalFavorites[key]
+		a.prefs.LocalFavorites[key] = on
+		if err := savePrefs(a.prefs); err != nil {
+			if existed {
+				a.prefs.LocalFavorites[key] = previous
+			} else {
+				delete(a.prefs.LocalFavorites, key)
+			}
+			a.alert(err.Error())
+			return
+		}
 	}
-	if err := h.setFavorite(p.Path, on); err != nil {
-		a.alert(locales.HubWriteFailed(err.Error()))
-		return
-	}
-	a.hubWriteAt = time.Now()
 	for i := range a.projects {
 		if a.projects[i].Path != p.Path {
 			continue
 		}
 		a.projects[i].Favorite = on
-		a.projects[i].Hub = h.Kind
+		if ok {
+			a.projects[i].Hub = h.Kind
+		}
 	}
 }
 
@@ -478,12 +606,27 @@ func (a *app) editorIsSimulated(exe string) bool {
 // made in a hub shows here without a manual refresh.
 func (a *app) startHubWatch() {
 	hubs := detectHubs()
-	if len(hubs) == 0 {
-		return
-	}
 	ctx, cancel := context.WithCancel(context.Background())
 	a.hubCancel = cancel
+	win := a.win
+	go func() {
+		previous := recentEditorProjects()
+		ticker := time.NewTicker(3 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				current := recentEditorProjects()
+				if !slices.Equal(current, previous) {
+					previous = current
+					win.Update(a.refresh)
+				}
+			}
+		}
+	}()
 	watchHubs(ctx, hubs, func() {
-		a.win.Update(a.hubChanged)
+		win.Update(a.hubChanged)
 	})
 }

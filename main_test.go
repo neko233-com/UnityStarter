@@ -86,6 +86,10 @@ func fixture() *app {
 func TestView(t *testing.T) {
 	a := fixture()
 	tt := ui.NewTester(a.view, 1180, 760)
+	tt.SetTitleBar(ui.TitleBar{Height: 36, Right: 138})
+	if title, ok := tt.Find(locales.AppTitle()); !ok || title.Y < 0 || title.Y >= 36 {
+		t.Fatalf("title missing from native title bar: %+v, %v", title, ok)
+	}
 	if !tt.HasText("demo") {
 		t.Fatalf("texts %q lack the project", tt.Texts())
 	}
@@ -118,6 +122,32 @@ func TestView(t *testing.T) {
 	}
 	if !tt.HasText(locales.Diagnostics()) {
 		t.Errorf("texts %q after choosing feedback", tt.Texts())
+	}
+}
+
+func TestNativeAlertAndUpdateDialogs(t *testing.T) {
+	a := fixture()
+	a.alert("a specific problem")
+	tt := ui.NewTester(a.view, 1180, 760)
+	if !tt.HasText("a specific problem") {
+		t.Fatalf("alert missing: %q", tt.Texts())
+	}
+	if err := tt.Click(locales.DialogOK()); err != nil {
+		t.Fatal(err)
+	}
+	if a.alertOpen {
+		t.Fatal("alert did not close")
+	}
+	a.availableVersion, a.availableOpen = "9.0.0", true
+	tt.Frame()
+	if !tt.HasText(locales.UpdateAvailable("9.0.0")) {
+		t.Fatalf("update prompt missing: %q", tt.Texts())
+	}
+	if err := tt.Click(locales.ActionCancel()); err != nil {
+		t.Fatal(err)
+	}
+	if a.availableOpen {
+		t.Fatal("update dialog did not close")
 	}
 }
 

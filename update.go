@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo"
+	"github.com/egoist/mygo/ui"
 
 	"unitystarter/locales"
 )
@@ -70,10 +71,18 @@ func (a *app) checkUpdates() {
 		a.queueUpdateCheck(true)
 		return
 	}
+	win := a.win
+	base := a.updateCtx
+	if base == nil {
+		base = context.Background()
+	}
 	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		ctx, cancel := context.WithTimeout(base, 20*time.Second)
 		defer cancel()
 		release, err := checkLatestRelease(ctx)
+		if base.Err() != nil {
+			return
+		}
 		if err != nil {
 			logger.Printf("update: %v", err)
 			a.alert(locales.UpdateFailed(err.Error()))
@@ -85,14 +94,24 @@ func (a *app) checkUpdates() {
 			return
 		}
 		version := strings.TrimPrefix(release.Tag, "v")
-		result, _ := mygo.Dialog.Message(mygo.MessageOptions{
-			Parent:        a.win,
-			Message:       locales.UpdateAvailable(version),
-			Buttons:       []string{locales.ActionCancel(), locales.ActionOpen()},
-			DefaultButton: 1,
-		})
-		if result.Button == 1 {
-			_ = mygo.Shell.OpenExternal(release.URL)
+		if win != nil {
+			win.Update(func() { a.availableVersion, a.availableURL, a.availableOpen = version, release.URL, true })
 		}
 	}()
+}
+
+func (a *app) availableUpdateDialog(c *ui.Context) {
+	if !a.availableOpen {
+		return
+	}
+	ui.Modal(c, &a.availableOpen, func() {
+		ui.Column(c).Width(460).Gap(16).Children(func() {
+			ui.Text(c, locales.AlertTitle()).FontSize(18).Bold()
+			ui.Text(c, locales.UpdateAvailable(a.availableVersion)).FontSize(13)
+			ui.Row(c).Gap(8).Justify(ui.End).Children(func() {
+				ui.Button(c, locales.ActionCancel()).OnClick(func() { a.availableOpen = false })
+				ui.PrimaryButton(c, locales.ActionOpen()).OnClick(func() { _ = mygo.Shell.OpenExternal(a.availableURL); a.availableOpen = false })
+			})
+		})
+	})
 }

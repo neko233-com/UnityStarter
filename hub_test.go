@@ -98,6 +98,34 @@ func TestTuanjieFavoriteUsesTuanjieHub(t *testing.T) {
 	}
 }
 
+func TestFavoritesWorkWithoutHubAndWithSyncDisabled(t *testing.T) {
+	t.Setenv("APPDATA", t.TempDir())
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	path := t.TempDir()
+	writeProject(t, path, "2022.3.62t17")
+	p := projectEntry{Path: path, Kind: kindTuanjie}
+	a := newApp()
+	a.projects = []projectEntry{p}
+	a.toggleFavorite(p)
+	if !a.projects[0].Favorite {
+		t.Fatal("local favorite not enabled")
+	}
+	stored := loadPrefs()
+	stored.PinnedProjects = []string{path}
+	projects := scanProjectsIn(stored, nil, nil, nil)
+	if len(projects) != 1 || !projects[0].Favorite {
+		t.Fatalf("local favorite lost after rescan: %+v", projects)
+	}
+	a.prefs.NoHubSync = true
+	a.toggleFavorite(a.projects[0])
+	stored = loadPrefs()
+	stored.PinnedProjects = []string{path}
+	projects = scanProjectsIn(stored, nil, nil, nil)
+	if len(projects) != 1 || projects[0].Favorite {
+		t.Fatalf("local favorite did not clear: %+v", projects)
+	}
+}
+
 // A hub that keeps no project list is read through its favorites, and
 // refuses to be written.
 func TestHubWithoutRegistry(t *testing.T) {

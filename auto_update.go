@@ -179,7 +179,9 @@ func recordUpdateFailure(version string, err error) {
 }
 
 func (a *app) startAutomaticUpdates() {
-	a.updateCtx, a.updateCancel = context.WithCancel(context.Background())
+	if a.updateCtx == nil {
+		a.updateCtx, a.updateCancel = context.WithCancel(context.Background())
+	}
 	if failure := readUpdateFailure(); failure.Message != "" {
 		a.updateStatus = locales.UpdateFailed(failure.Message)
 	}

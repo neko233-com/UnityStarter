@@ -48,13 +48,17 @@ func needsElevation(err error) bool { return errors.Is(err, syscall.Errno(740)) 
 // Windows asks for elevation only when the installer requires it. Keep its
 // process handle so an elevation denial or installer failure is not success.
 func runEditorInstaller(exe, engine, dest string) error {
+	return runEditorInstallerWith(exe, engine, dest, runElevatedInstaller)
+}
+
+func runEditorInstallerWith(exe, engine, dest string, elevate func(string, string) error) error {
 	cmd := exec.Command(exe, installerArgs(engine, dest)...)
 	configureInstallerCmd(cmd, engine, dest)
 	err := cmd.Run()
 	if !needsElevation(err) {
 		return err
 	}
-	return runElevatedInstaller(exe, dest)
+	return elevate(exe, dest)
 }
 
 type shellExecuteInfo struct {

@@ -34,6 +34,16 @@ type Messages struct{ locale string }
 // source language.
 func In(locale string) Messages { return Messages{locale} }
 
+// AlertTitle says "Notice"
+// in the language the app shows.
+func AlertTitle() string { return In(i18n.Locale()).AlertTitle() }
+
+// AlertTitle says "Notice"
+// in the language of msgs.
+func (msgs Messages) AlertTitle() string {
+	return Catalog.Format(msgs.locale, "alertTitle", nil)
+}
+
 // ProjectColumnName says "Name"
 // in the language the app shows.
 func ProjectColumnName() string { return In(i18n.Locale()).ProjectColumnName() }

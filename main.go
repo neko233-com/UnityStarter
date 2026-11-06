@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 
@@ -42,17 +43,22 @@ func main() {
 		_ = startLogging(false)
 		logger.Printf("start %s, data %s", appVersion, userDataDir())
 		a.load()
+		a.updateCtx, a.updateCancel = context.WithCancel(context.Background())
 		a.win = mygo.NewWindow(mygo.WindowOptions{
-			Title:     locales.AppTitle(),
-			Width:     1180,
-			Height:    760,
-			MinWidth:  900,
-			MinHeight: 560,
+			Title:           locales.AppTitle(),
+			Width:           1180,
+			Height:          760,
+			MinWidth:        900,
+			MinHeight:       560,
+			TitleBarStyle:   mygo.TitleBarHidden,
+			TitleBarHeight:  36,
+			BackgroundColor: "#19191a",
 			// Opens where the user left it last time.
 			StateKey: "main",
 			// The window shows the interface MyGo draws, not a web page.
 			Content: ui.View(a.view),
 		})
+		a.win.SetWindowButtonsTheme(mygo.ThemeDark)
 		// What the window was made with does not follow the language on its
 		// own.
 		mygo.App.OnLocaleChanged(func(string) {
@@ -66,6 +72,9 @@ func main() {
 			}
 			if a.hubCancel != nil {
 				a.hubCancel()
+			}
+			if a.scanCancel != nil {
+				a.scanCancel()
 			}
 			if a.updateCancel != nil {
 				a.updateCancel()

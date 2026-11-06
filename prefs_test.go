@@ -35,6 +35,23 @@ func TestPrefsRoundTrip(t *testing.T) {
 	}
 }
 
+func TestLastEngineIsRestored(t *testing.T) {
+	t.Setenv("APPDATA", t.TempDir())
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	if err := savePrefs(prefs{ActiveEngine: kindTuanjie}); err != nil {
+		t.Fatal(err)
+	}
+	a := newApp()
+	a.load()
+	if a.activeEngine != kindTuanjie || a.page != pageTuanjieProjects {
+		t.Fatalf("restored engine=%s page=%s", a.activeEngine, a.page)
+	}
+	a.switchEngine(kindUnity)
+	if a.prefs.ActiveEngine != kindUnity || a.page != pageProjects {
+		t.Fatalf("switched engine=%s page=%s", a.prefs.ActiveEngine, a.page)
+	}
+}
+
 // The hubs add the projects added by hand, and leave the others alone.
 func TestHubSyncCommand(t *testing.T) {
 	dir := t.TempDir()

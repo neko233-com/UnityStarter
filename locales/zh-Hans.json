@@ -1,5 +1,6 @@
 {
   "@@locale": "zh-Hans",
+  "alertTitle": "提示",
   "projectColumnName": "名称",
   "projectColumnModified": "修改于",
   "projectColumnEditor": "编辑器版本",

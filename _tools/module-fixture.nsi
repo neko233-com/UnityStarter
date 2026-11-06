@@ -1,5 +1,9 @@
 Unicode true
-RequestExecutionLevel user
+!ifdef ADMIN
+  RequestExecutionLevel admin
+!else
+  RequestExecutionLevel user
+!endif
 Name "UnityStarter module fixture"
 !ifndef OUTPUT
   !error "Pass /DOUTPUT=<absolute output path>"

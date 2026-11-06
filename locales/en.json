@@ -1,4 +1,5 @@
 {
+  "alertTitle": "Notice",
   "projectColumnName": "Name",
   "projectColumnModified": "Modified",
   "projectColumnEditor": "Editor version",
