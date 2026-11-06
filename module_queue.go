@@ -95,6 +95,11 @@ func (a *app) setModuleSelection(e editorInstall, id string, on bool) {
 	}
 	if on {
 		a.moduleSelection[id] = true
+		if err := a.persistModuleSelection(e); err != nil {
+			a.moduleStatus = locales.ModuleSelectionSaveFailed()
+		} else if a.moduleStatus == locales.ModuleSelectionSaveFailed() {
+			a.moduleStatus = ""
+		}
 		return
 	}
 	delete(a.moduleSelection, id)
@@ -108,9 +113,14 @@ func (a *app) setModuleSelection(e editorInstall, id string, on bool) {
 			}
 		}
 	}
+	if err := a.persistModuleSelection(e); err != nil {
+		a.moduleStatus = locales.ModuleSelectionSaveFailed()
+	} else if a.moduleStatus == locales.ModuleSelectionSaveFailed() {
+		a.moduleStatus = ""
+	}
 }
 
-func (a *app) reconcileModuleSelection(e editorInstall) bool {
+func (a *app) reconcileModuleSelection(e editorInstall) (bool, error) {
 	remaining := map[string]bool{}
 	for _, m := range e.Modules {
 		if a.moduleSelection[m.ID] && !m.Selected {
@@ -128,7 +138,10 @@ func (a *app) reconcileModuleSelection(e editorInstall) bool {
 			}
 		}
 	}
-	return changed
+	if changed {
+		return true, a.persistModuleSelection(e)
+	}
+	return false, nil
 }
 
 func (a *app) startModuleQueue(e editorInstall) {
@@ -140,6 +153,11 @@ func (a *app) startModuleQueue(e editorInstall) {
 		a.moduleStatus = locales.ModuleBatchUnavailable()
 		return
 	}
+	if err := a.persistModuleSelection(e); err != nil {
+		a.moduleStatus = locales.ModuleSelectionSaveFailed()
+		return
+	}
+	a.moduleSelectionRestored = false
 	a.moduleQueue, a.moduleQueueTotal = queue, len(queue)
 	a.moduleQueueWarnings = nil
 	a.advanceModuleQueue()
@@ -181,6 +199,12 @@ func (a *app) advanceModuleQueue() {
 func (a *app) finishModuleQueueItem(id string, success bool) {
 	if success {
 		delete(a.moduleSelection, id)
+		if err := a.persistModuleSelection(a.manageEditor); err != nil {
+			a.moduleStatus = locales.ModuleSelectionSaveFailed()
+			a.moduleQueue, a.moduleQueueTotal = nil, 0
+			a.moduleQueueWarnings = nil
+			return
+		}
 	}
 	if len(a.moduleQueue) == 0 || a.moduleQueue[0] != id {
 		return

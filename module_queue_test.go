@@ -75,11 +75,13 @@ func TestModuleSelectionReconcilesCatalogChanges(t *testing.T) {
 	a := newApp()
 	a.moduleSelection = map[string]bool{"android": true, "android-sdk-ndk-tools": true, "webgl": true, "removed": true}
 	e.Modules[2].Selected = true
-	if !a.reconcileModuleSelection(e) || len(a.moduleSelection) != 2 || !a.moduleSelection["android-sdk-ndk-tools"] || !a.moduleSelection["webgl"] {
+	changed, err := a.reconcileModuleSelection(e)
+	if err != nil || !changed || len(a.moduleSelection) != 2 || !a.moduleSelection["android-sdk-ndk-tools"] || !a.moduleSelection["webgl"] {
 		t.Fatalf("changed catalog not reconciled: %v", a.moduleSelection)
 	}
 	e.Modules = e.Modules[:2] // Android parent and web are no longer available.
-	if !a.reconcileModuleSelection(e) || len(a.moduleSelection) != 0 {
+	changed, err = a.reconcileModuleSelection(e)
+	if err != nil || !changed || len(a.moduleSelection) != 0 {
 		t.Fatalf("missing dependencies retained: %v", a.moduleSelection)
 	}
 }

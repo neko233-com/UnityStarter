@@ -1418,6 +1418,36 @@ func (msgs Messages) ModuleBatchSelectionChanged() string {
 	return Catalog.Format(msgs.locale, "moduleBatchSelectionChanged", nil)
 }
 
+// ModuleSelectionRestored says "Previous selections restored. Review them before starting installation."
+// in the language the app shows.
+func ModuleSelectionRestored() string { return In(i18n.Locale()).ModuleSelectionRestored() }
+
+// ModuleSelectionRestored says "Previous selections restored. Review them before starting installation."
+// in the language of msgs.
+func (msgs Messages) ModuleSelectionRestored() string {
+	return Catalog.Format(msgs.locale, "moduleSelectionRestored", nil)
+}
+
+// ModuleSelectionReadFailed says "Could not read saved module selections. Check the app data directory."
+// in the language the app shows.
+func ModuleSelectionReadFailed() string { return In(i18n.Locale()).ModuleSelectionReadFailed() }
+
+// ModuleSelectionReadFailed says "Could not read saved module selections. Check the app data directory."
+// in the language of msgs.
+func (msgs Messages) ModuleSelectionReadFailed() string {
+	return Catalog.Format(msgs.locale, "moduleSelectionReadFailed", nil)
+}
+
+// ModuleSelectionSaveFailed says "Could not save module selections. Check the app data directory and retry."
+// in the language the app shows.
+func ModuleSelectionSaveFailed() string { return In(i18n.Locale()).ModuleSelectionSaveFailed() }
+
+// ModuleSelectionSaveFailed says "Could not save module selections. Check the app data directory and retry."
+// in the language of msgs.
+func (msgs Messages) ModuleSelectionSaveFailed() string {
+	return Catalog.Format(msgs.locale, "moduleSelectionSaveFailed", nil)
+}
+
 // DownloadStalled says "No data received for 45 seconds. Retry to continue."
 // in the language the app shows.
 func DownloadStalled() string { return In(i18n.Locale()).DownloadStalled() }

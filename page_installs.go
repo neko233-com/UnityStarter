@@ -109,6 +109,15 @@ func (a *app) openEditorManagement(e editorInstall) {
 	a.moduleStatus, a.androidPlan = "", nil
 	a.moduleSelection, a.moduleQueue, a.moduleQueueTotal = nil, nil, 0
 	a.moduleQueueWarnings = nil
+	a.moduleSelectionRestored = false
+	selection, err := a.restoreModuleSelection(e)
+	if err != nil {
+		a.moduleStatus = locales.ModuleSelectionReadFailed()
+		a.alert(locales.ModuleSelectionReadFailed())
+	} else if len(selection) > 0 {
+		a.moduleSelection = selection
+		a.moduleSelectionRestored = true
+	}
 	a.uninstallStatus = ""
 }
 

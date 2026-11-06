@@ -302,7 +302,7 @@ func (a *app) loadEditorModules(e editorInstall) {
 			}
 			a.manageEditor.Modules = modules
 			a.manageEditor.ModulesCached = cached
-			selectionChanged := a.reconcileModuleSelection(a.manageEditor)
+			selectionChanged, selectionErr := a.reconcileModuleSelection(a.manageEditor)
 			if cached {
 				a.moduleStatus = locales.InstallModuleCached()
 			}
@@ -311,6 +311,9 @@ func (a *app) loadEditorModules(e editorInstall) {
 					a.moduleStatus += " · "
 				}
 				a.moduleStatus += locales.ModuleBatchSelectionChanged()
+			}
+			if selectionErr != nil {
+				a.moduleStatus = locales.ModuleSelectionSaveFailed()
 			}
 			if e.Kind == kindUnity {
 				a.refresh()

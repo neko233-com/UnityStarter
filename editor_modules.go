@@ -489,6 +489,9 @@ func (a *app) editorManageDialog(c *ui.Context) {
 				if a.moduleStatus != "" {
 					ui.Text(c, a.moduleStatus).FontSize(12).TextColor(t.TextMuted)
 				}
+				if a.moduleSelectionRestored && len(a.moduleSelection) > 0 {
+					ui.Text(c, locales.ModuleSelectionRestored()).FontSize(12).TextColor(t.TextMuted)
+				}
 				if len(a.moduleQueue) > 0 {
 					ui.Text(c, locales.ModuleBatchProgress(a.moduleQueueTotal-len(a.moduleQueue)+1, a.moduleQueueTotal)).FontSize(12).TextColor(t.TextMuted)
 				}
