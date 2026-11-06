@@ -765,6 +765,31 @@ func TestProjectOpenRejectsChangedRealEditor(t *testing.T) {
 	}
 }
 
+func TestProjectDirectOpenRejectsReplacedOrRemovedEditor(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "Game")
+	writeProject(t, path, "2022.3.51f1")
+	project := projectEntry{Path: path, Version: "2022.3.51f1", Kind: kindUnity, Editor: "editor"}
+	for _, tc := range []struct {
+		name    string
+		editors []editorInstall
+	}{
+		{"replaced version", []editorInstall{{Exe: "editor", Version: "6000.0.1f1", Kind: kindUnity}}},
+		{"replaced engine", []editorInstall{{Exe: "editor", Version: "2022.3.51f1", Kind: kindTuanjie}}},
+		{"removed", nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			a := newApp()
+			a.editors = tc.editors
+			launched := false
+			a.launchEditor = func(string, []string, string) error { launched = true; return nil }
+			a.openProject(project)
+			if launched || !a.alertOpen || a.alertMessage != locales.ProjectEditorChanged() {
+				t.Fatalf("stale editor was not rejected: launched=%v alert=%q", launched, a.alertMessage)
+			}
+		})
+	}
+}
+
 func TestProjectOpenRejectsChangedOrMissingProject(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "Game")
 	writeProject(t, path, "6000.0.2f1")

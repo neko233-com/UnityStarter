@@ -93,6 +93,23 @@ func TestCLIOpenMissing(t *testing.T) {
 	}
 }
 
+func TestCLIOpenRejectsReplacedOrMissingEditor(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "Game")
+	writeProject(t, path, "2022.3.51f1")
+	project := projectEntry{Name: "game", Path: path, Version: "2022.3.51f1", Kind: kindUnity, Editor: "editor"}
+	for _, editors := range [][]editorInstall{
+		nil,
+		{{Exe: "editor", Version: "6000.0.1f1", Kind: kindUnity}},
+		{{Exe: "editor", Version: "2022.3.51f1", Kind: kindTuanjie}},
+	} {
+		res := scanResult{editors: editors, projects: []projectEntry{project}}
+		var out bytes.Buffer
+		if code := runCLI([]string{"open", path}, &out, func(prefs) scanResult { return res }); code != 1 || !strings.Contains(out.String(), locales.ProjectEditorChanged()) {
+			t.Fatalf("stale editor accepted: exit=%d output=%q", code, out.String())
+		}
+	}
+}
+
 func TestCLINeverLaunchesSimulatedEditors(t *testing.T) {
 	simulated := editorInstall{Version: "6000.0.2f1", Kind: kindUnity, Exe: "simulated", Simulated: true}
 	real := editorInstall{Version: simulated.Version, Kind: kindUnity, Exe: "real"}

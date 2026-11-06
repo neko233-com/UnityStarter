@@ -363,7 +363,7 @@ func (a *app) openSelectedProjectVersion() {
 	p := a.versionProject
 	p.Editor = e.Exe
 	a.versionOpen = false
-	a.openProject(p)
+	a.openProjectWithEditor(p, e)
 }
 
 // pipelineName is the badge of a render pipeline.

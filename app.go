@@ -92,14 +92,15 @@ type app struct {
 	availableVersion        string
 	availableURL            string
 
-	editors        []editorInstall
-	projects       []projectEntry
-	hubs           []hub
-	prefs          prefs
-	scanning       bool
-	scanAgain      bool
-	scanGeneration uint64
-	scanCancel     context.CancelFunc
+	editors               []editorInstall
+	projects              []projectEntry
+	hubs                  []hub
+	prefs                 prefs
+	scanning              bool
+	scanAgain             bool
+	scanGeneration        uint64
+	scanCancel            context.CancelFunc
+	projectVersionWatches map[string]*projectVersionWatch
 
 	// hubWriteAt is when this app last wrote a hub's files, so that the
 	// change the write itself reports is not read as the hub's.
@@ -497,6 +498,13 @@ func (a *app) pickFolder(title string, fn func(string)) {
 }
 
 func (a *app) openProject(p projectEntry) {
+	a.openProjectWithEditor(p, editorInstall{Exe: p.Editor, Version: p.Version, Kind: p.Kind})
+}
+
+// expected is the editor identity presented to the user when the action was
+// chosen. Rechecking the current scan prevents a replaced editor at the same
+// path from silently turning an ordinary open into a version migration.
+func (a *app) openProjectWithEditor(p projectEntry, expected editorInstall) {
 	if a.uninstallBusy && strings.EqualFold(p.Editor, a.manageEditor.Exe) {
 		a.alert(locales.InstallUninstallBusy())
 		return
@@ -504,12 +512,6 @@ func (a *app) openProject(p projectEntry) {
 	if p.Editor == "" {
 		a.alert(locales.EditorMissing(p.Version))
 		return
-	}
-	for _, e := range a.editors {
-		if strings.EqualFold(e.Exe, p.Editor) && e.Simulated {
-			a.alert(locales.SimulatedOpen())
-			return
-		}
 	}
 	version, _, ok := readProject(p.Path)
 	if !ok {
@@ -522,17 +524,27 @@ func (a *app) openProject(p projectEntry) {
 		a.refresh()
 		return
 	}
-	expected := ""
-	if e, ok := a.editorInstall(p.Editor); ok {
-		expected = e.Version
+	current, ok := a.editorInstall(p.Editor)
+	if !ok || !strings.EqualFold(expected.Exe, p.Editor) || !strings.EqualFold(current.Version, expected.Version) || current.Kind != expected.Kind || current.Kind != p.Kind {
+		a.alert(locales.ProjectEditorChanged())
+		a.refresh()
+		return
 	}
-	if err := launchVersionCheckedEditor(p.Editor, expected, []string{"-projectPath", p.Path}, filepath.Dir(p.Editor), a.launchEditor); err != nil {
+	if current.Simulated {
+		a.alert(locales.SimulatedOpen())
+		return
+	}
+	if err := launchVersionCheckedEditor(p.Editor, expected.Version, []string{"-projectPath", p.Path}, filepath.Dir(p.Editor), a.launchEditor); err != nil {
 		if errors.Is(err, errEditorVersionChanged) {
 			a.alert(locales.ProjectEditorChanged())
 			a.refresh()
 			return
 		}
 		a.alert(locales.OpenFailed(err.Error()))
+		return
+	}
+	if !strings.EqualFold(expected.Version, p.Version) {
+		a.watchProjectVersion(p.Path, p.Version)
 	}
 }
 
