@@ -307,6 +307,46 @@ func TestInstalledRealEditorVersionAndCoreFiles(t *testing.T) {
 	t.Logf("verified editor product version and core files: %s %s", engine, version)
 }
 
+func TestEditorInstallationRejectsMissingBuiltinPackageMetadata(t *testing.T) {
+	root := t.TempDir()
+	packageDir := filepath.Join(root, "Editor", "Data", "Resources", "PackageManager", "BuiltInPackages", "com.unity.render-pipelines.universal")
+	if err := os.MkdirAll(packageDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	source := filepath.Join(packageDir, "Feature.cs")
+	if err := os.WriteFile(source, []byte("class Feature {}"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := verifyBuiltInPackageMetadata(root); err == nil {
+		t.Fatal("incomplete package accepted")
+	}
+	if err := os.WriteFile(source+".meta", []byte("fileFormatVersion: 2"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	ignored := filepath.Join(packageDir, "Source~", "Tests.cs")
+	if err := os.MkdirAll(filepath.Dir(ignored), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(ignored, []byte("class Test {}"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := verifyBuiltInPackageMetadata(root); err != nil {
+		t.Fatalf("complete package rejected: %v", err)
+	}
+}
+
+func TestRealBrokenEditorHasMissingBuiltinMetadata(t *testing.T) {
+	root := os.Getenv("UNITYSTARTER_BROKEN_EDITOR_ROOT")
+	if root == "" {
+		t.Skip("set UNITYSTARTER_BROKEN_EDITOR_ROOT for an explicitly known broken editor")
+	}
+	if err := verifyBuiltInPackageMetadata(root); err == nil {
+		t.Fatal("known incomplete editor was accepted")
+	} else {
+		t.Logf("incomplete editor rejected: %v", err)
+	}
+}
+
 func TestDownloadAndInstallActionShown(t *testing.T) {
 	a := fixture()
 	a.page = pageDownloads

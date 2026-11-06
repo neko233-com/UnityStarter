@@ -512,5 +512,44 @@ func verifyInstalledEditorWithVersion(engine, version, dest string, readVersion 
 	if actual == "" || !strings.EqualFold(actual, version) {
 		return fmt.Errorf("editor version mismatch: expected %s, found %s", version, actual)
 	}
+	if engine == kindUnity {
+		if err := verifyBuiltInPackageMetadata(dest); err != nil {
+			return err
+		}
+	}
 	return nil
+}
+
+// Unity's Windows installer can return success after silently dropping files
+// whose paths exceed its limit. Unity ignores scripts without their metadata,
+// which leaves an apparently installed editor unable to compile new projects.
+func verifyBuiltInPackageMetadata(dest string) error {
+	root := filepath.Join(dest, "Editor", "Data", "Resources", "PackageManager", "BuiltInPackages")
+	if info, err := os.Stat(root); os.IsNotExist(err) {
+		return nil // Older editor layouts need not contain built-in packages here.
+	} else if err != nil {
+		return err
+	} else if !info.IsDir() {
+		return fmt.Errorf("editor installation is incomplete: built-in packages path is not a directory")
+	}
+	return filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if entry.IsDir() {
+			if path != root && (strings.HasSuffix(entry.Name(), "~") || strings.HasPrefix(entry.Name(), ".")) {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if !strings.HasSuffix(entry.Name(), ".cs") && !strings.HasSuffix(entry.Name(), ".asmdef") {
+			return nil
+		}
+		info, err := os.Stat(path + ".meta")
+		if err != nil || !info.Mode().IsRegular() || info.Size() == 0 {
+			rel, _ := filepath.Rel(root, path)
+			return fmt.Errorf("editor installation is incomplete: built-in package metadata missing for %s; install to a shorter path and retry", rel)
+		}
+		return nil
+	})
 }
