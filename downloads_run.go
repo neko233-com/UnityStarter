@@ -119,6 +119,10 @@ func (a *app) startDownload(e downloadEntry) {
 	if a.win == nil {
 		return
 	}
+	if a.uninstallBusy {
+		a.alert(locales.InstallUninstallBusy())
+		return
+	}
 	if err := validateEditorInstallEntry(e); err != nil {
 		a.alert(locales.OpenFailed(err.Error()))
 		return

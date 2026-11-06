@@ -62,6 +62,8 @@ type app struct {
 	manageEditor       editorInstall
 	manageModules      bool
 	manageUninstall    bool
+	uninstallBusy      bool
+	uninstallStatus    string
 	moduleBusy         bool
 	moduleLoading      bool
 	moduleInstalling   bool
@@ -283,6 +285,7 @@ func (a *app) view(c *ui.Context) {
 				}).Grow(1)
 			})
 			ui.Column(c).Grow(1).Fill().Children(func() {
+				a.uninstallActivityBanner(c)
 				a.moduleActivityBanner(c)
 				a.updateBanner(c)
 				switch a.page {
@@ -475,6 +478,10 @@ func (a *app) pickFolder(title string, fn func(string)) {
 }
 
 func (a *app) openProject(p projectEntry) {
+	if a.uninstallBusy && strings.EqualFold(p.Editor, a.manageEditor.Exe) {
+		a.alert(locales.InstallUninstallBusy())
+		return
+	}
 	if p.Editor == "" {
 		a.alert(locales.EditorMissing(p.Version))
 		return

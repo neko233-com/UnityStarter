@@ -2,7 +2,10 @@
 
 package main
 
-import "os/exec"
+import (
+	"fmt"
+	"os/exec"
+)
 
 func startDetached(exe string, args []string, dir string) error {
 	cmd := exec.Command(exe, args...)
@@ -25,4 +28,12 @@ func configureInstallerCmd(cmd *exec.Cmd, engine, dest string) {}
 
 func runEditorInstaller(exe, engine, dest string) error {
 	return exec.Command(exe, installerArgs(engine, dest)...).Run()
+}
+
+func runEditorUninstaller(exe string) error {
+	return fmt.Errorf("native editor uninstall is only supported on Windows")
+}
+
+func editorProcessRunning(exe string) (bool, error) {
+	return false, fmt.Errorf("native editor uninstall is only supported on Windows")
 }

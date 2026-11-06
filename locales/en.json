@@ -55,7 +55,17 @@
   "installModuleLocalOnly": "Module installed and recorded locally, but the official Hub's module list could not be updated.",
   "installModuleRecordFailed": "Module files were installed, but their status could not be saved; check permissions or the official Hub's module list",
   "installUninstall": "Uninstall Editor",
-  "installUninstallWarning": "The Editor's own uninstaller will open. Make sure no project is using this version.",
+  "installUninstallWarning": "Uninstall this editor and its modules using the official uninstaller. Close this editor and its projects first.",
+  "installUninstallOfficial": "Open official uninstaller",
+  "installUninstallProgress": "Uninstalling editor…",
+  "installUninstallBusy": "Wait for editor uninstall to finish.",
+  "installUninstallWaitWork": "Finish or cancel the current download, install, or module operation first.",
+  "installUninstallHide": "Hide",
+  "installUninstallDone": "Editor executable removed. Some files may remain.",
+  "installUninstallFailed": "Uninstall was not confirmed: {error}",
+  "@installUninstallFailed": {
+    "placeholders": { "error": { "type": "String", "example": "editor is running" } }
+  },
   "installUninstallMissing": "No uninstaller was found for this installation.",
   "appTitle": "UnityStarter",
   "updateChecking": "Checking for updates…",

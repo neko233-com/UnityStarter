@@ -72,7 +72,7 @@ func (a *app) installsPage(c *ui.Context) {
 					}
 					return
 				}
-				if ui.PrimaryButton(c, locales.InstallsLaunch()).Clicked() {
+				if ui.PrimaryButton(c, locales.InstallsLaunch()).Disabled(a.uninstallBusy && strings.EqualFold(e.Exe, a.manageEditor.Exe)).Clicked() {
 					if err := startDetached(e.Exe, nil, filepath.Dir(e.Exe)); err != nil {
 						a.alert(locales.OpenFailed(err.Error()))
 					}
@@ -80,7 +80,7 @@ func (a *app) installsPage(c *ui.Context) {
 				if ui.Button(c, locales.ActionFolder()).Clicked() {
 					mygo.Shell.ShowItemInFolder(e.Exe)
 				}
-				otherBusy := (a.moduleBusy || a.moduleLoading) && !strings.EqualFold(a.manageEditor.Exe, e.Exe)
+				otherBusy := (a.moduleBusy || a.moduleLoading || a.uninstallBusy) && !strings.EqualFold(a.manageEditor.Exe, e.Exe)
 				ui.Button(c, locales.InstallManage()).Disabled(otherBusy).OnClick(func() { a.openEditorManagement(e) })
 			})
 		})
@@ -93,7 +93,11 @@ func (a *app) installsPage(c *ui.Context) {
 
 func (a *app) openEditorManagement(e editorInstall) {
 	same := a.manageEditor.Exe != "" && strings.EqualFold(a.manageEditor.Exe, e.Exe)
-	if (a.moduleBusy || a.moduleLoading) && !same {
+	if (a.moduleBusy || a.moduleLoading || a.uninstallBusy) && !same {
+		return
+	}
+	if same && (a.uninstallBusy || a.uninstallStatus != "") {
+		a.manageOpen, a.manageModules, a.manageUninstall = true, false, true
 		return
 	}
 	if same && (a.moduleBusy || a.moduleLoading || (a.manageModules && a.moduleStatus != "")) {
@@ -103,6 +107,20 @@ func (a *app) openEditorManagement(e editorInstall) {
 	a.manageEditor, a.manageOpen = e, true
 	a.manageModules, a.manageUninstall = false, false
 	a.moduleStatus, a.androidPlan = "", nil
+	a.uninstallStatus = ""
+}
+
+func (a *app) uninstallActivityBanner(c *ui.Context) {
+	if a.manageOpen || (!a.uninstallBusy && a.uninstallStatus == "") {
+		return
+	}
+	ui.Row(c).Padding(8, 22).Gap(10).AlignItems(ui.Center).Background(c.Theme().Surface).Children(func() {
+		if a.uninstallBusy {
+			ui.Spinner(c)
+		}
+		ui.Text(c, a.manageEditor.Version+" · "+a.uninstallStatus).Grow(1).FontSize(12).Clip()
+		ui.Button(c, locales.InstallManage()).OnClick(func() { a.openEditorManagement(a.manageEditor) })
+	})
 }
 
 // A dismissed modal must not strand an active module operation. Keep a

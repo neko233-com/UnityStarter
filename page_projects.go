@@ -247,7 +247,7 @@ func (a *app) setProjectHidden(path string, hide bool) {
 func (a *app) projectEditors(p projectEntry) []editorInstall {
 	var editors []editorInstall
 	for _, e := range a.editorsForEngine(p.Kind) {
-		if !e.Simulated {
+		if !e.Simulated && !(a.uninstallBusy && strings.EqualFold(e.Exe, a.manageEditor.Exe)) {
 			editors = append(editors, e)
 		}
 	}
@@ -378,7 +378,7 @@ func (a *app) editorLabels() ([]string, []string) {
 	labels := make([]string, 0, len(a.editors))
 	exes := make([]string, 0, len(a.editors))
 	for _, e := range a.editorsForEngine(a.newEngine) {
-		if e.Simulated {
+		if e.Simulated || (a.uninstallBusy && strings.EqualFold(e.Exe, a.manageEditor.Exe)) {
 			continue
 		}
 		labels = append(labels, e.Version+" · "+channelName(e.Kind))

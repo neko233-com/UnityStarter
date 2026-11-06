@@ -5,8 +5,11 @@ package main
 import (
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
+	"strings"
 	"syscall"
 	"unsafe"
 )
@@ -80,6 +83,78 @@ type shellExecuteInfo struct {
 }
 
 func runElevatedInstaller(exe, dest string) error {
+	return runElevatedCommand(exe, "/S /D="+dest, "")
+}
+
+func runEditorUninstaller(exe string) error {
+	return runEditorUninstallerWith(exe, runElevatedCommand)
+}
+
+func runEditorUninstallerWith(exe string, elevate func(string, string, string) error) error {
+	// Unity copies its uninstaller to a temporary location; its working
+	// directory must not be inside the editor installation.
+	dir := filepath.VolumeName(exe) + string(os.PathSeparator)
+	cmd := exec.Command(exe, "/S")
+	cmd.Dir = dir
+	hideWindowCmd(cmd)
+	err := cmd.Run()
+	if needsElevation(err) {
+		return elevate(exe, "/S", dir)
+	}
+	return err
+}
+
+func editorProcessRunning(exe string) (bool, error) {
+	if resolved, err := filepath.EvalSymlinks(exe); err == nil {
+		exe = resolved
+	}
+	snapshot, err := syscall.CreateToolhelp32Snapshot(syscall.TH32CS_SNAPPROCESS, 0)
+	if err != nil {
+		return false, err
+	}
+	defer syscall.CloseHandle(snapshot)
+	var entry syscall.ProcessEntry32
+	entry.Size = uint32(unsafe.Sizeof(entry))
+	if err = syscall.Process32First(snapshot, &entry); err != nil {
+		return false, err
+	}
+	query := syscall.NewLazyDLL("kernel32.dll").NewProc("QueryFullProcessImageNameW")
+	for {
+		if strings.EqualFold(syscall.UTF16ToString(entry.ExeFile[:]), filepath.Base(exe)) {
+			h, openErr := syscall.OpenProcess(0x1000, false, entry.ProcessID)
+			if openErr != nil {
+				// A process can exit between the snapshot and OpenProcess.
+				if !errors.Is(openErr, syscall.Errno(87)) {
+					return false, fmt.Errorf("cannot inspect editor process %d: %w", entry.ProcessID, openErr)
+				}
+			} else {
+				buf := make([]uint16, 32768)
+				n := uint32(len(buf))
+				ok, _, callErr := query.Call(uintptr(h), 0, uintptr(unsafe.Pointer(&buf[0])), uintptr(unsafe.Pointer(&n)))
+				syscall.CloseHandle(h)
+				if ok == 0 {
+					return false, fmt.Errorf("cannot inspect editor process %d: %w", entry.ProcessID, callErr)
+				}
+				path := syscall.UTF16ToString(buf[:n])
+				if resolved, err := filepath.EvalSymlinks(path); err == nil {
+					path = resolved
+				}
+				if strings.EqualFold(filepath.Clean(path), filepath.Clean(exe)) {
+					return true, nil
+				}
+			}
+		}
+		err = syscall.Process32Next(snapshot, &entry)
+		if errors.Is(err, syscall.ERROR_NO_MORE_FILES) {
+			return false, nil
+		}
+		if err != nil {
+			return false, err
+		}
+	}
+}
+
+func runElevatedCommand(exe, args, dir string) error {
 	verb, err := syscall.UTF16PtrFromString("runas")
 	if err != nil {
 		return err
@@ -88,11 +163,18 @@ func runElevatedInstaller(exe, dest string) error {
 	if err != nil {
 		return err
 	}
-	parameters, err := syscall.UTF16PtrFromString("/S /D=" + dest)
+	parameters, err := syscall.UTF16PtrFromString(args)
 	if err != nil {
 		return err
 	}
-	info := shellExecuteInfo{size: uint32(unsafe.Sizeof(shellExecuteInfo{})), mask: 0x40 | 0x100, verb: verb, file: file, parameters: parameters, show: 0}
+	var directory *uint16
+	if dir != "" {
+		directory, err = syscall.UTF16PtrFromString(dir)
+		if err != nil {
+			return err
+		}
+	}
+	info := shellExecuteInfo{size: uint32(unsafe.Sizeof(shellExecuteInfo{})), mask: 0x40 | 0x100, verb: verb, file: file, parameters: parameters, directory: directory, show: 0}
 	proc := syscall.NewLazyDLL("shell32.dll").NewProc("ShellExecuteExW")
 	result, _, callErr := proc.Call(uintptr(unsafe.Pointer(&info)))
 	runtime.KeepAlive(info)

@@ -255,7 +255,7 @@ func (a *app) updateBanner(c *ui.Context) {
 		return
 	}
 	t := c.Theme()
-	busy := a.moduleBusy || a.installingEditor()
+	busy := a.moduleBusy || a.installingEditor() || a.uninstallBusy
 	ui.Row(c).Padding(10, 24).Gap(12).AlignItems(ui.Center).Background(t.Surface).Children(func() {
 		status := a.updateStatus
 		if busy {
@@ -267,6 +267,10 @@ func (a *app) updateBanner(c *ui.Context) {
 }
 
 func (a *app) applyUpdateNow() {
+	if a.uninstallBusy {
+		a.alert(locales.InstallUninstallBusy())
+		return
+	}
 	if a.installingEditor() {
 		a.alert(locales.DownloadInstallInProgress())
 		return

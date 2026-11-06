@@ -293,7 +293,7 @@ func (a *app) installEditorModule(e editorInstall, m editorModule) {
 
 func editorUninstaller(e editorInstall) string {
 	path := filepath.Join(e.Root, "Editor", "Uninstall.exe")
-	if info, err := os.Stat(path); err == nil && !info.IsDir() {
+	if info, err := os.Lstat(path); err == nil && info.Mode().IsRegular() && info.Mode()&os.ModeSymlink == 0 {
 		return path
 	}
 	return ""
@@ -311,9 +311,24 @@ func (a *app) editorManageDialog(c *ui.Context) {
 			ui.Text(c, e.Exe).FontSize(12).TextColor(t.TextMuted).Clip()
 			if a.manageUninstall {
 				ui.Text(c, locales.InstallUninstallWarning()).FontSize(12).TextColor(t.TextMuted)
+				if a.uninstallStatus != "" {
+					ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
+						if a.uninstallBusy {
+							ui.Spinner(c)
+						}
+						ui.Text(c, a.uninstallStatus).FontSize(12).TextColor(t.TextMuted).Grow(1)
+					})
+				}
 				ui.Row(c).Gap(8).Justify(ui.End).Children(func() {
-					ui.Button(c, locales.ActionCancel()).OnClick(func() { a.manageUninstall = false })
-					ui.PrimaryButton(c, locales.InstallUninstall()).OnClick(func() {
+					if a.uninstallBusy {
+						ui.Button(c, locales.InstallUninstallHide()).OnClick(func() { a.manageOpen = false })
+						return
+					}
+					ui.Button(c, locales.DialogOK()).OnClick(func() {
+						a.manageOpen, a.manageUninstall = false, false
+						a.uninstallStatus = ""
+					})
+					ui.Button(c, locales.InstallUninstallOfficial()).Disabled(a.editorWorkActive()).OnClick(func() {
 						if p := editorUninstaller(e); p != "" {
 							if err := mygo.Shell.OpenPath(p); err != nil {
 								a.alert(locales.OpenFailed(err.Error()))
@@ -322,6 +337,10 @@ func (a *app) editorManageDialog(c *ui.Context) {
 							a.manageOpen = false
 						}
 					})
+					button := ui.PrimaryButton(c, locales.InstallUninstall()).Disabled(a.editorWorkActive() || editorUninstaller(e) == "").OnClick(func() { a.startEditorUninstall(e) })
+					if a.editorWorkActive() {
+						button.Tooltip(locales.InstallUninstallWaitWork())
+					}
 				})
 				return
 			}

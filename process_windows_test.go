@@ -37,6 +37,25 @@ func TestInstallerElevationFallback(t *testing.T) {
 	}
 }
 
+func TestUninstallerElevationFallback(t *testing.T) {
+	exe := os.Getenv("UNITYSTARTER_ELEVATED_FIXTURE")
+	if exe == "" {
+		t.Skip("set UNITYSTARTER_ELEVATED_FIXTURE to the administrator NSIS fixture")
+	}
+	denied := errors.New("authorization denied")
+	called := false
+	err := runEditorUninstallerWith(exe, func(gotExe, args, dir string) error {
+		called = true
+		if gotExe != exe || args != "/S" || dir != filepath.VolumeName(exe)+string(os.PathSeparator) {
+			t.Fatalf("wrong elevation command: %q %q %q", gotExe, args, dir)
+		}
+		return denied
+	})
+	if !called || !errors.Is(err, denied) {
+		t.Fatalf("elevation failure not propagated: called=%v err=%v", called, err)
+	}
+}
+
 func TestManualInteractiveLaunch(t *testing.T) {
 	exe := os.Getenv("UNITYSTARTER_LIVE_GUI_FIXTURE")
 	if exe == "" {

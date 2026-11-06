@@ -568,14 +568,86 @@ func (msgs Messages) InstallUninstall() string {
 	return Catalog.Format(msgs.locale, "installUninstall", nil)
 }
 
-// InstallUninstallWarning says "The Editor's own uninstaller will open. Make sure no project is using this version."
+// InstallUninstallWarning says "Uninstall this editor and its modules using the official uninstaller. Close this editor and its projects first."
 // in the language the app shows.
 func InstallUninstallWarning() string { return In(i18n.Locale()).InstallUninstallWarning() }
 
-// InstallUninstallWarning says "The Editor's own uninstaller will open. Make sure no project is using this version."
+// InstallUninstallWarning says "Uninstall this editor and its modules using the official uninstaller. Close this editor and its projects first."
 // in the language of msgs.
 func (msgs Messages) InstallUninstallWarning() string {
 	return Catalog.Format(msgs.locale, "installUninstallWarning", nil)
+}
+
+// InstallUninstallOfficial says "Open official uninstaller"
+// in the language the app shows.
+func InstallUninstallOfficial() string { return In(i18n.Locale()).InstallUninstallOfficial() }
+
+// InstallUninstallOfficial says "Open official uninstaller"
+// in the language of msgs.
+func (msgs Messages) InstallUninstallOfficial() string {
+	return Catalog.Format(msgs.locale, "installUninstallOfficial", nil)
+}
+
+// InstallUninstallProgress says "Uninstalling editor…"
+// in the language the app shows.
+func InstallUninstallProgress() string { return In(i18n.Locale()).InstallUninstallProgress() }
+
+// InstallUninstallProgress says "Uninstalling editor…"
+// in the language of msgs.
+func (msgs Messages) InstallUninstallProgress() string {
+	return Catalog.Format(msgs.locale, "installUninstallProgress", nil)
+}
+
+// InstallUninstallBusy says "Wait for editor uninstall to finish."
+// in the language the app shows.
+func InstallUninstallBusy() string { return In(i18n.Locale()).InstallUninstallBusy() }
+
+// InstallUninstallBusy says "Wait for editor uninstall to finish."
+// in the language of msgs.
+func (msgs Messages) InstallUninstallBusy() string {
+	return Catalog.Format(msgs.locale, "installUninstallBusy", nil)
+}
+
+// InstallUninstallWaitWork says "Finish or cancel the current download, install, or module operation first."
+// in the language the app shows.
+func InstallUninstallWaitWork() string { return In(i18n.Locale()).InstallUninstallWaitWork() }
+
+// InstallUninstallWaitWork says "Finish or cancel the current download, install, or module operation first."
+// in the language of msgs.
+func (msgs Messages) InstallUninstallWaitWork() string {
+	return Catalog.Format(msgs.locale, "installUninstallWaitWork", nil)
+}
+
+// InstallUninstallHide says "Hide"
+// in the language the app shows.
+func InstallUninstallHide() string { return In(i18n.Locale()).InstallUninstallHide() }
+
+// InstallUninstallHide says "Hide"
+// in the language of msgs.
+func (msgs Messages) InstallUninstallHide() string {
+	return Catalog.Format(msgs.locale, "installUninstallHide", nil)
+}
+
+// InstallUninstallDone says "Editor executable removed. Some files may remain."
+// in the language the app shows.
+func InstallUninstallDone() string { return In(i18n.Locale()).InstallUninstallDone() }
+
+// InstallUninstallDone says "Editor executable removed. Some files may remain."
+// in the language of msgs.
+func (msgs Messages) InstallUninstallDone() string {
+	return Catalog.Format(msgs.locale, "installUninstallDone", nil)
+}
+
+// InstallUninstallFailed says "Uninstall was not confirmed: {error}"
+// in the language the app shows.
+func InstallUninstallFailed(error string) string {
+	return In(i18n.Locale()).InstallUninstallFailed(error)
+}
+
+// InstallUninstallFailed says "Uninstall was not confirmed: {error}"
+// in the language of msgs.
+func (msgs Messages) InstallUninstallFailed(error string) string {
+	return Catalog.Format(msgs.locale, "installUninstallFailed", map[string]any{"error": error})
 }
 
 // InstallUninstallMissing says "No uninstaller was found for this installation."
