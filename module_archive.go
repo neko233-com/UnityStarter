@@ -86,15 +86,21 @@ func moduleFilesVerifiable(m editorModule) bool {
 }
 
 func moduleFilesPresent(root string, m editorModule) bool {
-	if m.ID == "linux-il2cpp" {
-		base := filepath.Join(root, "Editor", "Data", "PlaybackEngines", "LinuxStandaloneSupport", "Variations")
-		for _, variant := range []string{"linux64_player_development_il2cpp", "linux64_player_nondevelopment_il2cpp"} {
-			info, err := os.Stat(filepath.Join(base, variant, "UnityPlayer.so"))
-			if err != nil || !info.Mode().IsRegular() || info.Size() == 0 {
-				return false
-			}
+	variants, player := modulePlayerVariants(m.ID)
+	if len(variants) > 0 {
+		base := filepath.Join(root, "Editor", "Data", "PlaybackEngines", filepath.Dir(filepath.Dir(moduleOutput(m))), "Variations")
+		if modulePlayerVariantsPresent(base, variants, player) {
+			return true
 		}
-		return true
+		// Unity 7 replaced Mono with CoreCLR in its server packages.
+		if m.ID == "linux-server" || m.ID == "windows-server" {
+			coreclr := make([]string, len(variants))
+			for i, variant := range variants {
+				coreclr[i] = strings.Replace(variant, "_mono", "_coreclr", 1)
+			}
+			return modulePlayerVariantsPresent(base, coreclr, player)
+		}
+		return false
 	}
 	if language, _, ok := editorLanguageModule(m); ok {
 		file := filepath.Join(root, "Editor", "Data", "Localization", language+".po")
@@ -128,6 +134,31 @@ func moduleFilesPresent(root string, m editorModule) bool {
 	}
 	entries, err := os.ReadDir(filepath.Join(root, "Editor", "Data", "PlaybackEngines", output))
 	return err == nil && len(entries) > 0
+}
+
+func modulePlayerVariantsPresent(base string, variants []string, player string) bool {
+	for _, variant := range variants {
+		info, err := os.Stat(filepath.Join(base, variant, player))
+		if err != nil || !info.Mode().IsRegular() || info.Size() == 0 {
+			return false
+		}
+	}
+	return true
+}
+
+func modulePlayerVariants(id string) ([]string, string) {
+	switch id {
+	case "linux-il2cpp":
+		return []string{"linux64_player_development_il2cpp", "linux64_player_nondevelopment_il2cpp"}, "UnityPlayer.so"
+	case "linux-mono":
+		return []string{"linux64_player_development_mono", "linux64_player_nondevelopment_mono"}, "UnityPlayer.so"
+	case "linux-server":
+		return []string{"linux64_server_development_mono", "linux64_server_nondevelopment_mono", "linux64_server_development_il2cpp", "linux64_server_nondevelopment_il2cpp"}, "UnityPlayer.so"
+	case "windows-server":
+		return []string{"win64_server_development_mono", "win64_server_nondevelopment_mono", "win64_server_development_il2cpp", "win64_server_nondevelopment_il2cpp"}, "UnityPlayer.dll"
+	default:
+		return nil, ""
+	}
 }
 
 // installOpenJDK extracts into an isolated sibling and commits only once the

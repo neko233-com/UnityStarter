@@ -87,6 +87,12 @@ func moduleOutput(m editorModule) string {
 		return filepath.Join("windowsstandalonesupport", "Variations", "win64_player_development_il2cpp")
 	case "linux-il2cpp":
 		return filepath.Join("LinuxStandaloneSupport", "Variations", "linux64_player_development_il2cpp")
+	case "linux-mono":
+		return filepath.Join("LinuxStandaloneSupport", "Variations", "linux64_player_development_mono")
+	case "linux-server":
+		return filepath.Join("LinuxStandaloneSupport", "Variations", "linux64_server_development_mono")
+	case "windows-server":
+		return filepath.Join("WindowsStandaloneSupport", "Variations", "win64_server_development_mono")
 	case "weixinminigame":
 		return "WeixinMiniGameSupport"
 	case "playableads":

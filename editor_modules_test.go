@@ -163,6 +163,75 @@ func TestLinuxIL2CPPModuleRequiresBothPlayers(t *testing.T) {
 	}
 }
 
+func TestAdditionalPlatformModulesRequireAllPlayerVariants(t *testing.T) {
+	for _, id := range []string{"linux-mono", "linux-server", "windows-server"} {
+		t.Run(id, func(t *testing.T) {
+			m := editorModule{ID: id, URL: "https://download.unity3d.com/module.exe", Checksum: strings.Repeat("a", 32), Destination: "{UNITY_PATH}"}
+			if !standaloneModule(m) {
+				t.Fatal("official standalone module metadata rejected")
+			}
+			root := t.TempDir()
+			variants, player := modulePlayerVariants(id)
+			base := filepath.Join(root, "Editor", "Data", "PlaybackEngines", filepath.Dir(filepath.Dir(moduleOutput(m))), "Variations")
+			for i, variant := range variants {
+				if moduleFilesPresent(root, m) {
+					t.Fatalf("partial module accepted after %d of %d files", i, len(variants))
+				}
+				dir := filepath.Join(base, variant)
+				if err := os.MkdirAll(dir, 0o755); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(filepath.Join(dir, player), []byte("fixture"), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if !moduleFilesPresent(root, m) {
+				t.Fatal("complete module was not recognized")
+			}
+		})
+	}
+}
+
+func TestServerModulesRecognizeCoreCLR(t *testing.T) {
+	for _, id := range []string{"linux-server", "windows-server"} {
+		t.Run(id, func(t *testing.T) {
+			m := editorModule{ID: id}
+			root := t.TempDir()
+			variants, player := modulePlayerVariants(id)
+			base := filepath.Join(root, "Editor", "Data", "PlaybackEngines", filepath.Dir(filepath.Dir(moduleOutput(m))), "Variations")
+			for i, variant := range variants {
+				variant = strings.Replace(variant, "_mono", "_coreclr", 1)
+				if moduleFilesPresent(root, m) {
+					t.Fatalf("partial CoreCLR module accepted at %d", i)
+				}
+				dir := filepath.Join(base, variant)
+				if err := os.MkdirAll(dir, 0o755); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(filepath.Join(dir, player), []byte("fixture"), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if !moduleFilesPresent(root, m) {
+				t.Fatal("complete CoreCLR module not recognized")
+			}
+			if err := os.Remove(filepath.Join(base, strings.Replace(variants[0], "_mono", "_coreclr", 1), player)); err != nil {
+				t.Fatal(err)
+			}
+			mixed := filepath.Join(base, variants[0])
+			if err := os.MkdirAll(mixed, 0o755); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(filepath.Join(mixed, player), []byte("fixture"), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			if moduleFilesPresent(root, m) {
+				t.Fatal("mixed Mono and CoreCLR variants were accepted")
+			}
+		})
+	}
+}
+
 func TestLiveLinuxIL2CPPModule(t *testing.T) {
 	root := os.Getenv("UNITYSTARTER_LINUX_MODULE_ROOT")
 	if root == "" {
