@@ -63,6 +63,25 @@ func parentModuleSelected(modules []editorModule, parent string) bool {
 	return false
 }
 
+// Unknown Hub module formats remain visible, but cannot be claimed as
+// physically checked until there is a reliable file layout for them.
+func moduleFilesVerifiable(m editorModule) bool {
+	if moduleOutput(m) != "" {
+		return true
+	}
+	if _, ok := tuanjieLanguageModule(m); ok {
+		return true
+	}
+	if _, _, ok := tuanjieDocumentationArchive(m); ok {
+		return true
+	}
+	if androidSDKMetadata(m) || legacyAndroidSDKMetadata(m) {
+		return true
+	}
+	_, _, ok := openJDKArchive(m)
+	return ok
+}
+
 func moduleFilesPresent(root string, m editorModule) bool {
 	if m.ID == "linux-il2cpp" {
 		base := filepath.Join(root, "Editor", "Data", "PlaybackEngines", "LinuxStandaloneSupport", "Variations")
@@ -98,7 +117,11 @@ func moduleFilesPresent(root string, m editorModule) bool {
 		return false
 	}
 	info, err := os.Stat(filepath.Join(root, "Editor", "Data", "PlaybackEngines", output))
-	return err == nil && info.IsDir()
+	if err != nil || !info.IsDir() {
+		return false
+	}
+	entries, err := os.ReadDir(filepath.Join(root, "Editor", "Data", "PlaybackEngines", output))
+	return err == nil && len(entries) > 0
 }
 
 // installOpenJDK extracts into an isolated sibling and commits only once the

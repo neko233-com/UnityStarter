@@ -498,6 +498,16 @@ func (msgs Messages) InstallModuleLoading() string {
 	return Catalog.Format(msgs.locale, "installModuleLoading", nil)
 }
 
+// InstallModuleReported says "Reported installed by Hub"
+// in the language the app shows.
+func InstallModuleReported() string { return In(i18n.Locale()).InstallModuleReported() }
+
+// InstallModuleReported says "Reported installed by Hub"
+// in the language of msgs.
+func (msgs Messages) InstallModuleReported() string {
+	return Catalog.Format(msgs.locale, "installModuleReported", nil)
+}
+
 // InstallModuleRefresh says "Refresh list"
 // in the language the app shows.
 func InstallModuleRefresh() string { return In(i18n.Locale()).InstallModuleRefresh() }

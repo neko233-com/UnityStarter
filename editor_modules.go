@@ -36,6 +36,7 @@ type editorModule struct {
 	EULA2                 string `json:"eulaUrl2"`
 	Visible               bool   `json:"visible"`
 	Selected              bool   `json:"selected"`
+	PresenceUnverified    bool   `json:"-"`
 	DownloadSize          int64  `json:"downloadSize"`
 	DependencyFingerprint string `json:"-"`
 }
@@ -49,11 +50,12 @@ func readEditorModules(root string) []editorModule {
 	annotateSDKDependencies(modules)
 	state := readModuleState(root)
 	for i := range modules {
-		if modules[i].ID == "linux-il2cpp" {
+		if moduleFilesVerifiable(modules[i]) {
 			modules[i].Selected = (modules[i].Selected || moduleStateMatches(state, modules[i])) && moduleFilesPresent(root, modules[i])
 		} else if moduleStateMatches(state, modules[i]) && moduleFilesPresent(root, modules[i]) {
 			modules[i].Selected = true
 		}
+		modules[i].PresenceUnverified = modules[i].Selected && !moduleFilesVerifiable(modules[i])
 	}
 	return modules
 }
@@ -383,7 +385,11 @@ func (a *app) editorManageDialog(c *ui.Context) {
 							ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
 								ui.Text(c, m.Name).Grow(1).FontSize(12).Clip()
 								if m.Selected {
-									ui.Badge(c, locales.DownloadsInstalled())
+									label := locales.DownloadsInstalled()
+									if m.PresenceUnverified {
+										label = locales.InstallModuleReported()
+									}
+									ui.Badge(c, label)
 								} else {
 									_, _, _, supported := moduleInstallSpec(e, m)
 									android := androidSDKCandidate(e, m)

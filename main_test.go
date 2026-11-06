@@ -258,6 +258,18 @@ func TestModuleCatalogOfflineNoticeAndRefresh(t *testing.T) {
 	}
 }
 
+func TestModuleDialogLabelsUnverifiedHubState(t *testing.T) {
+	a := fixture()
+	a.manageOpen, a.manageModules = true, true
+	a.manageEditor = editorInstall{Version: "2022.3.51f1", Kind: kindUnity, Modules: []editorModule{
+		{ID: "unknown", Name: "Vendor module", Visible: true, Selected: true, PresenceUnverified: true},
+	}}
+	tt := ui.NewTester(a.view, 1180, 760)
+	if !tt.HasText(locales.InstallModuleReported()) || tt.HasText(locales.DownloadsInstalled()) {
+		t.Fatalf("Hub-only state was not distinguished: %q", tt.Texts())
+	}
+}
+
 func TestModuleOperationCanBeReopenedAfterDismissal(t *testing.T) {
 	for _, loading := range []bool{false, true} {
 		t.Run(fmt.Sprintf("loading=%v", loading), func(t *testing.T) {

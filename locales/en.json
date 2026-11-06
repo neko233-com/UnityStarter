@@ -48,6 +48,7 @@
   "installModuleNeedsParent": "Install the corresponding platform module first.",
   "installModuleProgress": "Downloading or installing module…",
   "installModuleLoading": "Loading official module list…",
+  "installModuleReported": "Reported installed by Hub",
   "installModuleRefresh": "Refresh list",
   "installModuleCached": "Official service unavailable; showing the last saved module list.",
   "installModuleDone": "Module installed. Refresh the list.",

@@ -127,6 +127,9 @@ func TestUnityModuleCatalogCachedForOfflineScan(t *testing.T) {
 	if err := os.MkdirAll(output, 0o755); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.WriteFile(filepath.Join(output, "fixture"), []byte("module"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	if err := os.WriteFile(exe, []byte("fixture"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -147,7 +150,7 @@ func TestUnityModuleCatalogCachedForOfflineScan(t *testing.T) {
 	if len(editors) != 1 || !editors[0].ModulesCached || len(installedModuleNames(editors[0].Modules)) != 1 {
 		t.Fatalf("offline installation scan: %+v", editors)
 	}
-	if err := os.Remove(output); err != nil {
+	if err := os.Remove(filepath.Join(output, "fixture")); err != nil {
 		t.Fatal(err)
 	}
 	modules, _, err = moduleCatalogWithSource(context.Background(), e)
@@ -233,6 +236,9 @@ func TestOwnedModuleStateRequiresMatchingMetadataAndFiles(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(root, "Editor", "Data", "PlaybackEngines", "WebGLSupport"), 0o755); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.WriteFile(filepath.Join(root, "Editor", "Data", "PlaybackEngines", "WebGLSupport", "fixture"), []byte("module"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	if got := readEditorModules(root); len(got) != 1 || !got[0].Selected {
 		t.Fatalf("owned state not restored: %+v", got)
 	}
@@ -243,6 +249,61 @@ func TestOwnedModuleStateRequiresMatchingMetadataAndFiles(t *testing.T) {
 	}
 	if got := readEditorModules(root); len(got) != 1 || got[0].Selected {
 		t.Fatalf("changed metadata accepted: %+v", got)
+	}
+}
+
+func TestHubModuleStateChecksKnownFilesAndLabelsUnknown(t *testing.T) {
+	t.Setenv("APPDATA", t.TempDir())
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	root := t.TempDir()
+	modules := []editorModule{
+		{ID: "webgl", Name: "Web", Selected: true, Visible: true},
+		{ID: "vendor-unknown", Name: "Vendor module", Selected: true, Visible: true},
+	}
+	data, err := json.Marshal(modules)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "modules.json"), data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got := readEditorModules(root)
+	if len(got) != 2 || got[0].Selected || !got[1].Selected || !got[1].PresenceUnverified {
+		t.Fatalf("missing files or unknown Hub state misrepresented: %+v", got)
+	}
+	output := filepath.Join(root, "Editor", "Data", "PlaybackEngines", "WebGLSupport")
+	if err := os.MkdirAll(output, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if got := readEditorModules(root); got[0].Selected {
+		t.Fatal("empty module directory reported installed")
+	}
+	if err := os.WriteFile(filepath.Join(output, "fixture"), []byte("module"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got = readEditorModules(root)
+	if !got[0].Selected || got[0].PresenceUnverified {
+		t.Fatalf("present module was not recognized: %+v", got)
+	}
+}
+
+func TestLiveTuanjieModuleFileChecks(t *testing.T) {
+	root := os.Getenv("UNITYSTARTER_TEST_TUANJIE_EDITOR")
+	if root == "" {
+		t.Skip("set UNITYSTARTER_TEST_TUANJIE_EDITOR to inspect an installed editor")
+	}
+	modules := readEditorModules(root)
+	for _, id := range []string{"android", "ios", "windows-il2cpp", "weixinminigame", "android-sdk-ndk-tools", "android-open-jdk"} {
+		found := false
+		for _, module := range modules {
+			if module.ID == id {
+				found = module.Selected && !module.PresenceUnverified
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("known installed module %s not verified", id)
+		}
 	}
 }
 
