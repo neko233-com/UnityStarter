@@ -2344,6 +2344,26 @@ func (msgs Messages) LicenseInactive() string {
 	return Catalog.Format(msgs.locale, "licenseInactive", nil)
 }
 
+// LicenseInactiveBanner says "The last Unity license check found no active license."
+// in the language the app shows.
+func LicenseInactiveBanner() string { return In(i18n.Locale()).LicenseInactiveBanner() }
+
+// LicenseInactiveBanner says "The last Unity license check found no active license."
+// in the language of msgs.
+func (msgs Messages) LicenseInactiveBanner() string {
+	return Catalog.Format(msgs.locale, "licenseInactiveBanner", nil)
+}
+
+// LicenseView says "View license"
+// in the language the app shows.
+func LicenseView() string { return In(i18n.Locale()).LicenseView() }
+
+// LicenseView says "View license"
+// in the language of msgs.
+func (msgs Messages) LicenseView() string {
+	return Catalog.Format(msgs.locale, "licenseView", nil)
+}
+
 // LicenseCheckUnavailable says "Unity CLI was not found in its standard installation location. Use Unity Hub to check the license."
 // in the language the app shows.
 func LicenseCheckUnavailable() string { return In(i18n.Locale()).LicenseCheckUnavailable() }
@@ -2364,11 +2384,11 @@ func (msgs Messages) LicenseCheckFailed() string {
 	return Catalog.Format(msgs.locale, "licenseCheckFailed", nil)
 }
 
-// LicenseCheckHint says "The latest check uses the official Unity CLI and does not display account or license details."
+// LicenseCheckHint says "Checks use the official Unity CLI, which may send anonymous usage data; account and license details are not displayed."
 // in the language the app shows.
 func LicenseCheckHint() string { return In(i18n.Locale()).LicenseCheckHint() }
 
-// LicenseCheckHint says "The latest check uses the official Unity CLI and does not display account or license details."
+// LicenseCheckHint says "Checks use the official Unity CLI, which may send anonymous usage data; account and license details are not displayed."
 // in the language of msgs.
 func (msgs Messages) LicenseCheckHint() string {
 	return Catalog.Format(msgs.locale, "licenseCheckHint", nil)

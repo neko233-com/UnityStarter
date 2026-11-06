@@ -312,6 +312,7 @@ func (a *app) view(c *ui.Context) {
 				}).Grow(1)
 			})
 			ui.Column(c).Grow(1).Fill().Children(func() {
+				a.unityLicenseBanner(c)
 				a.uninstallGuardBanner(c)
 				a.uninstallActivityBanner(c)
 				a.moduleActivityBanner(c)

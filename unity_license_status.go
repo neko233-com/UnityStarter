@@ -11,6 +11,9 @@ import (
 	"path/filepath"
 	"runtime"
 	"time"
+
+	"github.com/egoist/mygo/ui"
+	"unitystarter/locales"
 )
 
 var errUnityLicenseCLIUnavailable = errors.New("Unity CLI is unavailable")
@@ -101,4 +104,24 @@ func (a *app) checkUnityLicense() {
 		}
 		win.Update(func() { a.licenseCheckState, a.licenseCheckBusy = state, false })
 	}()
+}
+
+// Surface only an explicit check's result; invoking Unity's CLI automatically
+// would also invoke its own telemetry and change the app's privacy behavior.
+func (a *app) unityLicenseBanner(c *ui.Context) {
+	if a.licenseCheckState != "inactive" || a.page == pageLicense {
+		return
+	}
+	engine := a.activeEngine
+	switch a.page {
+	case pageProjects, pageFavorites, pageInstalls, pageDownloads, pageTuanjieProjects, pageTuanjieFavorites, pageTuanjieInstalls, pageTuanjieDownloads:
+		engine = engineForPage(a.page)
+	}
+	if engine != kindUnity {
+		return
+	}
+	ui.Row(c).Padding(8, 22).Gap(10).AlignItems(ui.Center).Background(c.Theme().Surface).Children(func() {
+		ui.Text(c, locales.LicenseInactiveBanner()).FontSize(12).Grow(1).Clip()
+		ui.Button(c, locales.LicenseView()).OnClick(func() { a.page = pageLicense })
+	})
 }

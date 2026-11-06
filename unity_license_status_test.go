@@ -49,6 +49,33 @@ func TestLicenseStatusInNativePage(t *testing.T) {
 	}
 }
 
+func TestUnityLicenseBannerUsesExplicitCheckAndEngine(t *testing.T) {
+	a := fixture()
+	a.activeEngine, a.page = kindUnity, pageProjects
+	tt := ui.NewTester(a.view, 1180, 760)
+	if tt.HasText(locales.LicenseInactiveBanner()) {
+		t.Fatal("unknown license status should not be presented as inactive")
+	}
+	a.licenseCheckState = "inactive"
+	tt.Frame()
+	if !tt.HasText(locales.LicenseInactiveBanner()) {
+		t.Fatalf("missing inactive license banner: %q", tt.Texts())
+	}
+	a.activeEngine, a.page = kindTuanjie, pageTuanjieProjects
+	tt.Frame()
+	if tt.HasText(locales.LicenseInactiveBanner()) {
+		t.Fatal("Unity license status leaked into the Tuanjie workspace")
+	}
+	a.activeEngine, a.page = kindUnity, pageProjects
+	tt.Frame()
+	if err := tt.Click(locales.LicenseView()); err != nil {
+		t.Fatal(err)
+	}
+	if a.page != pageLicense || tt.HasText(locales.LicenseInactiveBanner()) {
+		t.Fatalf("license page did not open: %q", tt.Texts())
+	}
+}
+
 func TestRealUnityLicenseStatus(t *testing.T) {
 	want := os.Getenv("UNITYSTARTER_EXPECT_LICENSE_STATE")
 	if want == "" {

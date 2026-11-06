@@ -271,9 +271,11 @@
   "licenseChecking": "Checking Unity licensing…",
   "licenseActive": "The Unity CLI reports an active license. Editor compatibility is checked when it starts.",
   "licenseInactive": "The Unity CLI reports no active license. Unity Personal requires activation through Unity Hub.",
+  "licenseInactiveBanner": "The last Unity license check found no active license.",
+  "licenseView": "View license",
   "licenseCheckUnavailable": "Unity CLI was not found in its standard installation location. Use Unity Hub to check the license.",
   "licenseCheckFailed": "Could not verify the license. Check Unity Hub or the licensing service.",
-  "licenseCheckHint": "The latest check uses the official Unity CLI and does not display account or license details.",
+  "licenseCheckHint": "Checks use the official Unity CLI, which may send anonymous usage data; account and license details are not displayed.",
   "licensesNone": "No license file found.",
   "licensesFiles": "{count, plural, one {# file} other {# files}}",
   "@licensesFiles": {
