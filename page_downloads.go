@@ -53,12 +53,19 @@ func (a *app) ensureDownloads(force bool) {
 
 func (a *app) applyReleaseCatalog(result releaseCatalogResult) {
 	remaining := make([]downloadEntry, 0, len(a.downloads)+len(result.entries))
+	keptCurrent := false
 	for _, entry := range a.downloads {
-		if entry.Engine != result.engine {
+		if entry.Engine != result.engine || result.err != nil {
 			remaining = append(remaining, entry)
+			if entry.Engine == result.engine {
+				keptCurrent = true
+			}
 		}
 	}
-	a.downloads = append(remaining, result.entries...)
+	a.downloads = remaining
+	if !keptCurrent {
+		a.downloads = append(a.downloads, result.entries...)
+	}
 	if a.downloadsErrs == nil {
 		a.downloadsErrs = map[string]string{}
 	}

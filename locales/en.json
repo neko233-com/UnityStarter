@@ -327,6 +327,7 @@
   "newProjectNotChosen": "No folder chosen",
   "newProjectEditor": "Editor",
   "newProjectIncomplete": "Choose a folder and a name first.",
+  "newProjectInvalidName": "Enter a valid folder name without a path or Windows reserved characters.",
   "newProjectExists": "{path} is not empty.",
   "@newProjectExists": {
     "placeholders": { "path": { "type": "String", "example": "D:\\Games\\My Game" } }

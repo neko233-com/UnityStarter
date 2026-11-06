@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"image"
 	"image/png"
 	"os"
@@ -104,6 +105,29 @@ func TestDownloadCatalogUpdatesEachEngineIndependently(t *testing.T) {
 	a.applyReleaseCatalog(releaseCatalogResult{engine: kindTuanjie, entries: []downloadEntry{{Engine: kindTuanjie, Version: "2022.3.62t17"}}})
 	if len(downloadsForEngine(a.downloads, kindTuanjie)) != 1 || len(downloadsForEngine(a.downloads, kindUnity)) != 2 || a.downloadsPending[kindTuanjie] || !a.downloadsPending[kindUnity] {
 		t.Fatalf("first catalog lost independent state: %+v pending=%v", a.downloads, a.downloadsPending)
+	}
+}
+
+func TestDownloadCatalogKeepsCurrentEntriesWhenRefreshFails(t *testing.T) {
+	a := fixture()
+	a.downloadsPending = map[string]bool{kindUnity: true}
+	a.applyReleaseCatalog(releaseCatalogResult{engine: kindUnity, err: errors.New("offline")})
+	unity := downloadsForEngine(a.downloads, kindUnity)
+	if len(unity) != 2 || a.downloadsErrs[kindUnity] == "" || a.downloadsPending[kindUnity] {
+		t.Fatalf("failed refresh lost current releases or its error: %+v %v", unity, a.downloadsErrs)
+	}
+	if len(downloadsForEngine(a.downloads, kindTuanjie)) != 1 {
+		t.Fatal("failed Unity refresh changed Tuanjie releases")
+	}
+	a.applyReleaseCatalog(releaseCatalogResult{engine: kindUnity, entries: []downloadEntry{{Engine: kindUnity, Version: "7000.0.0a16"}}})
+	unity = downloadsForEngine(a.downloads, kindUnity)
+	if len(unity) != 1 || unity[0].Version != "7000.0.0a16" || a.downloadsErrs[kindUnity] != "" {
+		t.Fatalf("successful refresh did not replace stale releases: %+v %v", unity, a.downloadsErrs)
+	}
+	a.downloads = nil
+	a.applyReleaseCatalog(releaseCatalogResult{engine: kindUnity, entries: []downloadEntry{{Engine: kindUnity, Version: "cached"}}, err: errors.New("offline")})
+	if len(a.downloads) != 1 || a.downloads[0].Version != "cached" {
+		t.Fatalf("initial offline cache was not used: %+v", a.downloads)
 	}
 }
 
@@ -435,6 +459,88 @@ func TestProjectSortAndMissingVersionChoice(t *testing.T) {
 		t.Fatal("simulated editor must not be selected")
 	}
 	ui.NewTester(a.view, 1180, 760).Frame()
+}
+
+func TestNewProjectEditorSelectionPersistsAcrossFrames(t *testing.T) {
+	a := fixture()
+	a.editors = []editorInstall{
+		{Version: "6000.0.2f1", Kind: kindUnity, Exe: `C:\Editors\new\Unity.exe`},
+		{Version: "2022.3.51f1", Kind: kindUnity, Exe: `C:\Editors\old\Unity.exe`},
+	}
+	a.openNewProject()
+	tt := ui.NewTester(a.view, 1180, 760)
+	if err := tt.Click("6000.0.2f1 · " + channelName(kindUnity)); err != nil {
+		t.Fatal(err)
+	}
+	if err := tt.Click("2022.3.51f1 · " + channelName(kindUnity)); err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 3; i++ {
+		tt.Frame()
+	}
+	if a.newEditor != `C:\Editors\old\Unity.exe` {
+		t.Fatalf("selected editor was lost: %q", a.newEditor)
+	}
+}
+
+func TestNewProjectCanChooseBetweenSameVersionInstallations(t *testing.T) {
+	t.Setenv("APPDATA", t.TempDir())
+	a := fixture()
+	a.editors = []editorInstall{
+		{Version: "6000.0.2f1", Kind: kindUnity, Exe: `C:\Editors\one\Unity.exe`},
+		{Version: "6000.0.2f1", Kind: kindUnity, Exe: `D:\Editors\two\Unity.exe`},
+	}
+	a.openNewProject()
+	a.newDir, a.newName, a.prefs.NoHubSync = t.TempDir(), "Game", true
+	var launched string
+	var args []string
+	a.launchEditor = func(exe string, argv []string, _ string) error { launched, args = exe, argv; return nil }
+	labels, _ := a.editorLabels()
+	if len(labels) != 2 || labels[0] == labels[1] {
+		t.Fatalf("same-version editors need distinct labels: %q", labels)
+	}
+	tt := ui.NewTester(a.view, 1180, 760)
+	if err := tt.Click(labels[0]); err != nil {
+		t.Fatal(err)
+	}
+	if path := os.Getenv("NEW_PROJECT_PICKER_SNAPSHOT"); path != "" {
+		if err := writePNG(path, tt.Image()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := tt.Click(labels[1]); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.newEditor != `D:\Editors\two\Unity.exe` {
+		t.Fatalf("wrong installation selected: %q", a.newEditor)
+	}
+	if err := tt.Click(locales.ActionCreate()); err != nil {
+		t.Fatal(err)
+	}
+	if launched != a.newEditor || len(args) != 2 || args[0] != "-createProject" || args[1] != filepath.Join(a.newDir, "Game") {
+		t.Fatalf("wrong editor or project path passed to launch: %q %q", launched, args)
+	}
+}
+
+func TestNewProjectRejectsNamesThatEscapeOrAreInvalid(t *testing.T) {
+	for _, name := range []string{"..", `..\outside`, "../outside", `C:\outside`, "CON", "game?"} {
+		t.Run(name, func(t *testing.T) {
+			a := fixture()
+			a.newDir, a.newName, a.newEditor, a.newEngine = t.TempDir(), name, "chosen", kindUnity
+			a.editors = []editorInstall{{Exe: "chosen", Kind: kindUnity}}
+			launched := false
+			a.launchEditor = func(string, []string, string) error { launched = true; return nil }
+			a.createProject()
+			if launched || a.newError != locales.NewProjectInvalidName() {
+				t.Fatalf("invalid name accepted: launched=%v error=%q", launched, a.newError)
+			}
+			entries, err := os.ReadDir(a.newDir)
+			if err != nil || len(entries) != 0 {
+				t.Fatalf("invalid name changed destination: %v %v", entries, err)
+			}
+		})
+	}
 }
 
 // SNAPSHOT=1 go test -run TestSnapshot draws the pages to PNG files, to look

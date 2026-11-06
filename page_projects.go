@@ -315,6 +315,15 @@ func (a *app) editorLabels() ([]string, []string) {
 		labels = append(labels, e.Version+" · "+channelName(e.Kind))
 		exes = append(exes, e.Exe)
 	}
+	counts := make(map[string]int, len(labels))
+	for _, label := range labels {
+		counts[label]++
+	}
+	for i, label := range labels {
+		if counts[label] > 1 {
+			labels[i] += " · " + exes[i]
+		}
+	}
 	return labels, exes
 }
 
@@ -411,6 +420,10 @@ func (a *app) createProject() {
 		a.newError = locales.NewProjectIncomplete()
 		return
 	}
+	if name == "." || name == ".." || strings.ContainsAny(name, `/\:`) || !safeArchiveComponent(name) {
+		a.newError = locales.NewProjectInvalidName()
+		return
+	}
 	if editor, ok := a.editorInstall(a.newEditor); !ok || editor.Kind != a.newEngine || editor.Simulated {
 		a.newError = locales.NoEditorInstalled()
 		return
@@ -424,7 +437,7 @@ func (a *app) createProject() {
 		a.newError = err.Error()
 		return
 	}
-	if err := startDetached(a.newEditor, []string{"-createProject", dir}, filepath.Dir(a.newEditor)); err != nil {
+	if err := a.launchEditor(a.newEditor, []string{"-createProject", dir}, filepath.Dir(a.newEditor)); err != nil {
 		a.newError = locales.OpenFailed(err.Error())
 		logger.Printf("new project: %v", err)
 		return

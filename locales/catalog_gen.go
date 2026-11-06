@@ -2434,6 +2434,16 @@ func (msgs Messages) NewProjectIncomplete() string {
 	return Catalog.Format(msgs.locale, "newProjectIncomplete", nil)
 }
 
+// NewProjectInvalidName says "Enter a valid folder name without a path or Windows reserved characters."
+// in the language the app shows.
+func NewProjectInvalidName() string { return In(i18n.Locale()).NewProjectInvalidName() }
+
+// NewProjectInvalidName says "Enter a valid folder name without a path or Windows reserved characters."
+// in the language of msgs.
+func (msgs Messages) NewProjectInvalidName() string {
+	return Catalog.Format(msgs.locale, "newProjectInvalidName", nil)
+}
+
 // NewProjectExists says "{path} is not empty."
 // in the language the app shows.
 func NewProjectExists(path string) string { return In(i18n.Locale()).NewProjectExists(path) }

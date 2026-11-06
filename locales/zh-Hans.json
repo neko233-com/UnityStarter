@@ -242,6 +242,7 @@
   "newProjectNotChosen": "尚未选择文件夹",
   "newProjectEditor": "编辑器",
   "newProjectIncomplete": "请先选择文件夹并填写名称。",
+  "newProjectInvalidName": "项目名称必须是有效的文件夹名称，不能包含路径或 Windows 保留字符。",
   "newProjectExists": "{path} 不是空目录。",
   "dialogChooseFolder": "选择文件夹",
   "dialogAddProject": "选择项目文件夹",
