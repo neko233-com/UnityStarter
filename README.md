@@ -14,7 +14,7 @@ Windows 10/11 x64，单文件约 10 MB。
   - Unity Hub：项目表 `projects-v1.json`、收藏 `favoriteProjects.json`，新增项目与收藏会写入 Hub，Hub 侧改动实时同步回来。
   - 团结引擎 Hub：收藏与目录双向；项目来自磁盘扫描及编辑器最近项目记录，UnityStarter 不写入团结 Hub 使用的注册表记录。
   - 写入保留 Hub 原有字段，临时文件 + rename 原子替换；Hub 运行时可能用内存状态覆盖，下一次 Hub 写文件时本程序会重新导入。
-- **服务页**：资源商店、游戏发行、付费与许可、技术文档、问题反馈，链接取自两个 Hub 的 `cloudConfig.json`；许可页列出本机授权文件，反馈页一键生成带诊断信息的 GitHub Issue。
+- **服务页**：资源商店、游戏发行、付费与许可、技术文档、问题反馈，链接取自两个 Hub 的 `cloudConfig.json`；许可页列出本机授权文件，并可通过本机官方 Unity CLI 检查 Unity 许可状态，不展示账号或许可详情。反馈页一键生成带诊断信息的 GitHub Issue。
 - **多语言**：默认跟随系统语言，内置 English 与简体中文，窗口与 CLI 共用文案。
 - **工作台**：原生深色界面包含一体化标题栏和系统窗口控制；左侧垂直切换 Unity 国际版和团结引擎，每个引擎有独立的项目、安装、下载与收藏；编辑器和下载版本按版本从新到旧排列。团结版本映射可用时同时显示产品版本和底层版本。
 - **编辑器管理**：安装页提供搜索、正式版／预览版筛选、定位、安装入口、已安装模块和卸载入口，并可直接选择新安装目录；切换目录后仍会扫描此前的安装目录。Unity 官方模块清单按编辑器版本缓存，离线时显示保存的清单与经文件核对的本地安装状态，并可手动刷新。可直接安装官方清单中受支持的独立平台模块、OpenJDK、Unity 和团结语言包及离线文档，以及部分 Android SDK／NDK 依赖；其他模块需使用官方 Hub。已安装的 Unity 和团结离线文档可从文档页打开手册和脚本 API。
@@ -93,7 +93,7 @@ go tool mygo generate # 修改 locales/*.json 后重新生成语言包
 - 资源商店与发行页只打开官方站点，官方没有开放商店/发行 API。
 - 发布包未做代码签名，Windows 可能提示未知发布者。
 - Unity Alpha / Beta 属于预览版本，兼容性和稳定性与正式版不同。
-- Unity Personal 许可由 Unity 官方服务管理，首次激活需要在 Unity Hub 登录；本机许可文件存在不代表 Editor 已验证有效。UnityStarter 不生成或绕过许可。
+- Unity Personal 许可由 Unity 官方服务管理，[激活需要在 Unity Hub 登录](https://docs.unity.com/en-us/engine/7000.0/manual/get-started/install-and-upgrade/licenses-and-activation/manual-license-activation/manual-activation-guide)；本机许可文件存在不代表 Editor 已验证有效。UnityStarter 不生成或绕过许可。许可状态检查需要本机标准位置已安装官方 Unity CLI；检查失败或 CLI 缺失时显示状态未知。
 - 新安装的编辑器默认保存在 `%LOCALAPPDATA%\UnityStarter\Editors`，独立于应用安装目录。旧版本若将编辑器放在应用目录的 `Editors` 中，卸载器会阻止卸载，先将其移到应用目录之外即可。
 - 安装中断的编辑器不会显示为已安装；安装完成前核对编辑器程序版本和必要核心文件，可从下载页重新尝试安装或检查下载并重试。重试沿用首次选择的安装目录；已有编辑器目录不会被自动覆盖。文件存在和版本匹配仍不代表 Editor 的许可或项目启动已验证。
 - 断点续传需要官方文件校验值、分段支持和服务器文件标识；版本标识变化或校验失败时不会使用旧数据。已下载的完整文件校验通过后可离线复用。Android 多包下载中断后可在重新确认许可时复用缓存；主动取消下载会清理该计划的缓存，设置页可打开缓存目录。

@@ -120,6 +120,25 @@ func (a *app) licensePage(c *ui.Context) {
 		})
 	}, func() {
 		ui.Column(c).Gap(4).Children(func() {
+			ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
+				ui.Text(c, locales.LicenseUnityStatus()).FontSize(14).Bold().Grow(1)
+				ui.Button(c, locales.LicenseCheck()).Disabled(a.licenseCheckBusy).OnClick(a.checkUnityLicense)
+			})
+			if a.licenseCheckBusy {
+				ui.Text(c, locales.LicenseChecking()).FontSize(12).TextColor(t.TextMuted)
+			} else if a.licenseCheckState != "" {
+				message := locales.LicenseCheckFailed()
+				switch a.licenseCheckState {
+				case "active":
+					message = locales.LicenseActive()
+				case "inactive":
+					message = locales.LicenseInactive()
+				case "unavailable":
+					message = locales.LicenseCheckUnavailable()
+				}
+				ui.Text(c, message).FontSize(12).TextColor(t.TextMuted)
+			}
+			ui.Text(c, locales.LicenseCheckHint()).FontSize(11).TextColor(t.TextMuted)
 			ui.Text(c, locales.LicensesFound()).FontSize(14).Bold()
 			ui.Text(c, locales.LicensesStatusHint()).FontSize(12).TextColor(t.TextMuted)
 			if len(found) == 0 {

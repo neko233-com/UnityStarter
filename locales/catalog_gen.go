@@ -1936,6 +1936,86 @@ func (msgs Messages) LicensesFound() string {
 	return Catalog.Format(msgs.locale, "licensesFound", nil)
 }
 
+// LicenseUnityStatus says "Unity license status"
+// in the language the app shows.
+func LicenseUnityStatus() string { return In(i18n.Locale()).LicenseUnityStatus() }
+
+// LicenseUnityStatus says "Unity license status"
+// in the language of msgs.
+func (msgs Messages) LicenseUnityStatus() string {
+	return Catalog.Format(msgs.locale, "licenseUnityStatus", nil)
+}
+
+// LicenseCheck says "Check status"
+// in the language the app shows.
+func LicenseCheck() string { return In(i18n.Locale()).LicenseCheck() }
+
+// LicenseCheck says "Check status"
+// in the language of msgs.
+func (msgs Messages) LicenseCheck() string {
+	return Catalog.Format(msgs.locale, "licenseCheck", nil)
+}
+
+// LicenseChecking says "Checking Unity licensing…"
+// in the language the app shows.
+func LicenseChecking() string { return In(i18n.Locale()).LicenseChecking() }
+
+// LicenseChecking says "Checking Unity licensing…"
+// in the language of msgs.
+func (msgs Messages) LicenseChecking() string {
+	return Catalog.Format(msgs.locale, "licenseChecking", nil)
+}
+
+// LicenseActive says "The Unity CLI reports an active license. Editor compatibility is checked when it starts."
+// in the language the app shows.
+func LicenseActive() string { return In(i18n.Locale()).LicenseActive() }
+
+// LicenseActive says "The Unity CLI reports an active license. Editor compatibility is checked when it starts."
+// in the language of msgs.
+func (msgs Messages) LicenseActive() string {
+	return Catalog.Format(msgs.locale, "licenseActive", nil)
+}
+
+// LicenseInactive says "The Unity CLI reports no active license. Unity Personal requires activation through Unity Hub."
+// in the language the app shows.
+func LicenseInactive() string { return In(i18n.Locale()).LicenseInactive() }
+
+// LicenseInactive says "The Unity CLI reports no active license. Unity Personal requires activation through Unity Hub."
+// in the language of msgs.
+func (msgs Messages) LicenseInactive() string {
+	return Catalog.Format(msgs.locale, "licenseInactive", nil)
+}
+
+// LicenseCheckUnavailable says "Unity CLI was not found in its standard installation location. Use Unity Hub to check the license."
+// in the language the app shows.
+func LicenseCheckUnavailable() string { return In(i18n.Locale()).LicenseCheckUnavailable() }
+
+// LicenseCheckUnavailable says "Unity CLI was not found in its standard installation location. Use Unity Hub to check the license."
+// in the language of msgs.
+func (msgs Messages) LicenseCheckUnavailable() string {
+	return Catalog.Format(msgs.locale, "licenseCheckUnavailable", nil)
+}
+
+// LicenseCheckFailed says "Could not verify the license. Check Unity Hub or the licensing service."
+// in the language the app shows.
+func LicenseCheckFailed() string { return In(i18n.Locale()).LicenseCheckFailed() }
+
+// LicenseCheckFailed says "Could not verify the license. Check Unity Hub or the licensing service."
+// in the language of msgs.
+func (msgs Messages) LicenseCheckFailed() string {
+	return Catalog.Format(msgs.locale, "licenseCheckFailed", nil)
+}
+
+// LicenseCheckHint says "The latest check uses the official Unity CLI and does not display account or license details."
+// in the language the app shows.
+func LicenseCheckHint() string { return In(i18n.Locale()).LicenseCheckHint() }
+
+// LicenseCheckHint says "The latest check uses the official Unity CLI and does not display account or license details."
+// in the language of msgs.
+func (msgs Messages) LicenseCheckHint() string {
+	return Catalog.Format(msgs.locale, "licenseCheckHint", nil)
+}
+
 // LicensesNone says "No license file found."
 // in the language the app shows.
 func LicensesNone() string { return In(i18n.Locale()).LicensesNone() }

@@ -1,0 +1,63 @@
+package main
+
+import (
+	"context"
+	"os"
+	"testing"
+	"time"
+
+	"github.com/egoist/mygo/ui"
+	"unitystarter/locales"
+)
+
+func TestParseUnityLicenseStatus(t *testing.T) {
+	tests := []struct {
+		name, json, want string
+		valid            bool
+	}{
+		{"active", `{"success":true,"command":"license status","data":{"active":true,"machineId":"private"},"errors":[]}`, "active", true},
+		{"inactive", `{"success":false,"command":"license status","data":{"active":false},"errors":[{"code":"LICENSE_NOT_ACTIVE"}]}`, "inactive", true},
+		{"service failure", `{"success":false,"command":"license status","data":{"active":false},"errors":[{"code":"SERVICE_ERROR"}]}`, "", false},
+		{"contradictory", `{"success":true,"command":"license status","data":{"active":true},"errors":[{"code":"SERVICE_ERROR"}]}`, "", false},
+		{"missing status", `{"success":true,"command":"license status","data":{},"errors":[]}`, "", false},
+		{"wrong command", `{"success":true,"command":"license","data":{"active":true}}`, "", false},
+		{"invalid json", `{`, "", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseUnityLicenseStatus([]byte(tt.json))
+			if (err == nil) != tt.valid || got != tt.want {
+				t.Fatalf("state=%q error=%v", got, err)
+			}
+		})
+	}
+}
+
+func TestLicenseStatusInNativePage(t *testing.T) {
+	a := fixture()
+	a.page = pageLicense
+	a.licenseCheckState = "inactive"
+	tt := ui.NewTester(a.view, 900, 560)
+	if !tt.HasText(locales.LicenseCheck()) || !tt.HasText(locales.LicenseInactive()) {
+		t.Fatalf("license status controls missing: %q", tt.Texts())
+	}
+	if path := os.Getenv("LICENSE_STATUS_SNAPSHOT"); path != "" {
+		tt.Frame()
+		if err := writePNG(path, tt.Image()); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+func TestRealUnityLicenseStatus(t *testing.T) {
+	want := os.Getenv("UNITYSTARTER_EXPECT_LICENSE_STATE")
+	if want == "" {
+		t.Skip("set UNITYSTARTER_EXPECT_LICENSE_STATE for a local Unity CLI check")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	got, err := unityLicenseStatus(ctx)
+	if err != nil || got != want {
+		t.Fatalf("state=%q error=%v", got, err)
+	}
+}

@@ -74,6 +74,8 @@ type app struct {
 	moduleLoading          bool
 	moduleInstalling       bool
 	moduleStatus           string
+	licenseCheckBusy       bool
+	licenseCheckState      string
 	moduleCancel           context.CancelFunc
 	androidPlan            *androidInstallPlan
 	alertOpen              bool
