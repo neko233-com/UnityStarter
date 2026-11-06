@@ -63,6 +63,8 @@ type app struct {
 	launchEditor            func(string, []string, string) error
 	manageOpen              bool
 	manageEditor            editorInstall
+	installedModulesOpen    bool
+	installedModulesEditor  editorInstall
 	manageModules           bool
 	manageUninstall         bool
 	uninstallBusy           bool
@@ -350,6 +352,7 @@ func (a *app) view(c *ui.Context) {
 	})
 	a.newProjectDialog(c)
 	a.projectVersionDialog(c)
+	a.installedModulesDialog(c)
 	a.editorManageDialog(c)
 	a.uninstallGuardDialog(c)
 	a.availableUpdateDialog(c)

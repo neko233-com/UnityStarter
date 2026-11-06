@@ -274,6 +274,28 @@ func (msgs Messages) InstallModules() string {
 	return Catalog.Format(msgs.locale, "installModules", nil)
 }
 
+// InstalledModulesTitle says "Installed modules ({count})"
+// in the language the app shows.
+func InstalledModulesTitle(count int) string { return In(i18n.Locale()).InstalledModulesTitle(count) }
+
+// InstalledModulesTitle says "Installed modules ({count})"
+// in the language of msgs.
+func (msgs Messages) InstalledModulesTitle(count int) string {
+	return Catalog.Format(msgs.locale, "installedModulesTitle", map[string]any{"count": count})
+}
+
+// InstalledModulesShowAll says "Show all {count} installed modules"
+// in the language the app shows.
+func InstalledModulesShowAll(count int) string {
+	return In(i18n.Locale()).InstalledModulesShowAll(count)
+}
+
+// InstalledModulesShowAll says "Show all {count} installed modules"
+// in the language of msgs.
+func (msgs Messages) InstalledModulesShowAll(count int) string {
+	return Catalog.Format(msgs.locale, "installedModulesShowAll", map[string]any{"count": count})
+}
+
 // ModuleGroupTools says "Developer tools"
 // in the language the app shows.
 func ModuleGroupTools() string { return In(i18n.Locale()).ModuleGroupTools() }

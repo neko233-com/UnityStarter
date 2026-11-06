@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -42,52 +43,158 @@ func (a *app) installsPage(c *ui.Context) {
 	a.installs.Key = func(i int) any { return editors[i].Exe }
 	ui.List(c, &a.installs, len(editors), func(i int) {
 		e := editors[i]
-		ui.Row(c).Padding(18, 22).Gap(16).AlignItems(ui.Center).Children(func() {
-			ui.Icon(c, iconBrand).Size(28, 28).TextColor(t.TextMuted)
-			ui.Column(c).Grow(1).Gap(5).Children(func() {
-				ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-					ui.Text(c, displayVersion(e.Version, e.DisplayVersion)).FontSize(16).Bold()
-					ui.Badge(c, channelName(e.Kind))
-					if e.Simulated {
-						ui.Badge(c, locales.SimulatedBadge())
+		ui.Column(c).Padding(6, 22).Children(func() {
+			ui.Row(c).Padding(16).Gap(14).AlignItems(ui.Center).Background(t.Surface).Border(1, t.Border).Radius(6).Children(func() {
+				ui.Box(c).Size(44, 44).Shrink(0).Radius(6).Background(t.Background).Center().Children(func() {
+					ui.Icon(c, iconBrand).Size(26, 26).TextColor(t.TextMuted)
+				})
+				ui.Column(c).Grow(1).MinWidth(0).Gap(6).Children(func() {
+					ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
+						version := displayVersion(e.Version, e.DisplayVersion)
+						ui.Text(c, version).FontSize(15).Bold().SingleLine().Clip().Tooltip(version)
+						if e.Simulated {
+							ui.Badge(c, locales.SimulatedBadge())
+						}
+					})
+					ui.Text(c, e.Exe).FontSize(12).TextColor(t.TextMuted).SingleLine().Clip().Tooltip(e.Exe)
+					modules := installedModulesPreview(e.Modules, 3)
+					if len(modules) > 0 {
+						ui.Row(c).Gap(6).Wrap().AlignItems(ui.Center).Children(func() {
+							for _, m := range modules {
+								ui.Badge(c, moduleChipName(m)).MaxWidth(120).Clip().Tooltip(m.Name)
+							}
+							count := len(installedModuleNames(e.Modules))
+							if count > len(modules) {
+								ui.Button(c, fmt.Sprintf("+%d", count-len(modules))).Height(22).Padding(0, 8).Radius(11).Label(locales.InstalledModulesShowAll(count)).Tooltip(locales.InstalledModulesShowAll(count)).OnClick(func() {
+									a.installedModulesEditor, a.installedModulesOpen = e, true
+								})
+							}
+						})
 					}
 				})
-				ui.Text(c, e.Exe).FontSize(12).TextColor(t.TextMuted).Clip()
-				modules := installedModuleNames(e.Modules)
-				if len(modules) > 0 {
-					ui.Text(c, strings.Join(modules, " · ")).FontSize(11).TextColor(t.TextMuted).Clip()
-				}
-			})
-			ui.Row(c).Gap(6).Children(func() {
-				if e.Simulated {
+				ui.Row(c).Gap(6).Shrink(0).Children(func() {
+					if e.Simulated {
+						if ui.Button(c, locales.ActionFolder()).Clicked() {
+							mygo.Shell.ShowItemInFolder(e.Exe)
+						}
+						if ui.Button(c, locales.ActionRemove()).Clicked() {
+							if err := removeSimulatedEditor(e.Root); err != nil {
+								a.alert(err.Error())
+							} else {
+								a.refresh()
+							}
+						}
+						return
+					}
+					if ui.PrimaryButton(c, locales.InstallsLaunch()).Disabled(a.uninstallBusy && strings.EqualFold(e.Exe, a.manageEditor.Exe)).Clicked() {
+						if err := launchWithEditorLock(e.Exe, nil, filepath.Dir(e.Exe), startDetached); err != nil {
+							a.alert(locales.OpenFailed(err.Error()))
+						}
+					}
 					if ui.Button(c, locales.ActionFolder()).Clicked() {
 						mygo.Shell.ShowItemInFolder(e.Exe)
 					}
-					if ui.Button(c, locales.ActionRemove()).Clicked() {
-						if err := removeSimulatedEditor(e.Root); err != nil {
-							a.alert(err.Error())
-						} else {
-							a.refresh()
-						}
-					}
-					return
-				}
-				if ui.PrimaryButton(c, locales.InstallsLaunch()).Disabled(a.uninstallBusy && strings.EqualFold(e.Exe, a.manageEditor.Exe)).Clicked() {
-					if err := launchWithEditorLock(e.Exe, nil, filepath.Dir(e.Exe), startDetached); err != nil {
-						a.alert(locales.OpenFailed(err.Error()))
-					}
-				}
-				if ui.Button(c, locales.ActionFolder()).Clicked() {
-					mygo.Shell.ShowItemInFolder(e.Exe)
-				}
-				otherBusy := (a.moduleBusy || a.moduleLoading || a.uninstallBusy || len(a.moduleQueue) > 0 || a.androidPlan != nil) && !strings.EqualFold(a.manageEditor.Exe, e.Exe)
-				ui.Button(c, locales.InstallManage()).Disabled(otherBusy).OnClick(func() { a.openEditorManagement(e) })
+					otherBusy := (a.moduleBusy || a.moduleLoading || a.uninstallBusy || len(a.moduleQueue) > 0 || a.androidPlan != nil) && !strings.EqualFold(a.manageEditor.Exe, e.Exe)
+					ui.Button(c, locales.InstallManage()).Disabled(otherBusy).OnClick(func() { a.openEditorManagement(e) })
+				})
 			})
 		})
 	}).Grow(1).Children(func() {
 		if len(editors) == 0 {
 			a.emptyState(c, locales.InstallsEmptyTitle(), locales.InstallsEmptyHint())
 		}
+	})
+}
+
+// Platform modules appear first; the full list, including dependencies and
+// Hub-reported entries, remains available through the overflow button.
+func installedModulesPreview(modules []editorModule, limit int) []editorModule {
+	var platform, other []editorModule
+	for _, m := range modules {
+		if !m.Selected || m.Name == "" {
+			continue
+		}
+		if moduleOutput(m) != "" {
+			platform = append(platform, m)
+		} else {
+			other = append(other, m)
+		}
+	}
+	all := append(platform, other...)
+	return all[:min(max(limit, 0), len(all))]
+}
+
+func moduleChipName(m editorModule) string {
+	switch m.ID {
+	case "android":
+		return "Android"
+	case "ios":
+		return "iOS"
+	case "windows-il2cpp":
+		return "Windows"
+	case "webgl":
+		return "WebGL"
+	case "weixinminigame":
+		return "Mini Game"
+	case "playableads":
+		return "Playable Ads"
+	case "linux-il2cpp":
+		return "Linux IL2CPP"
+	case "linux-mono":
+		return "Linux Mono"
+	case "documentation":
+		return locales.ModuleGroupDocs()
+	}
+	name := []rune(strings.TrimSpace(m.Name))
+	if len(name) > 18 {
+		return string(name[:17]) + "…"
+	}
+	return string(name)
+}
+
+func (a *app) installedModulesDialog(c *ui.Context) {
+	if !a.installedModulesOpen {
+		return
+	}
+	e := a.installedModulesEditor
+	_, height := c.Size()
+	ui.Modal(c, &a.installedModulesOpen, func() {
+		ui.Column(c).Width(560).Gap(12).Children(func() {
+			ui.Text(c, locales.InstalledModulesTitle(len(installedModuleNames(e.Modules)))).FontSize(17).Bold()
+			ui.Text(c, displayVersion(e.Version, e.DisplayVersion)).FontSize(12).TextColor(c.Theme().TextMuted)
+			ui.Scroll(c).Height(min(float32(390), max(float32(180), height-270))).Children(func() {
+				ui.Column(c).Gap(2).Children(func() {
+					for _, m := range e.Modules {
+						if !m.Selected || m.Name == "" {
+							continue
+						}
+						ui.Row(c).Padding(7, 10).Gap(8).AlignItems(ui.Center).Children(func() {
+							ui.Text(c, m.Name).Grow(1).FontSize(12).SingleLine().Clip().Tooltip(m.Name)
+							if m.PresenceUnverified {
+								ui.Text(c, locales.InstallModuleReported()).FontSize(11).TextColor(c.Theme().TextMuted)
+							}
+						})
+					}
+				})
+			})
+			ui.Row(c).Gap(8).Justify(ui.End).Children(func() {
+				ui.Button(c, locales.DialogOK()).OnClick(func() { a.installedModulesOpen = false })
+				if !e.Simulated {
+					same := strings.EqualFold(a.manageEditor.Exe, e.Exe)
+					blocked := a.uninstallBusy || (same && a.uninstallStatus != "") || ((a.moduleBusy || a.moduleLoading || len(a.moduleQueue) > 0 || a.androidPlan != nil) && !same)
+					ui.PrimaryButton(c, locales.InstallModules()).Disabled(blocked).OnClick(func() {
+						a.installedModulesOpen = false
+						a.openEditorManagement(e)
+						if a.manageOpen && !a.manageUninstall {
+							a.manageModules = true
+							if len(a.manageEditor.Modules) == 0 || a.manageEditor.ModulesCached {
+								a.loadEditorModules(a.manageEditor)
+							}
+						}
+					})
+				}
+			})
+		})
 	})
 }
 
