@@ -77,7 +77,7 @@ func moduleFilesPresent(root string, m editorModule) bool {
 		return documentationFilesPresent(filepath.Join(root, "Editor", "Data", "Documentation"))
 	}
 	if m.ID == "android-sdk-ndk-tools" && m.Parent == "android" && m.EULA == androidLicenseURL {
-		return androidSDKFilesPresent(filepath.Join(root, "Editor", "Data", "PlaybackEngines", "AndroidPlayer"))
+		return androidSDKFilesPresentForPlan(filepath.Join(root, "Editor", "Data", "PlaybackEngines", "AndroidPlayer"), legacyAndroidSDKMetadata(m))
 	}
 	if _, player, ok := openJDKArchive(m); ok {
 		info, err := os.Stat(filepath.Join(root, "Editor", "Data", "PlaybackEngines", player, "OpenJDK", "bin", "java.exe"))

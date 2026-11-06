@@ -159,6 +159,13 @@ func markModuleInstalled(root string, module editorModule) error {
 	if !found {
 		return fmt.Errorf("module no longer in metadata")
 	}
+	if legacyAndroidSDKMetadata(module) {
+		for i, current := range currentModules {
+			if current.Sync == module.ID {
+				rows[i]["selected"] = json.RawMessage("true")
+			}
+		}
+	}
 	encoded, err := json.Marshal(rows)
 	if err != nil {
 		return err
@@ -326,6 +333,9 @@ func (a *app) editorManageDialog(c *ui.Context) {
 					} else {
 						ui.Text(c, locales.AndroidLicenseHint(len(plan.Packages), humanSize(total))).FontSize(12).TextColor(t.TextMuted)
 					}
+					if plan.LegacyTuanjie {
+						ui.Text(c, locales.AndroidLegacyBaseline()).FontSize(12).TextColor(t.TextMuted)
+					}
 					if plan.CachedBytes > 0 {
 						ui.Text(c, locales.AndroidCachedBytes(humanSize(plan.CachedBytes))).FontSize(12).TextColor(t.TextMuted)
 					}
@@ -383,7 +393,7 @@ func (a *app) editorManageDialog(c *ui.Context) {
 									})
 									if !supported && !android {
 										_, _, archive := openJDKArchive(m)
-										if (archive || (e.Kind == kindUnity && androidSDKMetadata(m))) && !parentModuleSelected(e.Modules, m.Parent) {
+										if (archive || (e.Kind == kindUnity && androidSDKMetadata(m)) || (e.Kind == kindTuanjie && legacyAndroidSDKMetadata(m))) && !parentModuleSelected(e.Modules, m.Parent) {
 											button.Tooltip(locales.InstallModuleNeedsParent())
 										} else {
 											button.Tooltip(locales.InstallModuleUnavailable())

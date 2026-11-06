@@ -240,7 +240,7 @@ func recoverAndroidJournal(cache *androidCache, root string) (bool, error) {
 			return false, err
 		}
 	}
-	if !androidSDKFilesPresent(parent) {
+	if !androidSDKFilesPresentForPlan(parent, cache.plan.LegacyTuanjie) {
 		return false, fmt.Errorf("recovered Android files are incomplete")
 	}
 	return true, nil

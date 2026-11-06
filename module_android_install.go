@@ -153,9 +153,17 @@ func renameAndroidArchive(stage, from, to string) error {
 }
 
 func androidSDKFilesPresent(player string) bool {
-	for _, pattern := range []string{
+	return androidSDKFilesPresentForPlan(player, false)
+}
+
+func androidSDKFilesPresentForPlan(player string, legacy bool) bool {
+	patterns := []string{
 		"SDK/platform-tools/adb.exe", "SDK/build-tools/*/aapt.exe", "SDK/platforms/*/android.jar", "SDK/cmake/*/bin/cmake.exe", "SDK/cmdline-tools/*/bin/sdkmanager.bat", "NDK/source.properties",
-	} {
+	}
+	if legacy {
+		patterns = []string{"SDK/tools/bin/sdkmanager.bat", "SDK/platform-tools/adb.exe", "SDK/build-tools/34.0.0/aapt.exe", "SDK/platforms/android-33/android.jar", "SDK/platforms/android-34/android.jar", "SDK/platforms/android-35/android.jar", "SDK/cmdline-tools/6.0/bin/sdkmanager.bat", "NDK/source.properties"}
+	}
+	for _, pattern := range patterns {
 		matches, err := filepath.Glob(filepath.Join(player, filepath.FromSlash(pattern)))
 		if err != nil {
 			return false
@@ -247,7 +255,7 @@ func installAndroidArchivesJournal(root string, plan androidInstallPlan, archive
 			return fmt.Errorf("%s: %w", pkg.Module.ID, err)
 		}
 	}
-	if !androidSDKFilesPresent(stage) {
+	if !androidSDKFilesPresentForPlan(stage, plan.LegacyTuanjie) {
 		return fmt.Errorf("Android SDK or NDK files are incomplete")
 	}
 	// Android's SDK manager records an accepted license as the SHA-1 of the

@@ -39,7 +39,8 @@ func androidCacheIdentity(root string, plan androidInstallPlan) (string, string,
 		Version                   int
 		Root, Module, LicenseHash string
 		Packages                  []packageIdentity
-	}{Version: 1, Root: root, Module: plan.Module.ID, LicenseHash: downloadIdentity(plan.License)}
+		LegacyTuanjie             bool `json:",omitempty"`
+	}{Version: 1, Root: root, Module: plan.Module.ID, LicenseHash: downloadIdentity(plan.License), LegacyTuanjie: plan.LegacyTuanjie}
 	for _, p := range plan.Packages {
 		if p.ExpectedSize <= 0 {
 			return "", "", fmt.Errorf("invalid Android cache package size")

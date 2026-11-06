@@ -57,10 +57,11 @@ type androidInstallPlan struct {
 	License         string
 	CachedBytes     int64
 	RecoveryPending bool
+	LegacyTuanjie   bool
 }
 
 func androidSDKCandidate(e editorInstall, m editorModule) bool {
-	return e.Kind == kindUnity && androidSDKMetadata(m) && parentModuleSelected(e.Modules, "android")
+	return parentModuleSelected(e.Modules, "android") && ((e.Kind == kindUnity && androidSDKMetadata(m)) || (e.Kind == kindTuanjie && legacyAndroidSDKMetadata(m)))
 }
 
 func androidSDKMetadata(m editorModule) bool {
@@ -167,6 +168,9 @@ func prepareAndroidPlan(ctx context.Context, e editorInstall, m editorModule) (a
 	license := androidLicense(licenseRepo)
 	if strings.TrimSpace(license) == "" || license != androidLicense(google) {
 		return plan, fmt.Errorf("Android license terms differ or are unavailable")
+	}
+	if e.Kind == kindTuanjie {
+		return prepareLegacyTuanjieAndroidPlan(e, m, license)
 	}
 	baseIntegrity, _ := trustedUnityArchiveIntegrity(m.URL)
 	plan.Module, plan.License = m, license

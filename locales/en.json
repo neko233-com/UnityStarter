@@ -91,6 +91,7 @@
   "actionInstall": "Install",
   "settingsInstallRoot": "Install folder",
   "installChooseLocation": "Choose install location",
+  "androidLegacyBaseline": "Legacy archives use fixed SHA-256 baselines observed from Google HTTPS downloads; some checksums are absent from the current official catalog.",
   "settingsInstallRootHint": "Downloaded editors are installed here, one folder per version.",
   "settingsDownloadCache": "Download cache",
   "settingsDownloadCacheHint": "Interrupted downloads are saved here; inspect older caches in the file manager.",

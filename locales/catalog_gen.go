@@ -860,6 +860,16 @@ func (msgs Messages) InstallChooseLocation() string {
 	return Catalog.Format(msgs.locale, "installChooseLocation", nil)
 }
 
+// AndroidLegacyBaseline says "Legacy archives use fixed SHA-256 baselines observed from Google HTTPS downloads; some checksums are absent from the …"
+// in the language the app shows.
+func AndroidLegacyBaseline() string { return In(i18n.Locale()).AndroidLegacyBaseline() }
+
+// AndroidLegacyBaseline says "Legacy archives use fixed SHA-256 baselines observed from Google HTTPS downloads; some checksums are absent from the …"
+// in the language of msgs.
+func (msgs Messages) AndroidLegacyBaseline() string {
+	return Catalog.Format(msgs.locale, "androidLegacyBaseline", nil)
+}
+
 // SettingsInstallRootHint says "Downloaded editors are installed here, one folder per version."
 // in the language the app shows.
 func SettingsInstallRootHint() string { return In(i18n.Locale()).SettingsInstallRootHint() }
