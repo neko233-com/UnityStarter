@@ -350,6 +350,7 @@
   "newProjectEditor": "Editor",
   "newProjectIncomplete": "Choose a folder and a name first.",
   "newProjectInvalidName": "Enter a valid folder name without a path or Windows reserved characters.",
+  "projectVersionChanged": "The project's editor version changed. Refresh the project list and choose an editor again.",
   "newProjectExists": "{path} is not empty.",
   "@newProjectExists": {
     "placeholders": { "path": { "type": "String", "example": "D:\\Games\\My Game" } }

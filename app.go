@@ -483,6 +483,17 @@ func (a *app) openProject(p projectEntry) {
 			return
 		}
 	}
+	version, _, ok := readProject(p.Path)
+	if !ok {
+		a.alert(locales.NotAProject(p.Path))
+		a.refresh()
+		return
+	}
+	if !strings.EqualFold(version, p.Version) {
+		a.alert(locales.ProjectVersionChanged())
+		a.refresh()
+		return
+	}
 	if err := a.launchEditor(p.Editor, []string{"-projectPath", p.Path}, filepath.Dir(p.Editor)); err != nil {
 		a.alert(locales.OpenFailed(err.Error()))
 	}

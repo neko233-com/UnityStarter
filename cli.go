@@ -236,6 +236,15 @@ func cliOpen(args []string, scanFn func(prefs) scanResult, out io.Writer) int {
 			return 1
 		}
 	}
+	version, _, ok := readProject(p.Path)
+	if !ok {
+		fmt.Fprintln(out, locales.CliNotAProject(p.Path))
+		return 1
+	}
+	if !strings.EqualFold(version, p.Version) {
+		fmt.Fprintln(out, locales.ProjectVersionChanged())
+		return 1
+	}
 	if err := startDetached(p.Editor, []string{"-projectPath", p.Path}, filepath.Dir(p.Editor)); err != nil {
 		fmt.Fprintln(out, err)
 		return 1

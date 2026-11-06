@@ -2664,6 +2664,16 @@ func (msgs Messages) NewProjectInvalidName() string {
 	return Catalog.Format(msgs.locale, "newProjectInvalidName", nil)
 }
 
+// ProjectVersionChanged says "The project's editor version changed. Refresh the project list and choose an editor again."
+// in the language the app shows.
+func ProjectVersionChanged() string { return In(i18n.Locale()).ProjectVersionChanged() }
+
+// ProjectVersionChanged says "The project's editor version changed. Refresh the project list and choose an editor again."
+// in the language of msgs.
+func (msgs Messages) ProjectVersionChanged() string {
+	return Catalog.Format(msgs.locale, "projectVersionChanged", nil)
+}
+
 // NewProjectExists says "{path} is not empty."
 // in the language the app shows.
 func NewProjectExists(path string) string { return In(i18n.Locale()).NewProjectExists(path) }

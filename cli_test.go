@@ -109,6 +109,17 @@ func TestCLINeverLaunchesSimulatedEditors(t *testing.T) {
 	}
 }
 
+func TestCLIOpenRejectsStaleProjectVersion(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "Game")
+	writeProject(t, path, "6000.0.2f1")
+	res := scanResult{projects: []projectEntry{{Name: "game", Path: path, Version: "2022.3.51f1", Editor: "editor"}}}
+	var out bytes.Buffer
+	code := runCLI([]string{"open", path}, &out, func(prefs) scanResult { return res })
+	if code != 1 || !strings.Contains(out.String(), locales.ProjectVersionChanged()) {
+		t.Fatalf("stale project launch was not rejected: exit=%d output=%q", code, out.String())
+	}
+}
+
 func TestCLIHubStatusJSON(t *testing.T) {
 	code, out := run(t, "hub", "status", "--json")
 	if code != 0 {

@@ -628,6 +628,52 @@ func TestProjectSelectVersionAndConfirmBeforeLaunch(t *testing.T) {
 	}
 }
 
+func TestProjectVersionRecheckedAfterMigrationConfirmation(t *testing.T) {
+	a := fixture()
+	path := filepath.Join(t.TempDir(), "Game")
+	writeProject(t, path, "2022.3.51f1")
+	a.projects[0].Path = path
+	a.editors = append(a.editors, editorInstall{Version: "6000.0.1f1", Kind: kindUnity, Exe: "chosen-editor"})
+	launched := false
+	a.launchEditor = func(string, []string, string) error { launched = true; return nil }
+	tt := ui.NewTester(a.view, 1180, 760)
+	if err := tt.Click("2022.3.51f1 ▾"); err != nil {
+		t.Fatal(err)
+	}
+	if err := tt.Click(locales.ProjectVersionOpen()); err != nil {
+		t.Fatal(err)
+	}
+	if !tt.HasText(locales.ProjectVersionWarning()) {
+		t.Fatal("migration confirmation missing")
+	}
+	writeProject(t, path, "6000.0.2f1")
+	if err := tt.Click(locales.ProjectVersionContinue()); err != nil {
+		t.Fatal(err)
+	}
+	if launched || !tt.HasText(locales.ProjectVersionChanged()) {
+		t.Fatalf("stale confirmation launched the editor or lacked a warning: %q", tt.Texts())
+	}
+}
+
+func TestProjectOpenRejectsChangedOrMissingProject(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "Game")
+	writeProject(t, path, "6000.0.2f1")
+	a := fixture()
+	launched := false
+	a.launchEditor = func(string, []string, string) error { launched = true; return nil }
+	p := projectEntry{Path: path, Version: "2022.3.51f1", Editor: "editor"}
+	a.openProject(p)
+	if launched || !a.alertOpen || a.alertMessage != locales.ProjectVersionChanged() {
+		t.Fatalf("changed version was not rejected: %q", a.alertMessage)
+	}
+	a.alertOpen = false
+	p.Path = filepath.Join(t.TempDir(), "missing")
+	a.openProject(p)
+	if launched || !a.alertOpen || a.alertMessage != locales.NotAProject(p.Path) {
+		t.Fatalf("missing project was not rejected: %q", a.alertMessage)
+	}
+}
+
 func TestProjectSortAndMissingVersionChoice(t *testing.T) {
 	a := fixture()
 	a.projects = append(a.projects, projectEntry{Name: "alpha", Path: "alpha", Version: "6000.0.2f1", Kind: kindUnity})
