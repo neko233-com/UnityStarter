@@ -91,6 +91,10 @@ func moduleOutput(m editorModule) string {
 		return filepath.Join("LinuxStandaloneSupport", "Variations", "linux64_player_development_mono")
 	case "linux-coreclr":
 		return filepath.Join("LinuxStandaloneSupport", "Variations", "linux64_player_development_coreclr")
+	case "armlinux":
+		return filepath.Join("ArmLinux", "Variations", "armlinux_arm64_development_il2cpp")
+	case "openharmony":
+		return "OpenHarmonyPlayer"
 	case "linux-server":
 		return filepath.Join("LinuxStandaloneSupport", "Variations", "linux64_server_development_mono")
 	case "windows-server":

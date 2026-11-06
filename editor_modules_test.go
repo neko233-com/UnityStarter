@@ -164,7 +164,7 @@ func TestLinuxIL2CPPModuleRequiresBothPlayers(t *testing.T) {
 }
 
 func TestAdditionalPlatformModulesRequireAllPlayerVariants(t *testing.T) {
-	for _, id := range []string{"linux-mono", "linux-coreclr", "linux-server", "windows-server", "mac-coreclr", "mac-server-coreclr", "mac-mono", "mac-server"} {
+	for _, id := range []string{"linux-mono", "linux-coreclr", "linux-server", "windows-server", "mac-coreclr", "mac-server-coreclr", "mac-mono", "mac-server", "armlinux"} {
 		t.Run(id, func(t *testing.T) {
 			m := editorModule{ID: id, URL: "https://download.unity3d.com/module.exe", Checksum: strings.Repeat("a", 32), Destination: "{UNITY_PATH}"}
 			if !standaloneModule(m) {
@@ -192,7 +192,7 @@ func TestAdditionalPlatformModulesRequireAllPlayerVariants(t *testing.T) {
 	}
 }
 
-func TestAppleAndUWPModuleFileChecks(t *testing.T) {
+func TestAppleUWPAndTuanjieModuleFileChecks(t *testing.T) {
 	for _, tc := range []struct {
 		id    string
 		files []string
@@ -200,6 +200,7 @@ func TestAppleAndUWPModuleFileChecks(t *testing.T) {
 		{"appletv", []string{"AppleTVSupport/UnityEditor.AppleTV.Extensions.dll", "AppleTVSupport/Variations/il2cpp/Releasearm64_managed/fixture"}},
 		{"visionos", []string{"VisionOSPlayer/UnityEditor.VisionOS.Extensions.dll", "VisionOSPlayer/Variations/il2cpp/Releasearm64_managed/fixture"}},
 		{"universal-windows-platform", []string{"MetroSupport/UnityEditor.UWP.Extensions.dll", "MetroSupport/Players/UAP/il2cpp/x64/debug/UnityPlayer.dll", "MetroSupport/Players/UAP/il2cpp/x64/release/UnityPlayer.dll", "MetroSupport/Players/UAP/il2cpp/x64/master/UnityPlayer.dll"}},
+		{"openharmony", []string{"OpenHarmonyPlayer/UnityEditor.OpenHarmony.Extensions.dll", "OpenHarmonyPlayer/Variations/il2cpp/Development/Libs/arm64-v8a/libtuanjie.so", "OpenHarmonyPlayer/Variations/il2cpp/Release/Libs/arm64-v8a/libtuanjie.so"}},
 	} {
 		t.Run(tc.id, func(t *testing.T) {
 			m := editorModule{ID: tc.id, URL: "https://download.unity3d.com/module.exe", Checksum: strings.Repeat("a", 32), Destination: "{UNITY_PATH}"}

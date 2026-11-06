@@ -24,6 +24,7 @@ Windows 10/11 x64，单文件约 10 MB。
 - Unity Hub 的模块清单可使用 `integrity` 或 `checksum` 表示 MD5；两者同时存在时必须一致。安装后只更新模块选择状态，保留清单中的其他字段。
 - Windows Dedicated Server、Linux Mono／CoreCLR 和 Linux Dedicated Server 可使用官方独立安装包；状态检查要求对应的 64 位开发版和非开发版 Player 文件齐全，服务端支持 Unity 7 的 CoreCLR 布局。文件检查不代表已完成平台构建。
 - 支持官方 macOS Mono／CoreCLR 及服务端模块、tvOS、visionOS 和 UWP 模块；按各模块的编辑器扩展和关键 Player 文件核对状态。Apple 目标平台仍需其构建环境，文件检查不代表已完成平台构建。
+- 支持团结 Arm Linux 和 OpenHarmony 官方平台模块；核对 Arm Linux 开发版与非开发版 Player，以及 OpenHarmony 编辑器扩展和两种 ARM64 Player 文件。OpenHarmony SDK 和 Node.js 依赖仍需自行配置，文件检查不代表已完成平台构建。
 - 卸载编辑器前需确认操作；原生界面调用该安装自带的官方静默卸载器，先检查同一路径的编辑器进程，等待 `Editor` 目录消失后才报告完成。超时、进程异常退出或目录仍有文件时会保留保护记录，阻止 UnityStarter 再次操作该安装；确认官方卸载器已停止后可在界面解除保护。仍可选择打开官方交互式卸载器；项目目录不由 UnityStarter 删除。
 - UnityStarter 的窗口和 CLI 通过跨进程锁协调同一编辑器的启动、安装、模块写入与卸载。其他程序不受此锁约束，因此卸载时仍应避免通过官方 Hub 或其他工具启动该编辑器。
 
