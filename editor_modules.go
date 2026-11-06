@@ -170,6 +170,9 @@ func moduleInstallSpec(e editorInstall, m editorModule) (integrity, player, exte
 	if sum, player, valid := openJDKArchive(m); valid && parentModuleSelected(e.Modules, m.Parent) {
 		return sum, player, ".zip", true
 	}
+	if sum, valid := openHarmonyNodeArchive(m); valid && e.Kind == kindTuanjie && parentModuleSelected(e.Modules, m.Parent) {
+		return sum, openHarmonyNodeModule, ".zip", true
+	}
 	if sum, version, valid := tuanjieDocumentationArchive(m); valid && e.Kind == kindTuanjie && version == e.Version {
 		return sum, documentationModule, ".zip", true
 	}
@@ -331,6 +334,8 @@ func executeEditorModule(ctx context.Context, e editorInstall, m editorModule, p
 		err = installTuanjieDocumentation(e.Root, path, integrity)
 	} else if player == unityDocumentationModule {
 		err = installDocumentation(e.Root, path, integrity, "en")
+	} else if player == openHarmonyNodeModule {
+		err = installOpenHarmonyNode(e.Root, path, integrity)
 	} else if player != "" {
 		err = installOpenJDK(e.Root, path, player, integrity)
 	} else {
@@ -535,7 +540,8 @@ func (a *app) editorManageDialog(c *ui.Context) {
 									})
 									if !supported && !android {
 										_, _, archive := openJDKArchive(m)
-										if (archive || (e.Kind == kindUnity && androidSDKMetadata(m)) || (e.Kind == kindTuanjie && legacyAndroidSDKMetadata(m))) && !parentModuleSelected(e.Modules, m.Parent) {
+										_, nodeArchive := openHarmonyNodeArchive(m)
+										if (archive || nodeArchive || (e.Kind == kindUnity && androidSDKMetadata(m)) || (e.Kind == kindTuanjie && legacyAndroidSDKMetadata(m))) && !parentModuleSelected(e.Modules, m.Parent) {
 											button.Tooltip(locales.InstallModuleNeedsParent())
 										} else {
 											button.Tooltip(locales.InstallModuleUnavailable())

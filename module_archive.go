@@ -81,6 +81,9 @@ func moduleFilesVerifiable(m editorModule) bool {
 	if androidSDKMetadata(m) || legacyAndroidSDKMetadata(m) {
 		return true
 	}
+	if _, ok := openHarmonyNodeArchive(m); ok {
+		return true
+	}
 	_, _, ok := openJDKArchive(m)
 	return ok
 }
@@ -174,6 +177,9 @@ func moduleFilesPresent(root string, m editorModule) bool {
 		info, err := os.Stat(filepath.Join(root, "Editor", "Data", "PlaybackEngines", player, "OpenJDK", "bin", "java.exe"))
 		return err == nil && info.Mode().IsRegular() && info.Size() > 0
 	}
+	if _, ok := openHarmonyNodeArchive(m); ok {
+		return openHarmonyNodeFilesPresent(filepath.Join(root, "Editor", "Data", "PlaybackEngines", "OpenHarmonyPlayer", "Nodejs"))
+	}
 	output := moduleOutput(m)
 	if output == "" {
 		return false
@@ -230,6 +236,14 @@ func installOpenJDK(root, archive, player, integrity string) error {
 	if player != "AndroidPlayer" && player != "HMIAndroidPlayer" && player != "OpenHarmonyPlayer" {
 		return fmt.Errorf("unsupported module destination")
 	}
+	return installVerifiedToolArchive(root, archive, player, "OpenJDK", filepath.Join("bin", "java.exe"), integrity)
+}
+
+func installVerifiedToolArchive(root, archive, player, name, executable, integrity string) error {
+	if (name != "OpenJDK" || (player != "AndroidPlayer" && player != "HMIAndroidPlayer" && player != "OpenHarmonyPlayer") || executable != filepath.Join("bin", "java.exe")) &&
+		(name != "Nodejs" || player != "OpenHarmonyPlayer" || executable != filepath.Join(openHarmonyNodeFolder, "node.exe")) {
+		return fmt.Errorf("unsupported module destination")
+	}
 	root, err := filepath.Abs(root)
 	if err != nil {
 		return err
@@ -246,32 +260,38 @@ func installOpenJDK(root, archive, player, integrity string) error {
 			return fmt.Errorf("module parent is missing or unsafe")
 		}
 	}
-	dest := filepath.Join(parent, "OpenJDK")
+	dest := filepath.Join(parent, name)
 	if info, err := os.Lstat(dest); err == nil {
 		if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
-			return fmt.Errorf("OpenJDK destination is not a directory")
+			return fmt.Errorf("tool destination is not a directory")
 		}
 		entries, err := os.ReadDir(dest)
 		if err != nil {
 			return err
 		}
 		if len(entries) != 0 {
-			return fmt.Errorf("OpenJDK destination already contains files")
+			return fmt.Errorf("tool destination already contains files")
 		}
 	} else if !os.IsNotExist(err) {
 		return err
 	}
-	stage, err := os.MkdirTemp(parent, ".unitystarter-jdk-")
+	stage, err := os.MkdirTemp(parent, ".unitystarter-tool-")
 	if err != nil {
 		return err
 	}
-	defer removeJDKStage(parent, stage)
-	if err := extractJDKArchive(archive, stage, integrity); err != nil {
+	defer removeToolStage(parent, stage)
+	if !strings.HasPrefix(integrity, "sha256-") {
+		return fmt.Errorf("missing or invalid tool integrity")
+	}
+	if err := extractVerifiedArchive(archive, stage, integrity, 20000); err != nil {
 		return err
 	}
-	java := filepath.Join(stage, "bin", "java.exe")
-	if info, err := os.Stat(java); err != nil || !info.Mode().IsRegular() || info.Size() == 0 {
-		return fmt.Errorf("OpenJDK archive does not contain bin/java.exe")
+	tool := filepath.Join(stage, executable)
+	if info, err := os.Stat(tool); err != nil || !info.Mode().IsRegular() || info.Size() == 0 {
+		return fmt.Errorf("tool archive does not contain expected executable")
+	}
+	if name == "Nodejs" && !openHarmonyNodeFilesPresent(stage) {
+		return fmt.Errorf("Node.js archive is missing npm")
 	}
 	removedEmpty := false
 	if _, err := os.Lstat(dest); err == nil {
@@ -291,19 +311,12 @@ func installOpenJDK(root, archive, player, integrity string) error {
 	return nil
 }
 
-func removeJDKStage(parent, stage string) {
+func removeToolStage(parent, stage string) {
 	rel, err := filepath.Rel(parent, stage)
-	if err != nil || filepath.Dir(rel) != "." || !strings.HasPrefix(rel, ".unitystarter-jdk-") {
+	if err != nil || filepath.Dir(rel) != "." || !strings.HasPrefix(rel, ".unitystarter-tool-") {
 		return
 	}
 	_ = os.RemoveAll(stage)
-}
-
-func extractJDKArchive(archive, stage, integrity string) error {
-	if !strings.HasPrefix(integrity, "sha256-") {
-		return fmt.Errorf("missing or invalid OpenJDK integrity")
-	}
-	return extractVerifiedArchive(archive, stage, integrity, 20000)
 }
 
 func extractVerifiedArchive(archive, stage, integrity string, maxEntries int) error {

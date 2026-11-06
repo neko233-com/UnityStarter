@@ -10,6 +10,9 @@ import (
 // Only these module formats actually require an installed parent. Other
 // catalog parent labels may be presentation groups rather than dependencies.
 func moduleRequiredParent(m editorModule) string {
+	if _, ok := openHarmonyNodeArchive(m); ok {
+		return m.Parent
+	}
 	if _, _, ok := openJDKArchive(m); ok || androidSDKMetadata(m) || legacyAndroidSDKMetadata(m) {
 		return m.Parent
 	}
