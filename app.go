@@ -92,6 +92,7 @@ type app struct {
 	licenseCheckBusy        bool
 	licenseCheckState       string
 	moduleCancel            context.CancelFunc
+	visualStudioTask        *visualStudioTask
 	androidPlan             *androidInstallPlan
 	alertOpen               bool
 	alertMessage            string
@@ -314,6 +315,7 @@ func (a *app) view(c *ui.Context) {
 				a.uninstallGuardBanner(c)
 				a.uninstallActivityBanner(c)
 				a.moduleActivityBanner(c)
+				a.visualStudioActivityBanner(c)
 				a.editorActivityBanner(c)
 				a.updateBanner(c)
 				switch a.page {

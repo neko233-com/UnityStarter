@@ -21,7 +21,7 @@ func TestVisualStudioInstallerElevationFallback(t *testing.T) {
 		t.Fatal(err)
 	}
 	m := visualStudioFixture("2022")
-	m.ToolStatus, m.ToolPath = "incomplete", filepath.Join(base, "Visual Studio 2022")
+	m.ToolStatus, m.ToolPath, m.ToolInstanceID = "incomplete", filepath.Join(base, "Visual Studio 2022"), "test-instance"
 	want, err := visualStudioModifyArgs(m)
 	if err != nil {
 		t.Fatal(err)

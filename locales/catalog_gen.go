@@ -396,11 +396,11 @@ func (msgs Messages) VisualStudioModify() string {
 	return Catalog.Format(msgs.locale, "visualStudioModify", nil)
 }
 
-// VisualStudioInstallerOpened says "Installer launch requested. Complete the operation in Visual Studio Installer, then refresh this list to verify the c…"
+// VisualStudioInstallerOpened says "Installer launch requested. Complete the operation in Visual Studio Installer; components are checked automatically w…"
 // in the language the app shows.
 func VisualStudioInstallerOpened() string { return In(i18n.Locale()).VisualStudioInstallerOpened() }
 
-// VisualStudioInstallerOpened says "Installer launch requested. Complete the operation in Visual Studio Installer, then refresh this list to verify the c…"
+// VisualStudioInstallerOpened says "Installer launch requested. Complete the operation in Visual Studio Installer; components are checked automatically w…"
 // in the language of msgs.
 func (msgs Messages) VisualStudioInstallerOpened() string {
 	return Catalog.Format(msgs.locale, "visualStudioInstallerOpened", nil)
@@ -414,6 +414,56 @@ func VisualStudioInstanceChanged() string { return In(i18n.Locale()).VisualStudi
 // in the language of msgs.
 func (msgs Messages) VisualStudioInstanceChanged() string {
 	return Catalog.Format(msgs.locale, "visualStudioInstanceChanged", nil)
+}
+
+// VisualStudioWaiting says "Waiting for confirmation or installation; checking Visual Studio components automatically."
+// in the language the app shows.
+func VisualStudioWaiting() string { return In(i18n.Locale()).VisualStudioWaiting() }
+
+// VisualStudioWaiting says "Waiting for confirmation or installation; checking Visual Studio components automatically."
+// in the language of msgs.
+func (msgs Messages) VisualStudioWaiting() string {
+	return Catalog.Format(msgs.locale, "visualStudioWaiting", nil)
+}
+
+// VisualStudioVerified says "The requested Visual Studio components are installed and verified."
+// in the language the app shows.
+func VisualStudioVerified() string { return In(i18n.Locale()).VisualStudioVerified() }
+
+// VisualStudioVerified says "The requested Visual Studio components are installed and verified."
+// in the language of msgs.
+func (msgs Messages) VisualStudioVerified() string {
+	return Catalog.Format(msgs.locale, "visualStudioVerified", nil)
+}
+
+// VisualStudioUnverified says "Automatic checking ended without verifying the components. Refresh the module list to check again."
+// in the language the app shows.
+func VisualStudioUnverified() string { return In(i18n.Locale()).VisualStudioUnverified() }
+
+// VisualStudioUnverified says "Automatic checking ended without verifying the components. Refresh the module list to check again."
+// in the language of msgs.
+func (msgs Messages) VisualStudioUnverified() string {
+	return Catalog.Format(msgs.locale, "visualStudioUnverified", nil)
+}
+
+// VisualStudioStopWatching says "Stop checking"
+// in the language the app shows.
+func VisualStudioStopWatching() string { return In(i18n.Locale()).VisualStudioStopWatching() }
+
+// VisualStudioStopWatching says "Stop checking"
+// in the language of msgs.
+func (msgs Messages) VisualStudioStopWatching() string {
+	return Catalog.Format(msgs.locale, "visualStudioStopWatching", nil)
+}
+
+// VisualStudioStopWatchingHint says "Stops checking only; Visual Studio Installer continues independently."
+// in the language the app shows.
+func VisualStudioStopWatchingHint() string { return In(i18n.Locale()).VisualStudioStopWatchingHint() }
+
+// VisualStudioStopWatchingHint says "Stops checking only; Visual Studio Installer continues independently."
+// in the language of msgs.
+func (msgs Messages) VisualStudioStopWatchingHint() string {
+	return Catalog.Format(msgs.locale, "visualStudioStopWatchingHint", nil)
 }
 
 // VisualStudioWorkloadMissingHint says "Visual Studio is installed, but the components required by this module are incomplete. Use the Visual Studio Installe…"

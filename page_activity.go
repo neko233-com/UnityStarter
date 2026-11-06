@@ -82,12 +82,30 @@ func (a *app) activityPage(c *ui.Context) {
 	module := a.manageModules && (a.moduleBusy || a.moduleLoading || len(a.moduleQueue) > 0 || a.androidPlan != nil || a.moduleStatus != "")
 	a.header(c, locales.ActivityTitle(), "", func() {})
 	ui.Divider(c)
-	if len(jobs) == 0 && !module {
+	if len(jobs) == 0 && !module && a.visualStudioTask == nil {
 		a.emptyState(c, locales.ActivityEmpty(), "")
 		return
 	}
 	ui.Scroll(c).Grow(1).Children(func() {
 		ui.Column(c).Padding(24, 26).Gap(18).MaxWidth(900).Children(func() {
+			if task := a.visualStudioTask; task != nil {
+				ui.Column(c).Gap(8).Children(func() {
+					ui.Text(c, task.Module.Name).FontSize(14).Bold()
+					status := locales.VisualStudioWaiting()
+					if task.Status == "ready" {
+						status = locales.VisualStudioVerified()
+					} else if task.Status == "unverified" {
+						status = locales.VisualStudioUnverified()
+					}
+					ui.Text(c, status).FontSize(12).TextColor(c.Theme().TextMuted).Clip().Tooltip(status)
+					if task.Status == "waiting" {
+						ui.Progress(c, -1).Width(180)
+						ui.Button(c, locales.VisualStudioStopWatching()).OnClick(a.dismissVisualStudioTask).Tooltip(locales.VisualStudioStopWatchingHint())
+					} else {
+						ui.Button(c, locales.DialogOK()).OnClick(a.dismissVisualStudioTask)
+					}
+				})
+			}
 			if module {
 				ui.Column(c).Gap(8).Children(func() {
 					ui.Text(c, displayVersion(a.manageEditor.Version, a.manageEditor.DisplayVersion)+" · "+a.moduleCurrentName).FontSize(14).Bold()

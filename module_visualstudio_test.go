@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 	"unitystarter/locales"
@@ -64,12 +65,67 @@ func TestVisualStudioWorkloadDetection(t *testing.T) {
 func TestVisualStudioMissingWorkloadIsVisible(t *testing.T) {
 	a := fixture()
 	m := visualStudioFixture("2022")
-	m.ToolStatus, m.ToolPath = "incomplete", t.TempDir()
+	m.ToolStatus, m.ToolPath, m.ToolInstanceID = "incomplete", t.TempDir(), "test-instance"
 	a.manageEditor.Modules = []editorModule{m}
 	a.manageOpen, a.manageModules = true, true
 	tt := ui.NewTester(a.view, 1180, 760)
 	if !tt.HasText(m.Name) || !tt.HasText(locales.VisualStudioModify()) {
 		t.Fatalf("missing workload not visible: %q", tt.Texts())
+	}
+}
+
+func TestVisualStudioWatchRequiresExactInstanceAndCanStop(t *testing.T) {
+	m := visualStudioFixture("2022")
+	m.ToolStatus, m.ToolPath, m.ToolInstanceID = "incomplete", t.TempDir(), "target"
+	target := visualStudioInstance{InstanceID: "target", ProductID: "Microsoft.VisualStudio.Product.Community", InstallationVersion: "17.14.1", InstallationPath: m.ToolPath, IsComplete: true, IsLaunchable: true}
+	other := target
+	other.InstanceID, other.InstallationPath = "other", t.TempDir()
+	all, _ := json.Marshal([]visualStudioInstance{target, other})
+	otherReady, _ := json.Marshal([]visualStudioInstance{other})
+	targetReady, _ := json.Marshal([]visualStudioInstance{target})
+	if visualStudioTargetReady(m, all, otherReady) {
+		t.Fatal("another instance was treated as the target")
+	}
+	calls := 0
+	query := func(context.Context) ([]byte, []byte, error) {
+		calls++
+		if calls == 1 {
+			return all, otherReady, nil
+		}
+		return all, targetReady, nil
+	}
+	if err := waitVisualStudioReady(context.Background(), m, time.Millisecond, query); err != nil || calls != 2 {
+		t.Fatalf("watch failed: calls=%d err=%v", calls, err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if err := waitVisualStudioReady(ctx, m, time.Millisecond, query); err != context.Canceled || calls != 2 {
+		t.Fatalf("canceled watch queried or returned success: calls=%d err=%v", calls, err)
+	}
+	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Millisecond)
+	defer cancel()
+	err := waitVisualStudioReady(ctx, m, time.Millisecond, func(context.Context) ([]byte, []byte, error) {
+		return all, otherReady, nil
+	})
+	if err != context.DeadlineExceeded {
+		t.Fatalf("unverified instance should time out: %v", err)
+	}
+}
+
+func TestVisualStudioWatchActivityCanBeDismissed(t *testing.T) {
+	a := fixture()
+	a.page = pageActivity
+	canceled := false
+	a.visualStudioTask = &visualStudioTask{Module: visualStudioFixture("2022"), Status: "waiting", Cancel: func() { canceled = true }}
+	tt := ui.NewTester(a.view, 1180, 760)
+	if !tt.HasText(locales.VisualStudioWaiting()) {
+		t.Fatalf("watch status missing: %q", tt.Texts())
+	}
+	if err := tt.Click(locales.VisualStudioStopWatching()); err != nil {
+		t.Fatal(err)
+	}
+	if !canceled || a.visualStudioTask != nil {
+		t.Fatal("stop did not dismiss the monitor")
 	}
 }
 

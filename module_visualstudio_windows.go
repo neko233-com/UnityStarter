@@ -14,17 +14,10 @@ import (
 	"unsafe"
 )
 
-func checkVisualStudioModules(ctx context.Context, modules []editorModule) {
-	needed := false
-	for _, m := range modules {
-		if visualStudioModuleMajor(m) != "" {
-			needed = true
-			break
-		}
-	}
+func queryVisualStudioInstances(ctx context.Context) ([]byte, []byte, error) {
 	base := os.Getenv("ProgramFiles(x86)")
-	if !needed || base == "" {
-		return
+	if base == "" {
+		return nil, nil, fmt.Errorf("Visual Studio Installer directory is unavailable")
 	}
 	exe := filepath.Join(base, "Microsoft Visual Studio", "Installer", "vswhere.exe")
 	query := func(args ...string) ([]byte, error) {
@@ -35,14 +28,12 @@ func checkVisualStudioModules(ctx context.Context, modules []editorModule) {
 	args := []string{"-all", "-products", "Microsoft.VisualStudio.Product.Community", "-format", "json", "-utf8"}
 	all, err := query(args...)
 	if err != nil {
-		return
+		return nil, nil, err
 	}
 	args = append(args, "-requires")
 	args = append(args, visualStudioComponents...)
 	ready, err := query(args...)
-	if err == nil {
-		applyVisualStudioState(modules, all, ready)
-	}
+	return all, ready, err
 }
 
 func startVisualStudioModifier(module editorModule) error {
