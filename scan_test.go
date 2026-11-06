@@ -123,6 +123,21 @@ func TestScanEditorsKeepsDistinctInstallationsOfSameVersion(t *testing.T) {
 	}
 }
 
+func TestProjectPrefersRealEditorOverSimulatedSameVersion(t *testing.T) {
+	project := filepath.Join(t.TempDir(), "game")
+	writeProject(t, project, "6000.0.2f1")
+	simulated := editorInstall{Version: "6000.0.2f1", Kind: kindUnity, Exe: "simulated", Simulated: true}
+	real := editorInstall{Version: simulated.Version, Kind: kindUnity, Exe: "real"}
+	got := scanProjectsInMode(prefs{PinnedProjects: []string{project}}, []editorInstall{simulated, real}, nil, nil, false)
+	if len(got) != 1 || got[0].Editor != real.Exe {
+		t.Fatalf("real editor was not preferred: %+v", got)
+	}
+	got = scanProjectsInMode(prefs{PinnedProjects: []string{project}}, []editorInstall{simulated}, nil, nil, false)
+	if len(got) != 1 || got[0].Editor != simulated.Exe {
+		t.Fatalf("simulation should still be identifiable: %+v", got)
+	}
+}
+
 func TestScanEditorFromVersionOrEditorFolder(t *testing.T) {
 	root := filepath.Join(t.TempDir(), "6000.0.2f1")
 	editorDir := filepath.Join(root, "Editor")

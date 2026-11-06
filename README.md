@@ -56,6 +56,8 @@ unitystarter help
 
 CLI 同样可用：`unitystarter install 6000.0.85f2 --simulate`。
 
+模拟编辑器不会用于打开或新建真实项目；存在同版本真实编辑器时优先使用真实编辑器。关闭演示模式后仍可安装真实版本，但如果模拟目录正好占用了目标安装路径，需要先移除该模拟项或选择其他安装目录。
+
 ## 数据与日志
 
 - 设置：`%APPDATA%\UnityStarter\settings.json`（旧的带空格目录会在首次运行时读取）。

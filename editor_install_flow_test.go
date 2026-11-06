@@ -76,6 +76,25 @@ func TestEditorInstallEntryRejectsUnsafeMetadata(t *testing.T) {
 	}
 }
 
+func TestEditorDestinationPreflightPreservesExistingInstallation(t *testing.T) {
+	dest := filepath.Join(t.TempDir(), "7000.0.0a16")
+	if err := checkEditorInstallDestination(dest); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(dest, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := checkEditorInstallDestination(dest); err == nil {
+		t.Fatal("existing directory accepted before downloading")
+	}
+	if err := os.WriteFile(filepath.Join(dest, installMarker), []byte("interrupted"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := checkEditorInstallDestination(dest); err != nil {
+		t.Fatalf("interrupted installation cannot resume: %v", err)
+	}
+}
+
 func TestEditorDownloadTransitionsAndCancellation(t *testing.T) {
 	e := editorInstallFixture([]byte("installer"))
 	key := jobKey(e)

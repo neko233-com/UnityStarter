@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"unitystarter/locales"
 )
 
 func fakeScan() scanResult {
@@ -88,6 +90,22 @@ func TestCLIOpenAmbiguous(t *testing.T) {
 func TestCLIOpenMissing(t *testing.T) {
 	if code, _ := run(t, "open", "nowhere"); code != 1 {
 		t.Errorf("exit %d", code)
+	}
+}
+
+func TestCLINeverLaunchesSimulatedEditors(t *testing.T) {
+	simulated := editorInstall{Version: "6000.0.2f1", Kind: kindUnity, Exe: "simulated", Simulated: true}
+	real := editorInstall{Version: simulated.Version, Kind: kindUnity, Exe: "real"}
+	if got, ok := pickEditor([]editorInstall{simulated, real}, simulated.Version); !ok || got.Exe != real.Exe {
+		t.Fatalf("new project picked a simulated editor: %+v %v", got, ok)
+	}
+	if _, ok := pickEditor([]editorInstall{simulated}, ""); ok {
+		t.Fatal("new project accepted only a simulated editor")
+	}
+	var out bytes.Buffer
+	res := scanResult{editors: []editorInstall{simulated}, projects: []projectEntry{{Name: "game", Path: "game", Editor: simulated.Exe}}}
+	if code := runCLI([]string{"open", "game"}, &out, func(prefs) scanResult { return res }); code != 1 || !strings.Contains(out.String(), locales.SimulatedOpen()) {
+		t.Fatalf("simulated editor should be rejected: exit=%d output=%q", code, out.String())
 	}
 }
 

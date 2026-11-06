@@ -354,14 +354,11 @@ func scanProjectsIn(p prefs, editors []editorInstall, hubs []hub, roots []string
 }
 
 func scanProjectsInMode(p prefs, editors []editorInstall, hubs []hub, roots []string, withVCS bool) []projectEntry {
-	byVersion := map[string]string{}
-	kindByVersion := map[string]string{}
+	byVersion := map[string]editorInstall{}
 	for _, e := range editors {
-		if _, ok := byVersion[e.Version]; !ok {
-			byVersion[e.Version] = e.Exe
-		}
-		if _, ok := kindByVersion[e.Version]; !ok {
-			kindByVersion[e.Version] = e.Kind
+		previous, ok := byVersion[e.Version]
+		if !ok || (previous.Simulated && !e.Simulated) {
+			byVersion[e.Version] = e
 		}
 	}
 
@@ -388,8 +385,8 @@ func scanProjectsInMode(p prefs, editors []editorInstall, hubs []hub, roots []st
 		}
 		kind := kindOfVersion(version)
 		// An installed editor of that version knows its engine best.
-		if k, ok := kindByVersion[version]; ok {
-			kind = k
+		if e, ok := byVersion[version]; ok {
+			kind = e.Kind
 		}
 		vcs := vcsInfo{}
 		if withVCS {
@@ -405,7 +402,7 @@ func scanProjectsInMode(p prefs, editors []editorInstall, hubs []hub, roots []st
 			Version:  version,
 			Kind:     kind,
 			Modified: modified,
-			Editor:   byVersion[version],
+			Editor:   byVersion[version].Exe,
 			Hub:      hint.Hub,
 			Favorite: favorite,
 			Pipeline: detectPipeline(dir),

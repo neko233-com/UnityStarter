@@ -143,22 +143,25 @@ func (a *app) startDownload(e downloadEntry) {
 		last := time.Now()
 		started := time.Now()
 		base := int64(-1)
-		err := downloadFileVerifiedSize(ctx, e.URL, job.Path, e.Integrity, editorDownloadExpectedSize(e), func(done, total int64) {
-			if base < 0 || done < base {
-				base, started = done, time.Now()
-			}
-			if time.Since(last) < 150*time.Millisecond {
-				return
-			}
-			last = time.Now()
-			var speed int64
-			if elapsed := time.Since(started).Seconds(); elapsed > 0 {
-				speed = int64(float64(done-base) / elapsed)
-			}
-			win.Update(func() {
-				job.Done, job.Total, job.Speed = done, total, speed
+		err := checkEditorInstallDestination(filepath.Join(job.Root, e.Version))
+		if err == nil {
+			err = downloadFileVerifiedSize(ctx, e.URL, job.Path, e.Integrity, editorDownloadExpectedSize(e), func(done, total int64) {
+				if base < 0 || done < base {
+					base, started = done, time.Now()
+				}
+				if time.Since(last) < 150*time.Millisecond {
+					return
+				}
+				last = time.Now()
+				var speed int64
+				if elapsed := time.Since(started).Seconds(); elapsed > 0 {
+					speed = int64(float64(done-base) / elapsed)
+				}
+				win.Update(func() {
+					job.Done, job.Total, job.Speed = done, total, speed
+				})
 			})
-		})
+		}
 		win.Update(func() { a.finishEditorDownload(key, job, err, ctx.Err(), a.installJob) })
 	}()
 }
@@ -404,6 +407,18 @@ const installMarker = ".unitystarter-installing"
 // Keep incomplete installs out of the editor list. An interrupted install can
 // be retried, but a pre-existing directory is never overwritten implicitly.
 func prepareEditorInstall(dest string) error {
+	if err := checkEditorInstallDestination(dest); err != nil {
+		return err
+	}
+	if err := os.MkdirAll(dest, 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(dest, installMarker), []byte("Installation incomplete; retry from UnityStarter.\n"), 0o644)
+}
+
+// Check before downloading multi-gigabyte installers and again before
+// installation, since the destination may have changed in the meantime.
+func checkEditorInstallDestination(dest string) error {
 	if _, err := os.Stat(dest); err == nil {
 		if _, markerErr := os.Stat(filepath.Join(dest, installMarker)); markerErr != nil {
 			return fmt.Errorf("installation directory already exists: %s", dest)
@@ -411,10 +426,7 @@ func prepareEditorInstall(dest string) error {
 	} else if !os.IsNotExist(err) {
 		return err
 	}
-	if err := os.MkdirAll(dest, 0o755); err != nil {
-		return err
-	}
-	return os.WriteFile(filepath.Join(dest, installMarker), []byte("Installation incomplete; retry from UnityStarter.\n"), 0o644)
+	return nil
 }
 
 func verifyInstalledEditor(engine, version, dest string) error {

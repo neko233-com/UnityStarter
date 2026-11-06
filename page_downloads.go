@@ -147,7 +147,9 @@ func (a *app) downloadsPage(c *ui.Context) {
 
 	installed := map[string]bool{}
 	for _, e := range a.editors {
-		installed[e.Kind+" "+e.Version] = true
+		if !e.Simulated || a.prefs.DemoMode {
+			installed[e.Kind+" "+e.Version] = true
+		}
 	}
 	ui.Scroll(c).Grow(1).Children(func() {
 		ui.Column(c).Padding(24, 26).Gap(20).MaxWidth(900).Children(func() {
@@ -311,7 +313,7 @@ func (a *app) downloadAction(c *ui.Context, e downloadEntry) {
 	}
 	installed := false
 	for _, editor := range a.editors {
-		if editor.Version == e.Version && editor.Kind == e.Engine {
+		if editor.Version == e.Version && editor.Kind == e.Engine && (!editor.Simulated || a.prefs.DemoMode) {
 			installed = true
 			break
 		}

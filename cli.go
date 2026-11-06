@@ -230,6 +230,12 @@ func cliOpen(args []string, scanFn func(prefs) scanResult, out io.Writer) int {
 		fmt.Fprintln(out, locales.CliNoEditorFor(p.Version))
 		return 1
 	}
+	for _, e := range res.editors {
+		if strings.EqualFold(e.Exe, p.Editor) && e.Simulated {
+			fmt.Fprintln(out, locales.SimulatedOpen())
+			return 1
+		}
+	}
 	if err := startDetached(p.Editor, []string{"-projectPath", p.Path}, filepath.Dir(p.Editor)); err != nil {
 		fmt.Fprintln(out, err)
 		return 1
@@ -398,19 +404,21 @@ func findProject(projects []projectEntry, target string) (projectEntry, string, 
 func pickEditor(editors []editorInstall, version string) (editorInstall, bool) {
 	if version != "" {
 		for _, e := range editors {
-			if e.Version == version {
+			if e.Version == version && !e.Simulated {
 				return e, true
 			}
 		}
 		return editorInstall{}, false
 	}
 	for _, e := range editors {
-		if e.Kind == kindUnity {
+		if e.Kind == kindUnity && !e.Simulated {
 			return e, true
 		}
 	}
-	if len(editors) > 0 {
-		return editors[0], true
+	for _, e := range editors {
+		if !e.Simulated {
+			return e, true
+		}
 	}
 	return editorInstall{}, false
 }

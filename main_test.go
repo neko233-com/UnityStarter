@@ -203,6 +203,24 @@ func TestArchiveDownloadRemainsVisibleAfterSearchCleared(t *testing.T) {
 	}
 }
 
+func TestSimulatedEditorDoesNotHideRealInstall(t *testing.T) {
+	a := fixture()
+	a.page = pageDownloads
+	e := downloadEntry{Engine: kindUnity, Version: "7000.0.0a16", URL: "https://download.unity3d.com/download_unity/hash/Windows64EditorInstaller/UnitySetup64-7000.0.0a16.exe", Integrity: "md5-AAAAAAAAAAAAAAAAAAAAAA=="}
+	a.downloads = []downloadEntry{e}
+	a.jobs = nil
+	a.editors = []editorInstall{{Version: e.Version, Kind: e.Engine, Exe: "simulated", Simulated: true}}
+	tt := ui.NewTester(a.view, 1180, 760)
+	if !tt.HasText(locales.DownloadAndInstall()) {
+		t.Fatalf("simulated editor hid the real installation: %q", tt.Texts())
+	}
+	a.prefs.DemoMode = true
+	tt.Frame()
+	if tt.HasText(locales.DownloadAndInstall()) || !tt.HasText(locales.DownloadsInstalled()) {
+		t.Fatalf("demo installation not recognized in demo mode: %q", tt.Texts())
+	}
+}
+
 func TestAndroidLicenseCanBeReviewedAndCanceled(t *testing.T) {
 	a := fixture()
 	a.manageOpen, a.manageModules = true, true
