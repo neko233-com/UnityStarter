@@ -35,7 +35,7 @@ const (
 
 	// appVersion is what the CLI prints and what the window shows when MyGo
 	// does not know the packaged version.
-	appVersion = "1.6.16"
+	appVersion = "1.6.17"
 	// appName is the name of the executable and of the app's data folder, as
 	// mygo.json names the app; the window shows a name with a space.
 	appName = "UnityStarter"
@@ -162,6 +162,7 @@ func (a *app) refresh() {
 	settings.EditorRoots = slices.Clone(settings.EditorRoots)
 	settings.PinnedProjects = slices.Clone(settings.PinnedProjects)
 	settings.LocalFavorites = maps.Clone(settings.LocalFavorites)
+	settings.HiddenProjects = maps.Clone(settings.HiddenProjects)
 	win := a.win
 	go func() {
 		started := time.Now()
@@ -379,7 +380,7 @@ func (a *app) engineNavigation(c *ui.Context, engine, projects, installs, downlo
 		ui.SidebarItem(c, projects, iconProjects, locales.SidebarProjects()).Children(func() {
 			count := 0
 			for _, p := range a.projects {
-				if p.Kind == engine {
+				if p.Kind == engine && !a.projectHidden(p.Path) {
 					count++
 				}
 			}
@@ -501,6 +502,7 @@ func (a *app) addProjectForEngine(engine string) {
 			return
 		}
 		a.prefs.PinnedProjects = dedupe(append(a.prefs.PinnedProjects, dir))
+		delete(a.prefs.HiddenProjects, localProjectKey(dir))
 		a.save()
 		a.pushToHub(dir)
 		a.refresh()

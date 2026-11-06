@@ -54,6 +54,56 @@ func (msgs Messages) ProjectColumnName() string {
 	return Catalog.Format(msgs.locale, "projectColumnName", nil)
 }
 
+// ProjectMore says "More project actions"
+// in the language the app shows.
+func ProjectMore() string { return In(i18n.Locale()).ProjectMore() }
+
+// ProjectMore says "More project actions"
+// in the language of msgs.
+func (msgs Messages) ProjectMore() string {
+	return Catalog.Format(msgs.locale, "projectMore", nil)
+}
+
+// ProjectHide says "Hide from list"
+// in the language the app shows.
+func ProjectHide() string { return In(i18n.Locale()).ProjectHide() }
+
+// ProjectHide says "Hide from list"
+// in the language of msgs.
+func (msgs Messages) ProjectHide() string {
+	return Catalog.Format(msgs.locale, "projectHide", nil)
+}
+
+// ProjectRestore says "Restore"
+// in the language the app shows.
+func ProjectRestore() string { return In(i18n.Locale()).ProjectRestore() }
+
+// ProjectRestore says "Restore"
+// in the language of msgs.
+func (msgs Messages) ProjectRestore() string {
+	return Catalog.Format(msgs.locale, "projectRestore", nil)
+}
+
+// HiddenProjectsTitle says "Hidden projects"
+// in the language the app shows.
+func HiddenProjectsTitle() string { return In(i18n.Locale()).HiddenProjectsTitle() }
+
+// HiddenProjectsTitle says "Hidden projects"
+// in the language of msgs.
+func (msgs Messages) HiddenProjectsTitle() string {
+	return Catalog.Format(msgs.locale, "hiddenProjectsTitle", nil)
+}
+
+// HiddenProjectsHint says "Only affects UnityStarter. Restore projects here; files and Hub records are unchanged."
+// in the language the app shows.
+func HiddenProjectsHint() string { return In(i18n.Locale()).HiddenProjectsHint() }
+
+// HiddenProjectsHint says "Only affects UnityStarter. Restore projects here; files and Hub records are unchanged."
+// in the language of msgs.
+func (msgs Messages) HiddenProjectsHint() string {
+	return Catalog.Format(msgs.locale, "hiddenProjectsHint", nil)
+}
+
 // ProjectColumnModified says "Modified"
 // in the language the app shows.
 func ProjectColumnModified() string { return In(i18n.Locale()).ProjectColumnModified() }

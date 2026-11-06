@@ -59,7 +59,7 @@ func (a *app) filteredProjects() []projectEntry {
 	q := strings.ToLower(strings.TrimSpace(a.query))
 	out := make([]projectEntry, 0, len(a.projects))
 	for _, p := range a.projects {
-		if p.Kind != engineForPage(a.page) || favoritesPage(a.page) && !p.Favorite {
+		if p.Kind != engineForPage(a.page) || a.projectHidden(p.Path) || favoritesPage(a.page) && !p.Favorite {
 			continue
 		}
 		if strings.Contains(strings.ToLower(p.Name), q) ||
@@ -111,6 +111,14 @@ func (a *app) sortProjects(column string) {
 
 func (a *app) projectRow(c *ui.Context, p projectEntry) {
 	t := c.Theme()
+	menu := func(m *ui.Menu) {
+		if p.VCS.Remote != "" && isWebURL(p.VCS.Remote) && m.Item(locales.ActionRepo()).Chosen() {
+			_ = mygo.Shell.OpenExternal(p.VCS.Remote)
+		}
+		if m.Item(locales.ProjectHide()).Chosen() {
+			a.setProjectHidden(p.Path, true)
+		}
+	}
 	row := ui.Row(c).Padding(12, 16).Gap(10).AlignItems(ui.Center).Children(func() {
 		star := "☆"
 		tip := locales.FavoriteAdd()
@@ -148,11 +156,6 @@ func (a *app) projectRow(c *ui.Context, p projectEntry) {
 		}
 		ui.Button(c, label+" ▾").Width(150).Tooltip(displayVersion(p.Version, p.DisplayVersion)).OnClick(func() { a.chooseProjectVersion(p) })
 		ui.Row(c).Gap(6).Width(190).Justify(ui.End).Children(func() {
-			if p.VCS.Remote != "" && isWebURL(p.VCS.Remote) {
-				if ui.Button(c, strings.ToUpper(p.VCS.Kind)).Tooltip(locales.ActionRepo()).Clicked() {
-					_ = mygo.Shell.OpenExternal(p.VCS.Remote)
-				}
-			}
 			ui.Button(c, locales.ActionOpen()).OnClick(func() {
 				if p.Editor == "" || a.editorIsSimulated(p.Editor) {
 					a.chooseProjectVersion(p)
@@ -163,8 +166,10 @@ func (a *app) projectRow(c *ui.Context, p projectEntry) {
 			if ui.Button(c, locales.ActionFolder()).Clicked() {
 				mygo.Shell.OpenPath(p.Path)
 			}
+			ui.Button(c, "⋯").Width(36).Label(locales.ProjectMore()).Tooltip(locales.ProjectMore()).PopoverMenuButton(menu)
 		})
 	})
+	row.PopoverMenu(menu)
 	// A double click on the row opens the project too, as the hubs do.
 	if row.RowDoubleClicked() {
 		if p.Editor == "" || a.editorIsSimulated(p.Editor) {
@@ -173,6 +178,34 @@ func (a *app) projectRow(c *ui.Context, p projectEntry) {
 			a.openProject(p)
 		}
 	}
+}
+
+func (a *app) projectHidden(path string) bool {
+	_, ok := a.prefs.HiddenProjects[localProjectKey(path)]
+	return ok
+}
+
+func (a *app) setProjectHidden(path string, hide bool) {
+	key := localProjectKey(path)
+	if a.prefs.HiddenProjects == nil {
+		a.prefs.HiddenProjects = map[string]string{}
+	}
+	previous, existed := a.prefs.HiddenProjects[key]
+	if hide {
+		a.prefs.HiddenProjects[key] = filepath.Clean(path)
+	} else {
+		delete(a.prefs.HiddenProjects, key)
+	}
+	if err := savePrefs(a.prefs); err != nil {
+		if existed {
+			a.prefs.HiddenProjects[key] = previous
+		} else {
+			delete(a.prefs.HiddenProjects, key)
+		}
+		a.alert(err.Error())
+		return
+	}
+	a.refresh()
 }
 
 func (a *app) projectEditors(p projectEntry) []editorInstall {
@@ -443,6 +476,7 @@ func (a *app) createProject() {
 		return
 	}
 	a.prefs.PinnedProjects = dedupe(append(a.prefs.PinnedProjects, dir))
+	delete(a.prefs.HiddenProjects, localProjectKey(dir))
 	a.save()
 	a.newOpen = false
 	// The editor writes the project's version as it creates it, so the hub

@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/egoist/mygo"
@@ -16,6 +17,7 @@ func (a *app) settingsPage(c *ui.Context) {
 			ui.Text(c, locales.SettingsTitle()).FontSize(24).Bold()
 			a.languageSection(c)
 			a.hubSection(c)
+			a.hiddenProjectsSection(c)
 
 			a.rootsSection(c, locales.SettingsProjectRoots(), locales.SettingsProjectRootsHint(), a.prefs.ProjectRoots,
 				func(next []string) {
@@ -59,6 +61,28 @@ func (a *app) settingsPage(c *ui.Context) {
 
 			a.aboutSection(c)
 		})
+	})
+}
+
+func (a *app) hiddenProjectsSection(c *ui.Context) {
+	if len(a.prefs.HiddenProjects) == 0 {
+		return
+	}
+	paths := make([]string, 0, len(a.prefs.HiddenProjects))
+	for _, path := range a.prefs.HiddenProjects {
+		paths = append(paths, path)
+	}
+	sort.Strings(paths)
+	ui.Column(c).Gap(8).Children(func() {
+		a.sectionTitle(c, locales.HiddenProjectsTitle(), locales.HiddenProjectsHint())
+		for _, path := range paths {
+			path := path
+			c.Key(path)
+			ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
+				ui.Text(c, path).Grow(1).FontSize(12).TextColor(c.Theme().TextMuted).Clip().Tooltip(path)
+				ui.Button(c, locales.ProjectRestore()).OnClick(func() { a.setProjectHidden(path, false) })
+			})
+		}
 	})
 }
 

@@ -1,6 +1,11 @@
 {
   "alertTitle": "Notice",
   "projectColumnName": "Name",
+  "projectMore": "More project actions",
+  "projectHide": "Hide from list",
+  "projectRestore": "Restore",
+  "hiddenProjectsTitle": "Hidden projects",
+  "hiddenProjectsHint": "Only affects UnityStarter. Restore projects here; files and Hub records are unchanged.",
   "projectColumnModified": "Modified",
   "projectColumnEditor": "Editor version",
   "projectVersionTitle": "Select Editor version",

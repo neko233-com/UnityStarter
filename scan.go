@@ -60,12 +60,13 @@ type projectEntry struct {
 
 // prefs is what the app keeps between launches.
 type prefs struct {
-	Locale         string          `json:"locale"`
-	ActiveEngine   string          `json:"activeEngine,omitempty"`
-	ProjectRoots   []string        `json:"projectRoots"`
-	EditorRoots    []string        `json:"editorRoots"`
-	PinnedProjects []string        `json:"pinnedProjects"`
-	LocalFavorites map[string]bool `json:"localFavorites,omitempty"`
+	Locale         string            `json:"locale"`
+	ActiveEngine   string            `json:"activeEngine,omitempty"`
+	ProjectRoots   []string          `json:"projectRoots"`
+	EditorRoots    []string          `json:"editorRoots"`
+	PinnedProjects []string          `json:"pinnedProjects"`
+	LocalFavorites map[string]bool   `json:"localFavorites,omitempty"`
+	HiddenProjects map[string]string `json:"hiddenProjects,omitempty"`
 	// InstallRoot is where downloaded editors are installed, a folder per
 	// version.
 	InstallRoot string `json:"installRoot"`
@@ -350,6 +351,9 @@ func scanProjectsInMode(p prefs, editors []editorInstall, hubs []hub, roots []st
 	found := map[string]projectEntry{}
 	add := func(dir string, hint projectHint) {
 		dir = filepath.Clean(dir)
+		if _, hidden := p.HiddenProjects[localProjectKey(dir)]; hidden {
+			return
+		}
 		if _, ok := found[dir]; ok {
 			return
 		}
