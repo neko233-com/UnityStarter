@@ -260,6 +260,10 @@ func (a *app) updateBanner(c *ui.Context) {
 }
 
 func (a *app) applyUpdateNow() {
+	if a.moduleBusy {
+		a.manageOpen, a.manageModules = true, true
+		return
+	}
 	if _, err := readPendingUpdate(); err != nil {
 		a.updateStatus = locales.UpdateFailed(err.Error())
 		return

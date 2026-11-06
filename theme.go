@@ -5,15 +5,15 @@ import "github.com/egoist/mygo/ui"
 // A neutral, dark workspace with a restrained blue accent.
 var starterTheme = func() *ui.Theme {
 	t := ui.DarkTheme()
-	t.Background = ui.Hex("#292b2f")
-	t.Surface = ui.Hex("#202225")
-	t.SurfaceHover = ui.Hex("#373a40")
-	t.SurfacePressed = ui.Hex("#454950")
-	t.Border = ui.Hex("#484b52")
+	t.Background = ui.Hex("#19191a")
+	t.Surface = ui.Hex("#242424")
+	t.SurfaceHover = ui.Hex("#363638")
+	t.SurfacePressed = ui.Hex("#444446")
+	t.Border = ui.Hex("#414143")
 	t.Text = ui.Hex("#f2f3f5")
 	t.TextMuted = ui.Hex("#b1b5bd")
-	t.Accent = ui.Hex("#416d9f")
-	t.AccentHover = ui.Hex("#527fb0")
-	t.AccentPressed = ui.Hex("#31577f")
+	t.Accent = ui.Hex("#3c76b9")
+	t.AccentHover = ui.Hex("#508acb")
+	t.AccentPressed = ui.Hex("#305f98")
 	return t
 }()

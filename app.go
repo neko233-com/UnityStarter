@@ -33,7 +33,7 @@ const (
 
 	// appVersion is what the CLI prints and what the window shows when MyGo
 	// does not know the packaged version.
-	appVersion = "1.5.5"
+	appVersion = "1.6.0"
 	// appName is the name of the executable and of the app's data folder, as
 	// mygo.json names the app; the window shows a name with a space.
 	appName = "UnityStarter"
@@ -42,10 +42,29 @@ const (
 // app is the state of the window: what was found on this machine, the page
 // shown, and the dialog being filled.
 type app struct {
-	win         *mygo.Window
-	page        string
-	query       string
-	queryEngine string
+	win                *mygo.Window
+	page               string
+	query              string
+	queryEngine        string
+	activeEngine       string
+	projectSort        string
+	projectSortReverse bool
+	installQuery       string
+	installFilter      string
+	versionOpen        bool
+	versionConfirm     bool
+	versionProject     projectEntry
+	versionEditor      string
+	launchEditor       func(string, []string, string) error
+	manageOpen         bool
+	manageEditor       editorInstall
+	manageModules      bool
+	manageUninstall    bool
+	moduleBusy         bool
+	moduleLoading      bool
+	moduleInstalling   bool
+	moduleStatus       string
+	moduleCancel       context.CancelFunc
 
 	editors  []editorInstall
 	projects []projectEntry
@@ -89,7 +108,7 @@ type app struct {
 }
 
 func newApp() *app {
-	return &app{page: pageProjects}
+	return &app{page: pageProjects, activeEngine: kindUnity, launchEditor: startDetached}
 }
 
 // load reads what the last run saved, and shows the language it chose.
@@ -137,18 +156,18 @@ func (a *app) view(c *ui.Context) {
 	c.SetTheme(starterTheme)
 	t := c.Theme()
 	ui.Row(c).Fill().AlignItems(ui.Stretch).Children(func() {
-		// The title across the sidebar's top, as the hubs brand theirs.
-		ui.Column(c).Fill().Width(240).Background(t.Surface).Children(func() {
-			ui.Row(c).Padding(20, 16, 14, 16).Gap(10).AlignItems(ui.Center).Children(func() {
-				ui.Icon(c, iconBrand).Size(28, 28).TextColor(t.Text)
-				ui.Column(c).Gap(2).Children(func() {
-					ui.Text(c, locales.AppTitle()).FontSize(16).Bold()
-					ui.Text(c, "UNITY + TUANJIE").FontSize(10).TextColor(t.TextMuted)
-				})
+		ui.Column(c).Fill().Width(68).Background(t.Surface).Padding(10, 4).Gap(8).Children(func() {
+			a.engineTab(c, kindUnity)
+			a.engineTab(c, kindTuanjie)
+		})
+		ui.Column(c).Fill().Width(220).Background(t.Surface).Children(func() {
+			ui.Row(c).Padding(20, 16, 16, 16).Gap(10).AlignItems(ui.Center).Children(func() {
+				ui.Icon(c, iconBrand).Size(24, 24).TextColor(t.Text)
+				ui.Text(c, channelName(a.activeEngine)).FontSize(15).Bold()
 			})
 			ui.Sidebar(c, &a.page, func() {
-				a.engineNavigation(c, kindUnity, pageProjects, pageInstalls, pageDownloads, pageFavorites)
-				a.engineNavigation(c, kindTuanjie, pageTuanjieProjects, pageTuanjieInstalls, pageTuanjieDownloads, pageTuanjieFavorites)
+				projects, installs, downloads, favorites := enginePages(a.activeEngine)
+				a.engineNavigation(c, a.activeEngine, projects, installs, downloads, favorites)
 				ui.SidebarSection(c, locales.SidebarServices(), nil, func() {
 					ui.SidebarItem(c, pageStore, iconStore, locales.PageStore())
 					ui.SidebarItem(c, pagePublish, iconPublish, locales.PagePublish())
@@ -191,6 +210,51 @@ func (a *app) view(c *ui.Context) {
 		})
 	})
 	a.newProjectDialog(c)
+	a.projectVersionDialog(c)
+	a.editorManageDialog(c)
+}
+
+func enginePages(engine string) (string, string, string, string) {
+	if engine == kindTuanjie {
+		return pageTuanjieProjects, pageTuanjieInstalls, pageTuanjieDownloads, pageTuanjieFavorites
+	}
+	return pageProjects, pageInstalls, pageDownloads, pageFavorites
+}
+
+func (a *app) engineTab(c *ui.Context, engine string) {
+	label := "U"
+	if engine == kindTuanjie {
+		label = "T"
+	}
+	ui.Column(c).Gap(3).AlignItems(ui.Center).Children(func() {
+		if engine == a.activeEngine {
+			ui.PrimaryButton(c, label).Width(60).Tooltip(channelName(engine)).OnClick(func() { a.switchEngine(engine) })
+		} else {
+			ui.Button(c, label).Width(60).Tooltip(channelName(engine)).OnClick(func() { a.switchEngine(engine) })
+		}
+		ui.Text(c, channelName(engine)).Width(60).FontSize(10).TextColor(c.Theme().TextMuted).TextAlign(ui.Center).Clip()
+	})
+}
+
+func (a *app) switchEngine(engine string) {
+	if engine == a.activeEngine {
+		return
+	}
+	oldProjects, oldInstalls, oldDownloads, oldFavorites := enginePages(a.activeEngine)
+	projects, installs, downloads, favorites := enginePages(engine)
+	switch a.page {
+	case oldInstalls:
+		a.page = installs
+	case oldDownloads:
+		a.page = downloads
+	case oldFavorites:
+		a.page = favorites
+	case oldProjects:
+		a.page = projects
+	default:
+		a.page = projects
+	}
+	a.activeEngine = engine
 }
 
 func engineForPage(page string) string {
@@ -203,9 +267,8 @@ func engineForPage(page string) string {
 func favoritesPage(page string) bool { return page == pageFavorites || page == pageTuanjieFavorites }
 
 func (a *app) engineNavigation(c *ui.Context, engine, projects, installs, downloads, favorites string) {
-	name := channelName(engine)
-	ui.SidebarSection(c, name, nil, func() {
-		ui.SidebarItem(c, projects, iconProjects, name+" · "+locales.SidebarProjects()).Children(func() {
+	ui.SidebarSection(c, locales.SidebarWorkspace(), nil, func() {
+		ui.SidebarItem(c, projects, iconProjects, locales.SidebarProjects()).Children(func() {
 			count := 0
 			for _, p := range a.projects {
 				if p.Kind == engine {
@@ -214,7 +277,7 @@ func (a *app) engineNavigation(c *ui.Context, engine, projects, installs, downlo
 			}
 			ui.Badge(c, fmt.Sprint(count))
 		})
-		ui.SidebarItem(c, installs, iconInstalls, name+" · "+locales.SidebarInstalls()).Children(func() {
+		ui.SidebarItem(c, installs, iconInstalls, locales.SidebarInstalls()).Children(func() {
 			count := 0
 			for _, e := range a.editors {
 				if e.Kind == engine {
@@ -223,8 +286,8 @@ func (a *app) engineNavigation(c *ui.Context, engine, projects, installs, downlo
 			}
 			ui.Badge(c, fmt.Sprint(count))
 		})
-		ui.SidebarItem(c, downloads, iconDownload, name+" · "+locales.SidebarDownloads())
-		ui.SidebarItem(c, favorites, iconFavorite, name+" · "+locales.SidebarFavorites())
+		ui.SidebarItem(c, downloads, iconDownload, locales.SidebarDownloads())
+		ui.SidebarItem(c, favorites, iconFavorite, locales.SidebarFavorites())
 	})
 }
 
@@ -298,7 +361,7 @@ func (a *app) openProject(p projectEntry) {
 			return
 		}
 	}
-	if err := startDetached(p.Editor, []string{"-projectPath", p.Path}, filepath.Dir(p.Editor)); err != nil {
+	if err := a.launchEditor(p.Editor, []string{"-projectPath", p.Path}, filepath.Dir(p.Editor)); err != nil {
 		a.alert(locales.OpenFailed(err.Error()))
 	}
 }

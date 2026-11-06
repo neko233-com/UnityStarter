@@ -22,21 +22,24 @@ const (
 
 // editorInstall is an editor installed on this machine.
 type editorInstall struct {
-	Version string
-	Kind    string
-	Exe     string
-	Root    string
+	Version        string
+	DisplayVersion string
+	Kind           string
+	Exe            string
+	Root           string
 	// Simulated is an editor this app put there to try the install flow.
 	Simulated bool
+	Modules   []editorModule
 }
 
 // projectEntry is a project found on disk.
 type projectEntry struct {
-	Path     string
-	Name     string
-	Version  string
-	Kind     string
-	Modified time.Time
+	Path           string
+	Name           string
+	Version        string
+	DisplayVersion string
+	Kind           string
+	Modified       time.Time
 	// Editor is the executable of the matching editor, empty when its
 	// version is not installed.
 	Editor string
@@ -148,7 +151,50 @@ func scan(p prefs) ([]editorInstall, []projectEntry, []hub) {
 	}
 	roots = append(roots, legacyInstallRoots()...)
 	editors := scanEditors(roots)
-	return editors, scanProjects(p, editors, hubs), hubs
+	projects := scanProjects(p, editors, hubs)
+	versions := readTuanjieVersionMap(hubConfigDirs())
+	for i := range editors {
+		if editors[i].Kind == kindTuanjie {
+			editors[i].DisplayVersion = versions[editors[i].Version]
+		}
+	}
+	for i := range projects {
+		if projects[i].Kind == kindTuanjie {
+			projects[i].DisplayVersion = versions[projects[i].Version]
+		}
+	}
+	return editors, projects, hubs
+}
+
+func readTuanjieVersionMap(dirs []string) map[string]string {
+	versions := map[string]string{}
+	for _, dir := range dirs {
+		if !strings.Contains(strings.ToLower(filepath.Base(dir)), "tuanjie") {
+			continue
+		}
+		data, err := os.ReadFile(filepath.Join(dir, "versionMapping.json"))
+		if err != nil {
+			continue
+		}
+		var raw map[string]json.RawMessage
+		if json.Unmarshal(data, &raw) != nil {
+			continue
+		}
+		for key, value := range raw {
+			var display string
+			if json.Unmarshal(value, &display) == nil && display != "" {
+				versions[key] = display
+			}
+		}
+	}
+	return versions
+}
+
+func displayVersion(version, display string) string {
+	if display == "" || display == version {
+		return version
+	}
+	return display + "  ·  " + version
 }
 
 func scanEditors(extraRoots []string) []editorInstall {
@@ -195,7 +241,7 @@ func scanEditors(extraRoots []string) []editorInstall {
 					continue
 				}
 				seenVersion[kind+" "+version] = true
-				out = append(out, editorInstall{Version: version, Kind: kind, Exe: exe, Root: dir, Simulated: isSimulatedEditor(dir)})
+				out = append(out, editorInstall{Version: version, Kind: kind, Exe: exe, Root: dir, Simulated: isSimulatedEditor(dir), Modules: readEditorModules(dir)})
 			}
 		}
 	}

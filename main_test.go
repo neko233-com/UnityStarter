@@ -89,7 +89,7 @@ func TestView(t *testing.T) {
 	if !tt.HasText("demo") {
 		t.Fatalf("texts %q lack the project", tt.Texts())
 	}
-	if err := tt.Click(channelName(kindUnity) + " · " + locales.SidebarInstalls()); err != nil {
+	if err := tt.Click(locales.SidebarInstalls()); err != nil {
 		t.Fatal(err)
 	}
 	if !tt.HasText(locales.InstallsTitle()) {
@@ -101,7 +101,7 @@ func TestView(t *testing.T) {
 	if !tt.HasText(locales.SettingsLanguage()) {
 		t.Errorf("texts %q after choosing settings", tt.Texts())
 	}
-	if err := tt.Click(channelName(kindUnity) + " · " + locales.SidebarDownloads()); err != nil {
+	if err := tt.Click(locales.SidebarDownloads()); err != nil {
 		t.Fatal(err)
 	}
 	if !tt.HasText(locales.PageDownloads()) {
@@ -124,7 +124,7 @@ func TestView(t *testing.T) {
 func TestFavoritesAndLearningPages(t *testing.T) {
 	a := fixture()
 	tt := ui.NewTester(a.view, 1180, 760)
-	if err := tt.Click(channelName(kindUnity) + " · " + locales.SidebarFavorites()); err != nil {
+	if err := tt.Click(locales.SidebarFavorites()); err != nil {
 		t.Fatal(err)
 	}
 	if !tt.HasText("demo") || tt.HasText("cozy") {
@@ -152,13 +152,13 @@ func TestEngineGroupsStaySeparateAndSorted(t *testing.T) {
 	if !tt.HasText("demo") || tt.HasText("cozy") {
 		t.Fatalf("Unity projects: %q", tt.Texts())
 	}
-	if err := tt.Click(channelName(kindTuanjie) + " · " + locales.SidebarProjects()); err != nil {
+	if err := tt.Click("T"); err != nil {
 		t.Fatal(err)
 	}
 	if !tt.HasText("cozy") || tt.HasText("demo") {
 		t.Fatalf("Tuanjie projects: %q", tt.Texts())
 	}
-	if err := tt.Click(channelName(kindTuanjie) + " · " + locales.SidebarInstalls()); err != nil {
+	if err := tt.Click(locales.SidebarInstalls()); err != nil {
 		t.Fatal(err)
 	}
 	if !tt.HasText("2022.3.62t17") || tt.HasText("2022.3.51f1") {
@@ -168,7 +168,7 @@ func TestEngineGroupsStaySeparateAndSorted(t *testing.T) {
 	if len(got) != 2 || got[0].Version != "2022.3.62t17" || got[1].Version != "2022.3.62t2" {
 		t.Fatalf("install order: %+v", got)
 	}
-	if err := tt.Click(channelName(kindTuanjie) + " · " + locales.SidebarDownloads()); err != nil {
+	if err := tt.Click(locales.SidebarDownloads()); err != nil {
 		t.Fatal(err)
 	}
 	if !tt.HasText("2022.3.62t17") || tt.HasText("6000.3.28f1") {
@@ -178,13 +178,79 @@ func TestEngineGroupsStaySeparateAndSorted(t *testing.T) {
 	if len(gotDownloads) != 3 || gotDownloads[0].Version != "6000.3.28f1" || gotDownloads[1].Version != "6000.3.28b99" {
 		t.Fatalf("download order: %+v", gotDownloads)
 	}
-	if err := tt.Click(channelName(kindUnity) + " · " + locales.SidebarProjects()); err != nil {
+	if err := tt.Click("U"); err != nil {
+		t.Fatal(err)
+	}
+	if err := tt.Click(locales.SidebarProjects()); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
 	if !tt.HasText("demo") || tt.HasText("cozy") {
 		t.Fatalf("Unity projects after switching back: %q", tt.Texts())
 	}
+}
+
+func TestProjectSelectVersionAndConfirmBeforeLaunch(t *testing.T) {
+	a := fixture()
+	path := t.TempDir()
+	settings := filepath.Join(path, "ProjectSettings")
+	if err := os.MkdirAll(settings, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	versionFile := filepath.Join(settings, "ProjectVersion.txt")
+	original := []byte("m_EditorVersion: 2022.3.51f1\n")
+	if err := os.WriteFile(versionFile, original, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	a.projects[0].Path = path
+	a.editors = append(a.editors,
+		editorInstall{Version: "6000.0.1f1", Kind: kindUnity, Exe: "chosen-editor"},
+		editorInstall{Version: "2022.3.62t17", Kind: kindTuanjie, Exe: "wrong-engine"},
+	)
+	var launched string
+	var args []string
+	a.launchEditor = func(exe string, argv []string, _ string) error { launched = exe; args = argv; return nil }
+	tt := ui.NewTester(a.view, 1180, 760)
+	if err := tt.Click("2022.3.51f1 ▾"); err != nil {
+		t.Fatal(err)
+	}
+	if !tt.HasText("6000.0.1f1") || tt.HasText("2022.3.62t17") {
+		t.Fatalf("version choices: %q", tt.Texts())
+	}
+	if err := tt.Click(locales.ProjectVersionOpen()); err != nil {
+		t.Fatal(err)
+	}
+	if !tt.HasText(locales.ProjectVersionWarning()) || launched != "" {
+		t.Fatalf("missing confirmation: %q", tt.Texts())
+	}
+	if err := tt.Click(locales.ProjectVersionContinue()); err != nil {
+		t.Fatal(err)
+	}
+	if launched != "chosen-editor" || len(args) != 2 || args[0] != "-projectPath" || args[1] != path {
+		t.Fatalf("launch: %q %q", launched, args)
+	}
+	if got, err := os.ReadFile(versionFile); err != nil || string(got) != string(original) {
+		t.Fatalf("project version changed before editor launch: %q %v", got, err)
+	}
+}
+
+func TestProjectSortAndMissingVersionChoice(t *testing.T) {
+	a := fixture()
+	a.projects = append(a.projects, projectEntry{Name: "alpha", Path: "alpha", Version: "6000.0.2f1", Kind: kindUnity})
+	a.sortProjects("name")
+	got := a.filteredProjects()
+	if len(got) != 2 || got[0].Name != "alpha" {
+		t.Fatalf("name sort: %+v", got)
+	}
+	a.sortProjects("name")
+	if got = a.filteredProjects(); got[0].Name != "demo" {
+		t.Fatalf("descending sort: %+v", got)
+	}
+	a.chooseProjectVersion(a.projects[1])
+	if !a.versionOpen || a.versionEditor != "" {
+		t.Fatal("simulated editor must not be selected")
+	}
+	ui.NewTester(a.view, 1180, 760).Frame()
 }
 
 // SNAPSHOT=1 go test -run TestSnapshot draws the pages to PNG files, to look

@@ -7,13 +7,21 @@ import (
 	"syscall"
 )
 
-// startDetached starts a program without a console window of its own, and
-// without waiting for it: the editor outlives this app.
+// startDetached starts an interactive program that outlives this app.
 func startDetached(exe string, args []string, dir string) error {
 	cmd := exec.Command(exe, args...)
 	if dir != "" {
 		cmd.Dir = dir
 	}
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	return cmd.Process.Release()
+}
+
+func startHiddenDetached(exe string, args []string, dir string) error {
+	cmd := exec.Command(exe, args...)
+	cmd.Dir = dir
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	if err := cmd.Start(); err != nil {
 		return err

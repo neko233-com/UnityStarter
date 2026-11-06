@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -23,13 +24,22 @@ func (a *app) projectsPage(c *ui.Context) {
 	if favoritesPage(a.page) {
 		title = locales.SidebarFavorites()
 	}
-	a.header(c, channelName(engine)+" · "+title, locales.ProjectsCount(len(items)), func() {
-		ui.SearchField(c, &a.query).Placeholder(locales.ProjectsSearch()).Width(220)
+	a.header(c, title, locales.ProjectsCount(len(items)), func() {
 		ui.Button(c, locales.ActionRefresh()).OnClick(a.refresh).Disabled(a.scanning)
 		ui.Button(c, locales.ActionAddProject()).OnClick(func() { a.addProjectForEngine(engine) })
 		ui.PrimaryButton(c, locales.ActionNewProject()).OnClick(a.openNewProject)
 	})
+	ui.Row(c).Padding(0, 22, 14, 22).Justify(ui.End).Children(func() {
+		ui.SearchField(c, &a.query).Placeholder(locales.ProjectsSearch()).Width(245)
+	})
 	ui.Divider(c)
+	ui.Row(c).Padding(5, 16).Gap(10).AlignItems(ui.Center).Background(c.Theme().Surface).Children(func() {
+		ui.Button(c, "★").Width(38).OnClick(func() { a.sortProjects("favorite") })
+		ui.Button(c, locales.ProjectColumnName()).Grow(1).OnClick(func() { a.sortProjects("name") })
+		ui.Button(c, locales.ProjectColumnModified()).Width(110).OnClick(func() { a.sortProjects("modified") })
+		ui.Button(c, locales.ProjectColumnEditor()).Width(150).OnClick(func() { a.sortProjects("version") })
+		ui.Text(c, "").Width(190)
+	})
 
 	a.list.Key = func(i int) any { return items[i].Path }
 	ui.List(c, &a.list, len(items), func(i int) {
@@ -54,16 +64,60 @@ func (a *app) filteredProjects() []projectEntry {
 		}
 		if strings.Contains(strings.ToLower(p.Name), q) ||
 			strings.Contains(strings.ToLower(p.Path), q) ||
-			strings.Contains(strings.ToLower(p.Version), q) {
+			strings.Contains(strings.ToLower(p.Version), q) || strings.Contains(strings.ToLower(p.DisplayVersion), q) {
 			out = append(out, p)
 		}
 	}
+	sort.SliceStable(out, func(i, j int) bool {
+		var cmp int
+		switch a.projectSort {
+		case "name":
+			cmp = strings.Compare(strings.ToLower(out[i].Name), strings.ToLower(out[j].Name))
+		case "version":
+			cmp = -compareVersions(out[i].Version, out[j].Version)
+		case "favorite":
+			if out[i].Favorite != out[j].Favorite {
+				if out[i].Favorite {
+					cmp = -1
+				} else {
+					cmp = 1
+				}
+			}
+		default:
+			if out[i].Modified.After(out[j].Modified) {
+				cmp = -1
+			} else if out[i].Modified.Before(out[j].Modified) {
+				cmp = 1
+			}
+		}
+		if cmp == 0 {
+			cmp = strings.Compare(strings.ToLower(out[i].Path), strings.ToLower(out[j].Path))
+		}
+		if a.projectSortReverse {
+			return cmp > 0
+		}
+		return cmp < 0
+	})
 	return out
+}
+
+func (a *app) sortProjects(column string) {
+	if a.projectSort == column {
+		a.projectSortReverse = !a.projectSortReverse
+	} else {
+		a.projectSort, a.projectSortReverse = column, false
+	}
 }
 
 func (a *app) projectRow(c *ui.Context, p projectEntry) {
 	t := c.Theme()
-	row := ui.Row(c).Padding(14, 18).Gap(16).AlignItems(ui.Center).Children(func() {
+	row := ui.Row(c).Padding(12, 16).Gap(10).AlignItems(ui.Center).Children(func() {
+		star := "☆"
+		tip := locales.FavoriteAdd()
+		if p.Favorite {
+			star, tip = "★", locales.FavoriteRemove()
+		}
+		ui.Button(c, star).Tooltip(tip).Width(38).OnClick(func() { a.toggleFavorite(p) })
 		ui.Column(c).Grow(1).Gap(5).Children(func() {
 			ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
 				ui.Text(c, p.Name).FontSize(16).Bold().Clip()
@@ -87,31 +141,25 @@ func (a *app) projectRow(c *ui.Context, p projectEntry) {
 			})
 			ui.Text(c, p.Path).FontSize(12).TextColor(t.TextMuted).Clip()
 		})
-		ui.Column(c).Width(170).Gap(4).Children(func() {
-			ui.Text(c, p.Version).FontSize(13)
-			ui.Text(c, locales.OpenedAt(a.formatTime(p.Modified))).FontSize(11).TextColor(t.TextMuted)
-		})
-		ui.Row(c).Gap(6).Children(func() {
-			star := "☆"
-			tip := locales.FavoriteAdd()
-			if p.Favorite {
-				star, tip = "★", locales.FavoriteRemove()
-			}
-			if ui.Button(c, star).Tooltip(tip).Width(38).Clicked() {
-				a.toggleFavorite(p)
-			}
+		ui.Text(c, a.formatTime(p.Modified)).Width(110).FontSize(11).TextColor(t.TextMuted)
+		label := p.Version
+		if p.DisplayVersion != "" {
+			label = p.DisplayVersion
+		}
+		ui.Button(c, label+" ▾").Width(150).Tooltip(displayVersion(p.Version, p.DisplayVersion)).OnClick(func() { a.chooseProjectVersion(p) })
+		ui.Row(c).Gap(6).Width(190).Justify(ui.End).Children(func() {
 			if p.VCS.Remote != "" && isWebURL(p.VCS.Remote) {
 				if ui.Button(c, strings.ToUpper(p.VCS.Kind)).Tooltip(locales.ActionRepo()).Clicked() {
 					_ = mygo.Shell.OpenExternal(p.VCS.Remote)
 				}
 			}
-			if p.Editor == "" {
-				ui.Button(c, locales.ActionOpen()).Disabled(true).Tooltip(locales.EditorMissing(p.Version))
-			} else if a.editorIsSimulated(p.Editor) {
-				ui.Button(c, locales.ActionOpen()).Disabled(true).Tooltip(locales.SimulatedOpen())
-			} else if ui.PrimaryButton(c, locales.ActionOpen()).Clicked() {
-				a.openProject(p)
-			}
+			ui.Button(c, locales.ActionOpen()).OnClick(func() {
+				if p.Editor == "" || a.editorIsSimulated(p.Editor) {
+					a.chooseProjectVersion(p)
+				} else {
+					a.openProject(p)
+				}
+			})
 			if ui.Button(c, locales.ActionFolder()).Clicked() {
 				mygo.Shell.OpenPath(p.Path)
 			}
@@ -119,8 +167,116 @@ func (a *app) projectRow(c *ui.Context, p projectEntry) {
 	})
 	// A double click on the row opens the project too, as the hubs do.
 	if row.RowDoubleClicked() {
-		a.openProject(p)
+		if p.Editor == "" || a.editorIsSimulated(p.Editor) {
+			a.chooseProjectVersion(p)
+		} else {
+			a.openProject(p)
+		}
 	}
+}
+
+func (a *app) projectEditors(p projectEntry) []editorInstall {
+	var editors []editorInstall
+	for _, e := range a.editorsForEngine(p.Kind) {
+		if !e.Simulated {
+			editors = append(editors, e)
+		}
+	}
+	return editors
+}
+
+func (a *app) chooseProjectVersion(p projectEntry) {
+	a.versionProject, a.versionOpen, a.versionConfirm, a.versionEditor = p, true, false, ""
+	editors := a.projectEditors(p)
+	if len(editors) > 0 {
+		a.versionEditor = editors[0].Exe
+	}
+	for _, e := range editors {
+		if strings.EqualFold(e.Version, p.Version) {
+			a.versionEditor = e.Exe
+			break
+		}
+	}
+}
+
+func (a *app) projectVersionDialog(c *ui.Context) {
+	if !a.versionOpen {
+		return
+	}
+	t := c.Theme()
+	ui.Modal(c, &a.versionOpen, func() {
+		ui.Column(c).Width(500).Gap(14).Children(func() {
+			if a.versionConfirm {
+				ui.Text(c, locales.ProjectVersionConfirm()).FontSize(18).Bold()
+				e, ok := a.editorInstall(a.versionEditor)
+				if !ok || e.Kind != a.versionProject.Kind || e.Simulated {
+					ui.Text(c, locales.ProjectVersionNone()).TextColor(t.Danger)
+					return
+				}
+				ui.Text(c, a.versionProject.Name+" · "+a.versionProject.Version+" → "+e.Version).FontSize(14).Bold()
+				ui.Text(c, locales.ProjectVersionWarning()).FontSize(12).TextColor(t.TextMuted)
+				ui.Row(c).Gap(8).Justify(ui.End).Children(func() {
+					ui.Button(c, locales.ActionCancel()).OnClick(func() { a.versionConfirm = false })
+					ui.PrimaryButton(c, locales.ProjectVersionContinue()).OnClick(a.openSelectedProjectVersion)
+				})
+				return
+			}
+			ui.Text(c, locales.ProjectVersionTitle()).FontSize(18).Bold()
+			ui.Text(c, a.versionProject.Name+" · "+a.versionProject.Version).FontSize(13)
+			ui.Text(c, locales.ProjectVersionHint()).FontSize(12).TextColor(t.TextMuted)
+			editors := a.projectEditors(a.versionProject)
+			if len(editors) == 0 {
+				ui.Text(c, locales.ProjectVersionNone()).TextColor(t.TextMuted)
+			}
+			ui.Scroll(c).Height(200).Children(func() {
+				ui.Column(c).Gap(5).Children(func() {
+					for _, editor := range editors {
+						e := editor
+						c.Key(e.Exe)
+						ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
+							if strings.EqualFold(a.versionEditor, e.Exe) {
+								ui.PrimaryButton(c, displayVersion(e.Version, e.DisplayVersion)).Width(200).OnClick(func() { a.versionEditor = e.Exe })
+							} else {
+								ui.Button(c, displayVersion(e.Version, e.DisplayVersion)).Width(200).OnClick(func() { a.versionEditor = e.Exe })
+							}
+							ui.Text(c, e.Exe).FontSize(11).TextColor(t.TextMuted).Grow(1).Clip()
+						})
+					}
+				})
+			})
+			ui.Row(c).Gap(8).Justify(ui.End).Children(func() {
+				ui.Button(c, locales.ProjectVersionInstall()).OnClick(func() {
+					_, _, downloads, _ := enginePages(a.versionProject.Kind)
+					a.page = downloads
+					a.activeEngine = a.versionProject.Kind
+					a.versionOpen = false
+				})
+				ui.Button(c, locales.ActionCancel()).OnClick(func() { a.versionOpen = false })
+				ui.PrimaryButton(c, locales.ProjectVersionOpen()).Disabled(a.versionEditor == "").OnClick(func() {
+					e, ok := a.editorInstall(a.versionEditor)
+					if !ok || e.Kind != a.versionProject.Kind || e.Simulated {
+						return
+					}
+					if strings.EqualFold(e.Version, a.versionProject.Version) {
+						a.openSelectedProjectVersion()
+					} else {
+						a.versionConfirm = true
+					}
+				})
+			})
+		})
+	})
+}
+
+func (a *app) openSelectedProjectVersion() {
+	e, ok := a.editorInstall(a.versionEditor)
+	if !ok || e.Kind != a.versionProject.Kind || e.Simulated {
+		return
+	}
+	p := a.versionProject
+	p.Editor = e.Exe
+	a.versionOpen = false
+	a.openProject(p)
 }
 
 // pipelineName is the badge of a render pipeline.

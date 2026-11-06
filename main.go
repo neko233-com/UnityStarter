@@ -58,7 +58,12 @@ func main() {
 		mygo.App.OnLocaleChanged(func(string) {
 			a.win.SetTitle(locales.AppTitle())
 		})
-		mygo.App.OnBeforeQuit(func(*mygo.QuitEvent) {
+		mygo.App.OnBeforeQuit(func(event *mygo.QuitEvent) {
+			if a.moduleBusy {
+				event.PreventDefault()
+				a.manageOpen, a.manageModules = true, true
+				return
+			}
 			if a.hubCancel != nil {
 				a.hubCancel()
 			}

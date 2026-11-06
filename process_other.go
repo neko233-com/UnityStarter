@@ -17,4 +17,8 @@ func startDetached(exe string, args []string, dir string) error {
 
 func hideWindowCmd(cmd *exec.Cmd) {}
 
+func startHiddenDetached(exe string, args []string, dir string) error {
+	return startDetached(exe, args, dir)
+}
+
 func configureInstallerCmd(cmd *exec.Cmd, engine, dest string) {}

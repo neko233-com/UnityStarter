@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -125,28 +127,45 @@ func tuanjieReleasesIn(dirs []string) []downloadEntry {
 		if err != nil {
 			continue
 		}
+		type release struct {
+			Version      string `json:"version"`
+			DownloadURL  string `json:"downloadUrl"`
+			DownloadSize int64  `json:"downloadSize"`
+			LTS          bool   `json:"lts"`
+			Checksum     string `json:"checksum"`
+		}
 		var file struct {
-			Official []struct {
-				Version      string `json:"version"`
-				DownloadURL  string `json:"downloadUrl"`
-				DownloadSize int64  `json:"downloadSize"`
-				LTS          bool   `json:"lts"`
-			} `json:"official"`
+			Official []release `json:"official"`
+			Beta     []release `json:"beta"`
 		}
 		if json.Unmarshal(data, &file) != nil {
 			continue
 		}
-		out := make([]downloadEntry, 0, len(file.Official))
-		for _, r := range file.Official {
+		out := make([]downloadEntry, 0, len(file.Official)+len(file.Beta))
+		for index, r := range append(file.Official, file.Beta...) {
 			if r.DownloadURL == "" {
 				continue
 			}
+			integrity := ""
+			if r.Checksum != "" {
+				digest, err := hex.DecodeString(r.Checksum)
+				if err != nil || len(digest) != 16 {
+					continue
+				}
+				integrity = "md5-" + base64.StdEncoding.EncodeToString(digest)
+			}
+			stream := ""
+			if index >= len(file.Official) {
+				stream = "BETA"
+			}
 			out = append(out, downloadEntry{
-				Engine:  kindTuanjie,
-				Version: r.Version,
-				LTS:     r.LTS,
-				URL:     r.DownloadURL,
-				Size:    r.DownloadSize,
+				Engine:    kindTuanjie,
+				Version:   r.Version,
+				LTS:       r.LTS,
+				URL:       r.DownloadURL,
+				Size:      r.DownloadSize,
+				Stream:    stream,
+				Integrity: integrity,
 			})
 		}
 		return out

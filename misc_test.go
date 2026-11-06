@@ -75,16 +75,19 @@ func TestTuanjieReleases(t *testing.T) {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	body := `{"official":[{"version":"2022.3.61t15","downloadUrl":"https://download.tuanjie.cn/x.exe","downloadSize":100,"lts":true}],"beta":[]}`
+	body := `{"official":[{"version":"2022.3.61t15","downloadUrl":"https://download.tuanjie.cn/x.exe","downloadSize":100,"lts":true,"checksum":"0123456789abcdef0123456789abcdef"}],"beta":[{"version":"2022.3.62t1b1","downloadUrl":"https://download.tuanjie.cn/beta.exe"}]}`
 	if err := os.WriteFile(filepath.Join(dir, "releases.json"), []byte(body), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	got := tuanjieReleasesIn([]string{dir})
-	if len(got) != 1 {
+	if len(got) != 2 {
 		t.Fatalf("releases %v", got)
 	}
 	if got[0].Version != "2022.3.61t15" || !got[0].LTS || got[0].Size != 100 || got[0].Engine != kindTuanjie {
 		t.Errorf("release %+v", got[0])
+	}
+	if got[0].Integrity != "md5-ASNFZ4mrze8BI0VniavN7w==" || got[1].Stream != "BETA" {
+		t.Fatalf("release integrity or beta: %+v", got)
 	}
 }
 

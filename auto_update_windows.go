@@ -51,7 +51,7 @@ func startUpdateHelper(pid int) error {
 		os.Remove(path)
 		return err
 	}
-	if err := startDetached(path, []string{"--apply-pending-update", strconv.Itoa(pid)}, updatesDir()); err != nil {
+	if err := startHiddenDetached(path, []string{"--apply-pending-update", strconv.Itoa(pid)}, updatesDir()); err != nil {
 		os.Remove(path)
 		return err
 	}

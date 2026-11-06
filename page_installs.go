@@ -3,6 +3,7 @@ package main
 import (
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
@@ -13,26 +14,44 @@ import (
 func (a *app) installsPage(c *ui.Context) {
 	t := c.Theme()
 	engine := engineForPage(a.page)
-	editors := a.editorsForEngine(engine)
-	a.header(c, channelName(engine)+" · "+locales.InstallsTitle(), locales.InstallsCount(len(editors)), func() {
+	editors := a.filteredEditors(engine)
+	a.header(c, locales.InstallsTitle(), locales.InstallsCount(len(editors)), func() {
 		ui.Button(c, locales.ActionRefresh()).OnClick(a.refresh).Disabled(a.scanning)
 		ui.Button(c, locales.ActionAddFolder()).OnClick(a.addEditorRoot)
+		ui.PrimaryButton(c, locales.InstallEditor()).OnClick(func() { _, _, page, _ := enginePages(engine); a.page = page })
+	})
+	ui.Row(c).Padding(0, 22, 14, 22).Gap(8).AlignItems(ui.Center).Children(func() {
+		for _, tab := range []struct{ id, label string }{{"", locales.InstallAll()}, {"official", locales.InstallOfficial()}, {"preview", locales.InstallPreview()}} {
+			tab := tab
+			if a.installFilter == tab.id {
+				ui.PrimaryButton(c, tab.label).OnClick(func() { a.installFilter = tab.id })
+			} else {
+				ui.Button(c, tab.label).OnClick(func() { a.installFilter = tab.id })
+			}
+		}
+		ui.Spacer(c)
+		ui.SearchField(c, &a.installQuery).Placeholder(locales.InstallSearch()).Width(210)
 	})
 	ui.Divider(c)
 
 	a.installs.Key = func(i int) any { return editors[i].Exe }
 	ui.List(c, &a.installs, len(editors), func(i int) {
 		e := editors[i]
-		ui.Row(c).Padding(14, 18).Gap(16).AlignItems(ui.Center).Children(func() {
+		ui.Row(c).Padding(18, 22).Gap(16).AlignItems(ui.Center).Children(func() {
+			ui.Icon(c, iconBrand).Size(28, 28).TextColor(t.TextMuted)
 			ui.Column(c).Grow(1).Gap(5).Children(func() {
 				ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-					ui.Text(c, e.Version).FontSize(16).Bold()
+					ui.Text(c, displayVersion(e.Version, e.DisplayVersion)).FontSize(16).Bold()
 					ui.Badge(c, channelName(e.Kind))
 					if e.Simulated {
 						ui.Badge(c, locales.SimulatedBadge())
 					}
 				})
 				ui.Text(c, e.Exe).FontSize(12).TextColor(t.TextMuted).Clip()
+				modules := installedModuleNames(e.Modules)
+				if len(modules) > 0 {
+					ui.Text(c, strings.Join(modules, " · ")).FontSize(11).TextColor(t.TextMuted).Clip()
+				}
 			})
 			ui.Row(c).Gap(6).Children(func() {
 				if e.Simulated {
@@ -56,6 +75,13 @@ func (a *app) installsPage(c *ui.Context) {
 				if ui.Button(c, locales.ActionFolder()).Clicked() {
 					mygo.Shell.ShowItemInFolder(e.Exe)
 				}
+				ui.Button(c, locales.InstallManage()).Disabled(a.moduleBusy).OnClick(func() {
+					a.manageEditor = e
+					a.manageOpen = true
+					a.manageModules = false
+					a.manageUninstall = false
+					a.moduleStatus = ""
+				})
 			})
 		})
 	}).Grow(1).Children(func() {
@@ -63,6 +89,23 @@ func (a *app) installsPage(c *ui.Context) {
 			a.emptyState(c, locales.InstallsEmptyTitle(), locales.InstallsEmptyHint())
 		}
 	})
+}
+
+func (a *app) filteredEditors(engine string) []editorInstall {
+	var result []editorInstall
+	q := strings.ToLower(strings.TrimSpace(a.installQuery))
+	for _, e := range a.editorsForEngine(engine) {
+		version := strings.ToLower(e.Version)
+		preview := strings.ContainsAny(version, "ab")
+		if a.installFilter == "preview" && !preview || a.installFilter == "official" && preview {
+			continue
+		}
+		if !strings.Contains(version, q) && !strings.Contains(strings.ToLower(e.DisplayVersion), q) && !strings.Contains(strings.ToLower(e.Exe), q) {
+			continue
+		}
+		result = append(result, e)
+	}
+	return result
 }
 
 func (a *app) editorsForEngine(engine string) []editorInstall {

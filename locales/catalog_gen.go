@@ -34,6 +34,266 @@ type Messages struct{ locale string }
 // source language.
 func In(locale string) Messages { return Messages{locale} }
 
+// ProjectColumnName says "Name"
+// in the language the app shows.
+func ProjectColumnName() string { return In(i18n.Locale()).ProjectColumnName() }
+
+// ProjectColumnName says "Name"
+// in the language of msgs.
+func (msgs Messages) ProjectColumnName() string {
+	return Catalog.Format(msgs.locale, "projectColumnName", nil)
+}
+
+// ProjectColumnModified says "Modified"
+// in the language the app shows.
+func ProjectColumnModified() string { return In(i18n.Locale()).ProjectColumnModified() }
+
+// ProjectColumnModified says "Modified"
+// in the language of msgs.
+func (msgs Messages) ProjectColumnModified() string {
+	return Catalog.Format(msgs.locale, "projectColumnModified", nil)
+}
+
+// ProjectColumnEditor says "Editor version"
+// in the language the app shows.
+func ProjectColumnEditor() string { return In(i18n.Locale()).ProjectColumnEditor() }
+
+// ProjectColumnEditor says "Editor version"
+// in the language of msgs.
+func (msgs Messages) ProjectColumnEditor() string {
+	return Catalog.Format(msgs.locale, "projectColumnEditor", nil)
+}
+
+// ProjectVersionTitle says "Select Editor version"
+// in the language the app shows.
+func ProjectVersionTitle() string { return In(i18n.Locale()).ProjectVersionTitle() }
+
+// ProjectVersionTitle says "Select Editor version"
+// in the language of msgs.
+func (msgs Messages) ProjectVersionTitle() string {
+	return Catalog.Format(msgs.locale, "projectVersionTitle", nil)
+}
+
+// ProjectVersionHint says "Choose an installed Editor to open the project. Its saved version is not changed in advance."
+// in the language the app shows.
+func ProjectVersionHint() string { return In(i18n.Locale()).ProjectVersionHint() }
+
+// ProjectVersionHint says "Choose an installed Editor to open the project. Its saved version is not changed in advance."
+// in the language of msgs.
+func (msgs Messages) ProjectVersionHint() string {
+	return Catalog.Format(msgs.locale, "projectVersionHint", nil)
+}
+
+// ProjectVersionConfirm says "Change Editor version"
+// in the language the app shows.
+func ProjectVersionConfirm() string { return In(i18n.Locale()).ProjectVersionConfirm() }
+
+// ProjectVersionConfirm says "Change Editor version"
+// in the language of msgs.
+func (msgs Messages) ProjectVersionConfirm() string {
+	return Catalog.Format(msgs.locale, "projectVersionConfirm", nil)
+}
+
+// ProjectVersionWarning says "Opening with a different version can upgrade or change the project. Ensure you have a backup; downgrading can cause d…"
+// in the language the app shows.
+func ProjectVersionWarning() string { return In(i18n.Locale()).ProjectVersionWarning() }
+
+// ProjectVersionWarning says "Opening with a different version can upgrade or change the project. Ensure you have a backup; downgrading can cause d…"
+// in the language of msgs.
+func (msgs Messages) ProjectVersionWarning() string {
+	return Catalog.Format(msgs.locale, "projectVersionWarning", nil)
+}
+
+// ProjectVersionOpen says "Open with this version"
+// in the language the app shows.
+func ProjectVersionOpen() string { return In(i18n.Locale()).ProjectVersionOpen() }
+
+// ProjectVersionOpen says "Open with this version"
+// in the language of msgs.
+func (msgs Messages) ProjectVersionOpen() string {
+	return Catalog.Format(msgs.locale, "projectVersionOpen", nil)
+}
+
+// ProjectVersionContinue says "Confirm and open"
+// in the language the app shows.
+func ProjectVersionContinue() string { return In(i18n.Locale()).ProjectVersionContinue() }
+
+// ProjectVersionContinue says "Confirm and open"
+// in the language of msgs.
+func (msgs Messages) ProjectVersionContinue() string {
+	return Catalog.Format(msgs.locale, "projectVersionContinue", nil)
+}
+
+// ProjectVersionNone says "No usable Editor is installed."
+// in the language the app shows.
+func ProjectVersionNone() string { return In(i18n.Locale()).ProjectVersionNone() }
+
+// ProjectVersionNone says "No usable Editor is installed."
+// in the language of msgs.
+func (msgs Messages) ProjectVersionNone() string {
+	return Catalog.Format(msgs.locale, "projectVersionNone", nil)
+}
+
+// ProjectVersionInstall says "Install another version"
+// in the language the app shows.
+func ProjectVersionInstall() string { return In(i18n.Locale()).ProjectVersionInstall() }
+
+// ProjectVersionInstall says "Install another version"
+// in the language of msgs.
+func (msgs Messages) ProjectVersionInstall() string {
+	return Catalog.Format(msgs.locale, "projectVersionInstall", nil)
+}
+
+// InstallAll says "All"
+// in the language the app shows.
+func InstallAll() string { return In(i18n.Locale()).InstallAll() }
+
+// InstallAll says "All"
+// in the language of msgs.
+func (msgs Messages) InstallAll() string {
+	return Catalog.Format(msgs.locale, "installAll", nil)
+}
+
+// InstallOfficial says "Official releases"
+// in the language the app shows.
+func InstallOfficial() string { return In(i18n.Locale()).InstallOfficial() }
+
+// InstallOfficial says "Official releases"
+// in the language of msgs.
+func (msgs Messages) InstallOfficial() string {
+	return Catalog.Format(msgs.locale, "installOfficial", nil)
+}
+
+// InstallPreview says "Pre-releases"
+// in the language the app shows.
+func InstallPreview() string { return In(i18n.Locale()).InstallPreview() }
+
+// InstallPreview says "Pre-releases"
+// in the language of msgs.
+func (msgs Messages) InstallPreview() string {
+	return Catalog.Format(msgs.locale, "installPreview", nil)
+}
+
+// InstallSearch says "Search installed versions"
+// in the language the app shows.
+func InstallSearch() string { return In(i18n.Locale()).InstallSearch() }
+
+// InstallSearch says "Search installed versions"
+// in the language of msgs.
+func (msgs Messages) InstallSearch() string {
+	return Catalog.Format(msgs.locale, "installSearch", nil)
+}
+
+// InstallEditor says "Install Editor"
+// in the language the app shows.
+func InstallEditor() string { return In(i18n.Locale()).InstallEditor() }
+
+// InstallEditor says "Install Editor"
+// in the language of msgs.
+func (msgs Messages) InstallEditor() string {
+	return Catalog.Format(msgs.locale, "installEditor", nil)
+}
+
+// InstallManage says "Manage"
+// in the language the app shows.
+func InstallManage() string { return In(i18n.Locale()).InstallManage() }
+
+// InstallManage says "Manage"
+// in the language of msgs.
+func (msgs Messages) InstallManage() string {
+	return Catalog.Format(msgs.locale, "installManage", nil)
+}
+
+// InstallModules says "Add modules"
+// in the language the app shows.
+func InstallModules() string { return In(i18n.Locale()).InstallModules() }
+
+// InstallModules says "Add modules"
+// in the language of msgs.
+func (msgs Messages) InstallModules() string {
+	return Catalog.Format(msgs.locale, "installModules", nil)
+}
+
+// InstallModuleHint says "Installed modules come from the Editor's modules.json. Verified standalone official installers without extra licenses…"
+// in the language the app shows.
+func InstallModuleHint() string { return In(i18n.Locale()).InstallModuleHint() }
+
+// InstallModuleHint says "Installed modules come from the Editor's modules.json. Verified standalone official installers without extra licenses…"
+// in the language of msgs.
+func (msgs Messages) InstallModuleHint() string {
+	return Catalog.Format(msgs.locale, "installModuleHint", nil)
+}
+
+// InstallModuleUnavailable says "Use the official Hub to install this module"
+// in the language the app shows.
+func InstallModuleUnavailable() string { return In(i18n.Locale()).InstallModuleUnavailable() }
+
+// InstallModuleUnavailable says "Use the official Hub to install this module"
+// in the language of msgs.
+func (msgs Messages) InstallModuleUnavailable() string {
+	return Catalog.Format(msgs.locale, "installModuleUnavailable", nil)
+}
+
+// InstallModuleProgress says "Downloading or installing module…"
+// in the language the app shows.
+func InstallModuleProgress() string { return In(i18n.Locale()).InstallModuleProgress() }
+
+// InstallModuleProgress says "Downloading or installing module…"
+// in the language of msgs.
+func (msgs Messages) InstallModuleProgress() string {
+	return Catalog.Format(msgs.locale, "installModuleProgress", nil)
+}
+
+// InstallModuleLoading says "Loading official module list…"
+// in the language the app shows.
+func InstallModuleLoading() string { return In(i18n.Locale()).InstallModuleLoading() }
+
+// InstallModuleLoading says "Loading official module list…"
+// in the language of msgs.
+func (msgs Messages) InstallModuleLoading() string {
+	return Catalog.Format(msgs.locale, "installModuleLoading", nil)
+}
+
+// InstallModuleDone says "Module installed. Refresh the list."
+// in the language the app shows.
+func InstallModuleDone() string { return In(i18n.Locale()).InstallModuleDone() }
+
+// InstallModuleDone says "Module installed. Refresh the list."
+// in the language of msgs.
+func (msgs Messages) InstallModuleDone() string {
+	return Catalog.Format(msgs.locale, "installModuleDone", nil)
+}
+
+// InstallUninstall says "Uninstall Editor"
+// in the language the app shows.
+func InstallUninstall() string { return In(i18n.Locale()).InstallUninstall() }
+
+// InstallUninstall says "Uninstall Editor"
+// in the language of msgs.
+func (msgs Messages) InstallUninstall() string {
+	return Catalog.Format(msgs.locale, "installUninstall", nil)
+}
+
+// InstallUninstallWarning says "The Editor's own uninstaller will open. Make sure no project is using this version."
+// in the language the app shows.
+func InstallUninstallWarning() string { return In(i18n.Locale()).InstallUninstallWarning() }
+
+// InstallUninstallWarning says "The Editor's own uninstaller will open. Make sure no project is using this version."
+// in the language of msgs.
+func (msgs Messages) InstallUninstallWarning() string {
+	return Catalog.Format(msgs.locale, "installUninstallWarning", nil)
+}
+
+// InstallUninstallMissing says "No uninstaller was found for this installation."
+// in the language the app shows.
+func InstallUninstallMissing() string { return In(i18n.Locale()).InstallUninstallMissing() }
+
+// InstallUninstallMissing says "No uninstaller was found for this installation."
+// in the language of msgs.
+func (msgs Messages) InstallUninstallMissing() string {
+	return Catalog.Format(msgs.locale, "installUninstallMissing", nil)
+}
+
 // AppTitle says "UnityStarter"
 // in the language the app shows.
 func AppTitle() string { return In(i18n.Locale()).AppTitle() }
