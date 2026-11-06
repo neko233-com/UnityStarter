@@ -227,6 +227,23 @@ func TestDownloadRejectsWrongIntegrity(t *testing.T) {
 	}
 }
 
+func TestDownloadRejectsUnexpectedSizeWithoutPartialFile(t *testing.T) {
+	body := []byte("some archive bytes")
+	sum := sha256.Sum256(body)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write(body) }))
+	defer server.Close()
+	for _, size := range []int64{int64(len(body) - 1), int64(len(body) + 1)} {
+		dir := t.TempDir()
+		dst := filepath.Join(dir, "archive.zip")
+		if err := downloadFileVerifiedSize(context.Background(), server.URL, dst, "sha256-"+base64.StdEncoding.EncodeToString(sum[:]), size, func(int64, int64) {}); err == nil {
+			t.Fatal("unexpected size accepted")
+		}
+		if entries, err := os.ReadDir(dir); err != nil || len(entries) != 0 {
+			t.Fatalf("partial download remains: %v %v", entries, err)
+		}
+	}
+}
+
 func TestIncompleteInstallIsNotListedAndCanBeRetried(t *testing.T) {
 	root := t.TempDir()
 	dest := filepath.Join(root, "7000.0.0a16")

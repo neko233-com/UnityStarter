@@ -35,7 +35,9 @@ UnityStarter 使用原生界面和一体化标题栏；左侧切换 Unity 与团
 
 两个引擎的官方版本清单独立获取并缓存；团结引擎无需安装官方 Hub 即可获取版本和模块列表，网络不可用时使用已缓存清单。
 
-模块安装支持有官方校验值且无需额外许可或依赖处理的受支持独立模块，以及 SHA-256 校验的官方 OpenJDK；SDK、NDK 等其余模块请使用官方 Hub。独立安装程序需要管理员权限时由 Windows 提示授权；OpenJDK ZIP 需要当前用户有编辑器目录写入权限。
+模块安装支持受支持的独立模块、官方 OpenJDK，以及可完整核对依赖的 Unity Android SDK／NDK；安装 Android 工具前需阅读并接受 Google 许可。团结旧版 Android 依赖及其他不符合条件的模块请使用官方 Hub。独立安装程序需要管理员权限时由 Windows 提示授权；ZIP 模块需要当前用户有编辑器目录写入权限。
+
+Unity 7 Android 多包安装已验证官方清单、隔离安装和失败清理；真实大包安装与 Android 构建尚待接受许可后验收。
 
 Unity Personal 首次激活需要登录 Unity Hub；请查看 README 中的已知限制。发布包未经代码签名，请使用 SHA256SUMS.txt 校验文件。
 '@ | Set-Content -LiteralPath $notes -Encoding utf8

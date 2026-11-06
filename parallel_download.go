@@ -18,7 +18,7 @@ const parallelWorkers = 6
 // parallelDownload uses only the original URL. A strong validator and byte
 // ranges are required, so different versions of an object cannot be mixed.
 // handled=false leaves servers without range support to the streaming path.
-func parallelDownload(ctx context.Context, from, to, integrity string, progress func(int64, int64)) (handled bool, err error) {
+func parallelDownload(ctx context.Context, from, to, integrity string, expectedSize int64, progress func(int64, int64)) (handled bool, err error) {
 	probeCtx, cancelProbe := context.WithTimeout(ctx, 10*time.Second)
 	defer cancelProbe()
 	req, err := http.NewRequestWithContext(probeCtx, http.MethodHead, from, nil)
@@ -35,6 +35,9 @@ func parallelDownload(ctx context.Context, from, to, integrity string, progress 
 	}
 	resp.Body.Close()
 	total := resp.ContentLength
+	if resp.StatusCode == http.StatusOK && expectedSize > 0 && total >= 0 && total != expectedSize {
+		return true, fmt.Errorf("download size mismatch")
+	}
 	validator := resp.Header.Get("ETag")
 	if strings.HasPrefix(validator, "W/") {
 		validator = ""

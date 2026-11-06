@@ -35,7 +35,7 @@ const (
 
 	// appVersion is what the CLI prints and what the window shows when MyGo
 	// does not know the packaged version.
-	appVersion = "1.6.4"
+	appVersion = "1.6.5"
 	// appName is the name of the executable and of the app's data folder, as
 	// mygo.json names the app; the window shows a name with a space.
 	appName = "UnityStarter"
@@ -67,6 +67,7 @@ type app struct {
 	moduleInstalling   bool
 	moduleStatus       string
 	moduleCancel       context.CancelFunc
+	androidPlan        *androidInstallPlan
 	alertOpen          bool
 	alertMessage       string
 	availableOpen      bool

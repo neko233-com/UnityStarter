@@ -93,11 +93,18 @@ func downloadFile(ctx context.Context, from, to string, progress func(done, tota
 }
 
 func downloadFileVerified(ctx context.Context, from, to, integrity string, progress func(done, total int64)) error {
+	return downloadFileVerifiedSize(ctx, from, to, integrity, 0, progress)
+}
+
+func downloadFileVerifiedSize(ctx context.Context, from, to, integrity string, expectedSize int64, progress func(done, total int64)) error {
+	if expectedSize < 0 {
+		return fmt.Errorf("invalid expected download size")
+	}
 	digest, expected, err := integrityHasher(integrity)
 	if err != nil {
 		return err
 	}
-	if handled, err := parallelDownload(ctx, from, to, integrity, progress); handled {
+	if handled, err := parallelDownload(ctx, from, to, integrity, expectedSize, progress); handled {
 		return err
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, from, nil)
@@ -111,6 +118,9 @@ func downloadFileVerified(ctx context.Context, from, to, integrity string, progr
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("%s", resp.Status)
+	}
+	if expectedSize > 0 && resp.ContentLength >= 0 && resp.ContentLength != expectedSize {
+		return fmt.Errorf("download size mismatch")
 	}
 	if err := os.MkdirAll(filepath.Dir(to), 0o755); err != nil {
 		return err
@@ -127,6 +137,10 @@ func downloadFileVerified(ctx context.Context, from, to, integrity string, progr
 	for {
 		n, readErr := resp.Body.Read(buf)
 		if n > 0 {
+			if expectedSize > 0 && int64(n) > expectedSize-done {
+				file.Close()
+				return fmt.Errorf("download exceeds expected size")
+			}
 			if _, err := file.Write(buf[:n]); err != nil {
 				file.Close()
 				os.Remove(part)
@@ -150,6 +164,9 @@ func downloadFileVerified(ctx context.Context, from, to, integrity string, progr
 	if err := file.Close(); err != nil {
 		os.Remove(part)
 		return err
+	}
+	if expectedSize > 0 && done != expectedSize {
+		return fmt.Errorf("download size mismatch")
 	}
 	if err := verifyIntegrity(digest, expected); err != nil {
 		os.Remove(part)

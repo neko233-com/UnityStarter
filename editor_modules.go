@@ -20,18 +20,23 @@ import (
 )
 
 type editorModule struct {
-	ID           string `json:"id"`
-	Name         string `json:"name"`
-	URL          string `json:"downloadUrl"`
-	Checksum     string `json:"checksum"`
-	Destination  string `json:"destination"`
-	Command      string `json:"cmd"`
-	Parent       string `json:"parent"`
-	EULA         string `json:"eulaUrl1"`
-	EULA2        string `json:"eulaUrl2"`
-	Visible      bool   `json:"visible"`
-	Selected     bool   `json:"selected"`
-	DownloadSize int64  `json:"downloadSize"`
+	ID                    string `json:"id"`
+	Name                  string `json:"name"`
+	URL                   string `json:"downloadUrl"`
+	Checksum              string `json:"checksum"`
+	Integrity             string `json:"integrity,omitempty"`
+	Destination           string `json:"destination"`
+	Command               string `json:"cmd"`
+	Parent                string `json:"parent"`
+	Required              bool   `json:"required,omitempty"`
+	RenameFrom            string `json:"renameFrom,omitempty"`
+	RenameTo              string `json:"renameTo,omitempty"`
+	EULA                  string `json:"eulaUrl1"`
+	EULA2                 string `json:"eulaUrl2"`
+	Visible               bool   `json:"visible"`
+	Selected              bool   `json:"selected"`
+	DownloadSize          int64  `json:"downloadSize"`
+	DependencyFingerprint string `json:"-"`
 }
 
 func readEditorModules(root string) []editorModule {
@@ -40,6 +45,7 @@ func readEditorModules(root string) []editorModule {
 	if err != nil || json.Unmarshal(data, &modules) != nil {
 		return nil
 	}
+	annotateSDKDependencies(modules)
 	state := readModuleState(root)
 	for i := range modules {
 		if moduleStateMatches(state, modules[i]) && moduleFilesPresent(root, modules[i]) {
@@ -130,7 +136,7 @@ func markModuleInstalled(root string, module editorModule) error {
 		if key == module.ID {
 			var current editorModule
 			encoded, err := json.Marshal(row)
-			if err != nil || json.Unmarshal(encoded, &current) != nil || current.URL != module.URL || current.Checksum != module.Checksum {
+			if err != nil || json.Unmarshal(encoded, &current) != nil || current.URL != module.URL || current.Checksum != module.Checksum || current.Integrity != module.Integrity || current.Destination != module.Destination || current.Parent != module.Parent || current.EULA != module.EULA || current.EULA2 != module.EULA2 || current.Command != module.Command || current.RenameFrom != module.RenameFrom || current.RenameTo != module.RenameTo {
 				return errModuleMetadataChanged
 			}
 			row["selected"] = json.RawMessage("true")
@@ -281,6 +287,21 @@ func (a *app) editorManageDialog(c *ui.Context) {
 				return
 			}
 			if a.manageModules {
+				if a.androidPlan != nil {
+					plan := *a.androidPlan
+					var total int64
+					for _, pkg := range plan.Packages {
+						total += pkg.ExpectedSize
+					}
+					ui.Text(c, locales.AndroidLicenseTitle()).FontSize(15).Bold()
+					ui.Text(c, locales.AndroidLicenseHint(len(plan.Packages), humanSize(total))).FontSize(12).TextColor(t.TextMuted)
+					ui.Scroll(c).Height(300).Children(func() { ui.Text(c, plan.License).Width(510).FontSize(12) })
+					ui.Row(c).Gap(8).Justify(ui.End).Children(func() {
+						ui.Button(c, locales.ActionCancel()).OnClick(func() { a.androidPlan = nil })
+						ui.PrimaryButton(c, locales.AndroidLicenseAccept()).OnClick(func() { a.androidPlan = nil; a.installAndroidSDK(e, plan) })
+					})
+					return
+				}
 				ui.Text(c, locales.InstallModuleHint()).FontSize(12).TextColor(t.TextMuted)
 				if a.moduleLoading {
 					ui.Text(c, locales.InstallModuleLoading()).FontSize(12).TextColor(t.TextMuted)
@@ -302,9 +323,17 @@ func (a *app) editorManageDialog(c *ui.Context) {
 									ui.Badge(c, locales.DownloadsInstalled())
 								} else {
 									_, _, _, supported := moduleInstallSpec(e, m)
-									button := ui.Button(c, locales.ActionInstall()).Disabled(a.moduleBusy || !supported).OnClick(func() { a.installEditorModule(e, m) })
-									if !supported {
-										if _, _, archive := openJDKArchive(m); archive && !parentModuleSelected(e.Modules, m.Parent) {
+									android := androidSDKCandidate(e, m)
+									button := ui.Button(c, locales.ActionInstall()).Disabled(a.moduleBusy || a.moduleLoading || (!supported && !android)).OnClick(func() {
+										if android {
+											a.prepareAndroidSDK(e, m)
+										} else {
+											a.installEditorModule(e, m)
+										}
+									})
+									if !supported && !android {
+										_, _, archive := openJDKArchive(m)
+										if (archive || (e.Kind == kindUnity && androidSDKMetadata(m))) && !parentModuleSelected(e.Modules, m.Parent) {
 											button.Tooltip(locales.InstallModuleNeedsParent())
 										} else {
 											button.Tooltip(locales.InstallModuleUnavailable())

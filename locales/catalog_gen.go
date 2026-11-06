@@ -224,14 +224,56 @@ func (msgs Messages) InstallModules() string {
 	return Catalog.Format(msgs.locale, "installModules", nil)
 }
 
-// InstallModuleHint says "Verified standalone platform modules and OpenJDK are supported. Modules with licenses or multiple dependencies, such …"
+// InstallModuleHint says "Supports official standalone modules, OpenJDK, and some Unity Android SDK/NDK releases. Other modules require the off…"
 // in the language the app shows.
 func InstallModuleHint() string { return In(i18n.Locale()).InstallModuleHint() }
 
-// InstallModuleHint says "Verified standalone platform modules and OpenJDK are supported. Modules with licenses or multiple dependencies, such …"
+// InstallModuleHint says "Supports official standalone modules, OpenJDK, and some Unity Android SDK/NDK releases. Other modules require the off…"
 // in the language of msgs.
 func (msgs Messages) InstallModuleHint() string {
 	return Catalog.Format(msgs.locale, "installModuleHint", nil)
+}
+
+// AndroidLicenseTitle says "Android SDK and NDK license"
+// in the language the app shows.
+func AndroidLicenseTitle() string { return In(i18n.Locale()).AndroidLicenseTitle() }
+
+// AndroidLicenseTitle says "Android SDK and NDK license"
+// in the language of msgs.
+func (msgs Messages) AndroidLicenseTitle() string {
+	return Catalog.Format(msgs.locale, "androidLicenseTitle", nil)
+}
+
+// AndroidLicenseHint says "Scroll to review the full Google license. Accepting downloads {count} packages ({size}) and records the license in th…"
+// in the language the app shows.
+func AndroidLicenseHint(count int, size string) string {
+	return In(i18n.Locale()).AndroidLicenseHint(count, size)
+}
+
+// AndroidLicenseHint says "Scroll to review the full Google license. Accepting downloads {count} packages ({size}) and records the license in th…"
+// in the language of msgs.
+func (msgs Messages) AndroidLicenseHint(count int, size string) string {
+	return Catalog.Format(msgs.locale, "androidLicenseHint", map[string]any{"count": count, "size": size})
+}
+
+// AndroidLicenseAccept says "Accept license and install"
+// in the language the app shows.
+func AndroidLicenseAccept() string { return In(i18n.Locale()).AndroidLicenseAccept() }
+
+// AndroidLicenseAccept says "Accept license and install"
+// in the language of msgs.
+func (msgs Messages) AndroidLicenseAccept() string {
+	return Catalog.Format(msgs.locale, "androidLicenseAccept", nil)
+}
+
+// AndroidPrepare says "Checking Android dependencies and license…"
+// in the language the app shows.
+func AndroidPrepare() string { return In(i18n.Locale()).AndroidPrepare() }
+
+// AndroidPrepare says "Checking Android dependencies and license…"
+// in the language of msgs.
+func (msgs Messages) AndroidPrepare() string {
+	return Catalog.Format(msgs.locale, "androidPrepare", nil)
 }
 
 // InstallModuleUnavailable says "Use the official Hub to install this module"

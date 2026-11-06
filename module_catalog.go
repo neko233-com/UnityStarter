@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 )
@@ -19,15 +20,22 @@ import (
 var unityModuleCatalogURL = "https://services.api.unity.com/unity/editor/release/v1/releases?limit=1&version="
 
 type unityModule struct {
-	ID           string            `json:"id"`
-	Name         string            `json:"name"`
-	URL          string            `json:"url"`
-	Integrity    string            `json:"integrity"`
-	Destination  string            `json:"destination"`
-	Command      string            `json:"cmd"`
-	Hidden       bool              `json:"hidden"`
-	EULA         []json.RawMessage `json:"eula"`
-	Children     []unityModule     `json:"subModules"`
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	URL         string `json:"url"`
+	Integrity   string `json:"integrity"`
+	Destination string `json:"destination"`
+	Command     string `json:"cmd"`
+	Hidden      bool   `json:"hidden"`
+	Required    bool   `json:"required"`
+	EULA        []struct {
+		URL string `json:"url"`
+	} `json:"eula"`
+	Rename struct {
+		From string `json:"from"`
+		To   string `json:"to"`
+	} `json:"extractedPathRename"`
+	Children     []unityModule `json:"subModules"`
 	DownloadSize struct {
 		Value int64 `json:"value"`
 	} `json:"downloadSize"`
@@ -42,10 +50,12 @@ func appendUnityModules(out *[]editorModule, modules []unityModule, parent strin
 			}
 		}
 		eula := ""
-		if len(m.EULA) > 0 {
-			eula = "required"
+		if len(m.EULA) == 1 {
+			eula = m.EULA[0].URL
+		} else if len(m.EULA) > 1 {
+			eula = "multiple"
 		}
-		*out = append(*out, editorModule{ID: m.ID, Name: m.Name, URL: m.URL, Checksum: checksum, Destination: m.Destination, Command: m.Command, Parent: parent, EULA: eula, Visible: !m.Hidden, DownloadSize: m.DownloadSize.Value})
+		*out = append(*out, editorModule{ID: m.ID, Name: m.Name, URL: m.URL, Checksum: checksum, Integrity: m.Integrity, Destination: m.Destination, Command: m.Command, Parent: parent, Required: m.Required, RenameFrom: m.Rename.From, RenameTo: m.Rename.To, EULA: eula, Visible: !m.Hidden, DownloadSize: m.DownloadSize.Value})
 		appendUnityModules(out, m.Children, m.ID)
 	}
 }
@@ -91,7 +101,36 @@ func fetchUnityModules(ctx context.Context, version string) ([]editorModule, err
 	if len(modules) == 0 {
 		return nil, fmt.Errorf("no modules for this editor")
 	}
+	annotateSDKDependencies(modules)
 	return modules, nil
+}
+
+func annotateSDKDependencies(modules []editorModule) {
+	type dependency struct {
+		ID, URL, Integrity, Checksum, Destination, RenameFrom, RenameTo, EULA, EULA2, Command string
+		DownloadSize                                                                          int64
+	}
+	for i := range modules {
+		if modules[i].ID != "android-sdk-ndk-tools" {
+			continue
+		}
+		modules[i].DependencyFingerprint = ""
+		var children []dependency
+		for _, child := range modules {
+			if child.Parent == modules[i].ID && child.Required {
+				children = append(children, dependency{child.ID, child.URL, child.Integrity, child.Checksum, child.Destination, child.RenameFrom, child.RenameTo, child.EULA, child.EULA2, child.Command, child.DownloadSize})
+			}
+		}
+		if len(children) == 0 {
+			continue
+		}
+		sort.Slice(children, func(i, j int) bool { return children[i].ID < children[j].ID })
+		data, err := json.Marshal(children)
+		if err == nil {
+			sum := sha256.Sum256(data)
+			modules[i].DependencyFingerprint = hex.EncodeToString(sum[:])
+		}
+	}
 }
 
 func cachedTuanjieModules(version string, dirs []string) []editorModule {
@@ -139,7 +178,11 @@ type ownedModuleState struct {
 }
 
 func moduleFingerprint(m editorModule) string {
-	sum := sha256.Sum256([]byte(m.ID + "\x00" + m.URL + "\x00" + m.Checksum + "\x00" + m.Destination))
+	value := m.ID + "\x00" + m.URL + "\x00" + m.Checksum + "\x00" + m.Destination
+	if m.DependencyFingerprint != "" {
+		value += "\x00" + m.DependencyFingerprint
+	}
+	sum := sha256.Sum256([]byte(value))
 	return hex.EncodeToString(sum[:])
 }
 

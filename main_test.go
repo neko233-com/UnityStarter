@@ -5,6 +5,7 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -103,6 +104,48 @@ func TestDownloadCatalogUpdatesEachEngineIndependently(t *testing.T) {
 	a.applyReleaseCatalog(releaseCatalogResult{engine: kindTuanjie, entries: []downloadEntry{{Engine: kindTuanjie, Version: "2022.3.62t17"}}})
 	if len(downloadsForEngine(a.downloads, kindTuanjie)) != 1 || len(downloadsForEngine(a.downloads, kindUnity)) != 2 || a.downloadsPending[kindTuanjie] || !a.downloadsPending[kindUnity] {
 		t.Fatalf("first catalog lost independent state: %+v pending=%v", a.downloads, a.downloadsPending)
+	}
+}
+
+func TestAndroidLicenseCanBeReviewedAndCanceled(t *testing.T) {
+	a := fixture()
+	a.manageOpen, a.manageModules = true, true
+	a.manageEditor = editorInstall{Version: "7000.0.0a16", Kind: kindUnity}
+	a.androidPlan = &androidInstallPlan{License: "Terms fixture for review", Packages: []androidPackage{{}, {}}}
+	tt := ui.NewTester(a.view, 1180, 760)
+	if !tt.HasText(locales.AndroidLicenseTitle()) || !tt.HasText("Terms fixture for review") || !tt.HasText(locales.AndroidLicenseAccept()) {
+		t.Fatalf("license dialog missing: %q", tt.Texts())
+	}
+	if err := tt.Click(locales.ActionCancel()); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.androidPlan != nil || a.moduleBusy {
+		t.Fatal("cancel should not start installation")
+	}
+}
+
+func TestAndroidLicenseSnapshot(t *testing.T) {
+	path := os.Getenv("ANDROID_LICENSE_SNAPSHOT")
+	if path == "" {
+		t.Skip("set ANDROID_LICENSE_SNAPSHOT to inspect the native dialog")
+	}
+	a := fixture()
+	a.manageOpen, a.manageModules = true, true
+	a.manageEditor = editorInstall{Version: "7000.0.0a16", Kind: kindUnity}
+	a.androidPlan = &androidInstallPlan{License: strings.Repeat("Terms fixture. This text represents a long agreement to review before installing.\n\n", 200) + "END OF LICENSE FIXTURE", Packages: make([]androidPackage, 9)}
+	for i := range a.androidPlan.Packages {
+		a.androidPlan.Packages[i].ExpectedSize = 120000000
+	}
+	tt := ui.NewTester(a.view, 1180, 760)
+	tt.Frame()
+	if err := writePNG(path, tt.Image()); err != nil {
+		t.Fatal(err)
+	}
+	tt.Scroll(550, 400, 0, 200000)
+	tt.Frame()
+	if err := writePNG(path+".bottom.png", tt.Image()); err != nil {
+		t.Fatal(err)
 	}
 }
 

@@ -2,7 +2,9 @@ package main
 
 import (
 	"crypto/md5"
+	"crypto/sha1"
 	"crypto/sha256"
+	"crypto/sha512"
 	"crypto/subtle"
 	"encoding/base64"
 	"fmt"
@@ -24,6 +26,10 @@ func integrityHasher(integrity string) (hash.Hash, []byte, error) {
 		h = md5.New()
 	case "sha256":
 		h = sha256.New()
+	case "sha1":
+		h = sha1.New()
+	case "sha384":
+		h = sha512.New384()
 	default:
 		return nil, nil, fmt.Errorf("unsupported installer integrity algorithm")
 	}

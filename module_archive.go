@@ -64,6 +64,9 @@ func parentModuleSelected(modules []editorModule, parent string) bool {
 }
 
 func moduleFilesPresent(root string, m editorModule) bool {
+	if m.ID == "android-sdk-ndk-tools" && m.Parent == "android" && m.EULA == androidLicenseURL {
+		return androidSDKFilesPresent(filepath.Join(root, "Editor", "Data", "PlaybackEngines", "AndroidPlayer"))
+	}
 	if _, player, ok := openJDKArchive(m); ok {
 		info, err := os.Stat(filepath.Join(root, "Editor", "Data", "PlaybackEngines", player, "OpenJDK", "bin", "java.exe"))
 		return err == nil && info.Mode().IsRegular() && info.Size() > 0
@@ -153,14 +156,21 @@ func removeJDKStage(parent, stage string) {
 }
 
 func extractJDKArchive(archive, stage, integrity string) error {
+	if !strings.HasPrefix(integrity, "sha256-") {
+		return fmt.Errorf("missing or invalid OpenJDK integrity")
+	}
+	return extractVerifiedArchive(archive, stage, integrity, 20000)
+}
+
+func extractVerifiedArchive(archive, stage, integrity string, maxEntries int) error {
 	f, err := os.Open(archive)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 	h, expected, err := integrityHasher(integrity)
-	if err != nil || h == nil || !strings.HasPrefix(integrity, "sha256-") {
-		return fmt.Errorf("missing or invalid OpenJDK integrity")
+	if err != nil || h == nil || !(strings.HasPrefix(integrity, "sha1-") || strings.HasPrefix(integrity, "sha256-") || strings.HasPrefix(integrity, "sha384-")) {
+		return fmt.Errorf("missing or invalid archive integrity")
 	}
 	if _, err := io.Copy(h, f); err != nil {
 		return err
@@ -176,8 +186,8 @@ func extractJDKArchive(archive, stage, integrity string) error {
 	if err != nil {
 		return err
 	}
-	if len(z.File) > 20000 {
-		return fmt.Errorf("OpenJDK archive has too many entries")
+	if maxEntries <= 0 || len(z.File) > maxEntries {
+		return fmt.Errorf("archive has too many entries")
 	}
 	seen := map[string]bool{}
 	var total uint64

@@ -81,6 +81,7 @@ func (a *app) installsPage(c *ui.Context) {
 					a.manageModules = false
 					a.manageUninstall = false
 					a.moduleStatus = ""
+					a.androidPlan = nil
 				})
 			})
 		})
