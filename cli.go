@@ -274,28 +274,9 @@ func cliNew(opts cliOptions, args []string, scanFn func(prefs) scanResult, out i
 		fmt.Fprintln(out, locales.CliNotEmpty(dir))
 		return 1
 	}
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := startProjectCreation(dir, editor, startDetached); err != nil {
 		fmt.Fprintln(out, err)
 		return 1
-	}
-	if err := startDetached(editor.Exe, []string{"-createProject", dir}, filepath.Dir(editor.Exe)); err != nil {
-		fmt.Fprintln(out, err)
-		return 1
-	}
-	// The editor writes the project's version as it creates it, so the hub is
-	// told the version of the editor this command chose.
-	if !settings.NoHubSync {
-		entry := projectEntry{
-			Path:     dir,
-			Name:     filepath.Base(dir),
-			Version:  editor.Version,
-			Kind:     editor.Kind,
-			Modified: time.Now(),
-		}
-		if _, err := exportProjects(res.hubs, []projectEntry{entry}); err != nil {
-			fmt.Fprintln(out, err)
-			return 1
-		}
 	}
 	fmt.Fprintln(out, locales.CliCreated(dir))
 	return 0

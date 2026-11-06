@@ -117,12 +117,13 @@ type app struct {
 	updateCtx     context.Context
 	updateCancel  context.CancelFunc
 
-	newOpen   bool
-	newDir    string
-	newName   string
-	newEditor string
-	newEngine string
-	newError  string
+	newOpen            bool
+	newDir             string
+	newName            string
+	newEditor          string
+	newEngine          string
+	newError           string
+	pendingProjectList []pendingProject
 }
 
 func newApp() *app {
@@ -645,6 +646,14 @@ func (a *app) startHubWatch() {
 					previous = current
 					win.Update(a.refresh)
 				}
+				pending := pendingProjects()
+				var ready []pendingProject
+				for _, p := range pending {
+					if pendingProjectReady(p) {
+						ready = append(ready, p)
+					}
+				}
+				win.Update(func() { a.pendingProjectList = pending; a.finishPendingProjects(ready) })
 			}
 		}
 	}()

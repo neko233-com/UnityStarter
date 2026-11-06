@@ -1936,11 +1936,11 @@ func (msgs Messages) CliOpened(path string) string {
 	return Catalog.Format(msgs.locale, "cliOpened", map[string]any{"path": path})
 }
 
-// CliCreated says "Created {path}"
+// CliCreated says "Editor started creating {path}. Open UnityStarter to register it after the project files appear."
 // in the language the app shows.
 func CliCreated(path string) string { return In(i18n.Locale()).CliCreated(path) }
 
-// CliCreated says "Created {path}"
+// CliCreated says "Editor started creating {path}. Open UnityStarter to register it after the project files appear."
 // in the language of msgs.
 func (msgs Messages) CliCreated(path string) string {
 	return Catalog.Format(msgs.locale, "cliCreated", map[string]any{"path": path})
@@ -2602,6 +2602,26 @@ func NewProjectHint() string { return In(i18n.Locale()).NewProjectHint() }
 // in the language of msgs.
 func (msgs Messages) NewProjectHint() string {
 	return Catalog.Format(msgs.locale, "newProjectHint", nil)
+}
+
+// NewProjectWaiting says "Waiting for project files"
+// in the language the app shows.
+func NewProjectWaiting() string { return In(i18n.Locale()).NewProjectWaiting() }
+
+// NewProjectWaiting says "Waiting for project files"
+// in the language of msgs.
+func (msgs Messages) NewProjectWaiting() string {
+	return Catalog.Format(msgs.locale, "newProjectWaiting", nil)
+}
+
+// NewProjectForget says "Stop tracking"
+// in the language the app shows.
+func NewProjectForget() string { return In(i18n.Locale()).NewProjectForget() }
+
+// NewProjectForget says "Stop tracking"
+// in the language of msgs.
+func (msgs Messages) NewProjectForget() string {
+	return Catalog.Format(msgs.locale, "newProjectForget", nil)
 }
 
 // NewProjectName says "Project name"

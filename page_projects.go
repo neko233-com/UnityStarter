@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
@@ -33,6 +32,17 @@ func (a *app) projectsPage(c *ui.Context) {
 		ui.SearchField(c, &a.query).Placeholder(locales.ProjectsSearch()).Width(245)
 	})
 	ui.Divider(c)
+	for _, pending := range a.pendingProjectList {
+		p := pending
+		if p.Kind != engine {
+			continue
+		}
+		c.Key(p.file)
+		ui.Row(c).Padding(8, 22).Gap(10).AlignItems(ui.Center).Background(c.Theme().Surface).Children(func() {
+			ui.Text(c, locales.NewProjectWaiting()+" · "+p.Path).Grow(1).FontSize(12).Clip().Tooltip(p.Path)
+			ui.Button(c, locales.NewProjectForget()).OnClick(func() { a.forgetPendingProject(p) })
+		})
+	}
 	ui.Row(c).Padding(5, 16).Gap(10).AlignItems(ui.Center).Background(c.Theme().Surface).Children(func() {
 		ui.Button(c, "★").Width(38).OnClick(func() { a.sortProjects("favorite") })
 		ui.Button(c, locales.ProjectColumnName()).Grow(1).OnClick(func() { a.sortProjects("name") })
@@ -457,7 +467,8 @@ func (a *app) createProject() {
 		a.newError = locales.NewProjectInvalidName()
 		return
 	}
-	if editor, ok := a.editorInstall(a.newEditor); !ok || editor.Kind != a.newEngine || editor.Simulated {
+	editor, ok := a.editorInstall(a.newEditor)
+	if !ok || editor.Kind != a.newEngine || editor.Simulated {
 		a.newError = locales.NoEditorInstalled()
 		return
 	}
@@ -466,35 +477,13 @@ func (a *app) createProject() {
 		a.newError = locales.NewProjectExists(dir)
 		return
 	}
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		a.newError = err.Error()
-		return
-	}
-	if err := a.launchEditor(a.newEditor, []string{"-createProject", dir}, filepath.Dir(a.newEditor)); err != nil {
+	if err := startProjectCreation(dir, editor, a.launchEditor); err != nil {
 		a.newError = locales.OpenFailed(err.Error())
 		logger.Printf("new project: %v", err)
 		return
 	}
-	a.prefs.PinnedProjects = dedupe(append(a.prefs.PinnedProjects, dir))
-	delete(a.prefs.HiddenProjects, localProjectKey(dir))
-	a.save()
-	a.newOpen = false
-	// The editor writes the project's version as it creates it, so the hub
-	// is told the version this app chose.
-	if e, ok := a.editorInstall(a.newEditor); ok && !a.prefs.NoHubSync {
-		entry := projectEntry{
-			Path:     filepath.Clean(dir),
-			Name:     filepath.Base(dir),
-			Version:  e.Version,
-			Kind:     e.Kind,
-			Modified: time.Now(),
-		}
-		added, err := exportProjects(a.hubs, []projectEntry{entry})
-		if err != nil {
-			logger.Printf("hub export: %v", err)
-		} else if added > 0 {
-			a.hubWriteAt = time.Now()
-		}
+	if abs, err := filepath.Abs(dir); err == nil {
+		a.pendingProjectList = append(a.pendingProjectList, pendingProject{Path: abs, Version: editor.Version, Kind: editor.Kind, file: pendingProjectFile(abs)})
 	}
-	a.refresh()
+	a.newOpen = false
 }
