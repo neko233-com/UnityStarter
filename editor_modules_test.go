@@ -50,6 +50,74 @@ func TestLegacyUnityModuleIntegrity(t *testing.T) {
 	}
 }
 
+func TestHubModuleIntegrityWithoutChecksum(t *testing.T) {
+	t.Setenv("APPDATA", t.TempDir())
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	const digest = "6eab785d35754b9b0145e60237c8b192"
+	m := editorModule{ID: "webgl", URL: "https://download.unity3d.com/web.exe", Integrity: "md5-" + base64.StdEncoding.EncodeToString([]byte(digest)), Destination: "{UNITY_PATH}"}
+	if sum, _, _, ok := moduleInstallSpec(editorInstall{Kind: kindUnity}, m); !ok || sum != "md5-bqt4XTV1S5sBReYCN8ixkg==" {
+		t.Fatalf("Hub integrity not recognized: %q %v", sum, ok)
+	}
+	modern := m
+	modern.Integrity = "md5-bqt4XTV1S5sBReYCN8ixkg=="
+	modern.Checksum = digest
+	if _, _, _, ok := moduleInstallSpec(editorInstall{Kind: kindUnity}, modern); !ok {
+		t.Fatal("matching raw MD5 and hexadecimal checksum rejected")
+	}
+	bad := m
+	bad.Checksum = strings.Repeat("0", 32)
+	if standaloneModule(bad) {
+		t.Fatal("conflicting checksums accepted")
+	}
+	bad = m
+	bad.Integrity = "md5-invalid"
+	if standaloneModule(bad) {
+		t.Fatal("invalid integrity accepted")
+	}
+	root := t.TempDir()
+	data := []byte(`[{"id":"webgl","downloadUrl":"https://download.unity3d.com/web.exe","integrity":"` + m.Integrity + `","destination":"{UNITY_PATH}","selected":false,"unknown":{"keep":42}}]`)
+	if err := os.WriteFile(filepath.Join(root, "modules.json"), data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	modules := readEditorModules(root)
+	if len(modules) != 1 || !standaloneModule(modules[0]) {
+		t.Fatalf("Hub metadata rejected: %+v", modules)
+	}
+	if err := markModuleInstalled(root, modules[0]); err != nil {
+		t.Fatal(err)
+	}
+	var rows []map[string]any
+	result, err := os.ReadFile(filepath.Join(root, "modules.json"))
+	if err != nil || json.Unmarshal(result, &rows) != nil || rows[0]["selected"] != true || rows[0]["unknown"].(map[string]any)["keep"] != float64(42) {
+		t.Fatalf("Hub metadata not preserved: %s %v", result, err)
+	}
+	if moduleFingerprint(m) == moduleFingerprint(bad) {
+		t.Fatal("integrity changes did not change local state identity")
+	}
+}
+
+func TestLiveUnityHubStandaloneMetadata(t *testing.T) {
+	root := os.Getenv("UNITYSTARTER_LIVE_UNITY_MODULES_ROOT")
+	if root == "" {
+		t.Skip("set UNITYSTARTER_LIVE_UNITY_MODULES_ROOT to an installed editor")
+	}
+	modules := readEditorModules(root)
+	for _, id := range []string{"android", "webgl", "windows-il2cpp"} {
+		found := false
+		for _, m := range modules {
+			if m.ID == id {
+				found = true
+				if _, _, _, ok := moduleInstallSpec(editorInstall{Kind: kindUnity}, m); !ok {
+					t.Fatalf("Hub module %s rejected: %+v", id, m)
+				}
+			}
+		}
+		if !found {
+			t.Fatalf("Hub module %s missing", id)
+		}
+	}
+}
+
 func TestLinuxIL2CPPModuleRequiresBothPlayers(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())

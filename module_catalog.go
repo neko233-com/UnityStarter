@@ -180,6 +180,9 @@ type ownedModuleState struct {
 
 func moduleFingerprint(m editorModule) string {
 	value := m.ID + "\x00" + m.URL + "\x00" + m.Checksum + "\x00" + m.Destination
+	if m.Checksum == "" && m.Integrity != "" {
+		value += "\x00" + m.Integrity
+	}
 	if m.DependencyFingerprint != "" {
 		value += "\x00" + m.DependencyFingerprint
 	}

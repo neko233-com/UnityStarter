@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/hex"
@@ -104,8 +105,32 @@ func standaloneModule(m editorModule) bool {
 	if host != "download.unity3d.com" && host != "download.tuanjie.cn" {
 		return false
 	}
-	digest, err := hex.DecodeString(m.Checksum)
-	return err == nil && len(digest) == 16 && strings.HasSuffix(strings.ToLower(u.Path), ".exe") && m.Command == "" && m.Parent == "" && m.EULA == "" && m.EULA2 == "" && m.Destination == "{UNITY_PATH}" && moduleIDPattern.MatchString(m.ID) && moduleOutput(m) != ""
+	_, valid := standaloneModuleMD5(m)
+	return valid && strings.HasSuffix(strings.ToLower(u.Path), ".exe") && m.Command == "" && m.Parent == "" && m.EULA == "" && m.EULA2 == "" && m.Destination == "{UNITY_PATH}" && moduleIDPattern.MatchString(m.ID) && moduleOutput(m) != ""
+}
+
+// Unity Hub's modules.json may have only integrity, while the Tuanjie Hub
+// stores hexadecimal checksum. When both exist, they must agree.
+func standaloneModuleMD5(m editorModule) ([]byte, bool) {
+	var checksum []byte
+	if m.Checksum != "" {
+		var err error
+		checksum, err = hex.DecodeString(m.Checksum)
+		if err != nil || len(checksum) != 16 {
+			return nil, false
+		}
+	}
+	if m.Integrity != "" {
+		if !strings.HasPrefix(m.Integrity, "md5-") {
+			return nil, false
+		}
+		_, digest, err := integrityHasher(m.Integrity)
+		if err != nil || len(digest) != 16 || (len(checksum) != 0 && !bytes.Equal(checksum, digest)) {
+			return nil, false
+		}
+		checksum = digest
+	}
+	return checksum, len(checksum) == 16
 }
 
 func moduleInstallSpec(e editorInstall, m editorModule) (integrity, player, extension string, ok bool) {
@@ -113,7 +138,7 @@ func moduleInstallSpec(e editorInstall, m editorModule) (integrity, player, exte
 		return "", languageModule, ".po", true
 	}
 	if standaloneModule(m) {
-		digest, _ := hex.DecodeString(m.Checksum)
+		digest, _ := standaloneModuleMD5(m)
 		return "md5-" + base64.StdEncoding.EncodeToString(digest), "", ".exe", true
 	}
 	if sum, player, valid := openJDKArchive(m); valid && parentModuleSelected(e.Modules, m.Parent) {
