@@ -294,11 +294,31 @@ func (a *app) editorManageDialog(c *ui.Context) {
 						total += pkg.ExpectedSize
 					}
 					ui.Text(c, locales.AndroidLicenseTitle()).FontSize(15).Bold()
-					ui.Text(c, locales.AndroidLicenseHint(len(plan.Packages), humanSize(total))).FontSize(12).TextColor(t.TextMuted)
-					ui.Scroll(c).Height(300).Children(func() { ui.Text(c, plan.License).Width(510).FontSize(12) })
+					if plan.RecoveryPending {
+						ui.Text(c, locales.AndroidRecoveryLicenseHint()).FontSize(12).TextColor(t.TextMuted)
+					} else {
+						ui.Text(c, locales.AndroidLicenseHint(len(plan.Packages), humanSize(total))).FontSize(12).TextColor(t.TextMuted)
+					}
+					if plan.CachedBytes > 0 {
+						ui.Text(c, locales.AndroidCachedBytes(humanSize(plan.CachedBytes))).FontSize(12).TextColor(t.TextMuted)
+					}
+					if plan.RecoveryPending {
+						ui.Text(c, locales.AndroidRecoveryPending()).FontSize(12).TextColor(t.TextMuted)
+					}
+					if a.moduleStatus != "" {
+						ui.Text(c, a.moduleStatus).FontSize(12).TextColor(t.TextMuted)
+					}
+					ui.Scroll(c).Height(240).Children(func() { ui.Text(c, plan.License).Width(510).FontSize(12) })
 					ui.Row(c).Gap(8).Justify(ui.End).Children(func() {
-						ui.Button(c, locales.ActionCancel()).OnClick(func() { a.androidPlan = nil })
-						ui.PrimaryButton(c, locales.AndroidLicenseAccept()).OnClick(func() { a.androidPlan = nil; a.installAndroidSDK(e, plan) })
+						if plan.CachedBytes > 0 && !plan.RecoveryPending {
+							ui.Button(c, locales.AndroidDiscardCache()).Disabled(a.moduleLoading).OnClick(func() { a.discardAndroidCache(e, a.androidPlan) })
+						}
+						ui.Button(c, locales.ActionCancel()).Disabled(a.moduleLoading).OnClick(func() { a.androidPlan = nil })
+						label := locales.AndroidLicenseAccept()
+						if plan.RecoveryPending {
+							label = locales.AndroidLicenseRecover()
+						}
+						ui.PrimaryButton(c, label).Disabled(a.moduleLoading).OnClick(func() { a.androidPlan = nil; a.installAndroidSDK(e, plan) })
 					})
 					return
 				}

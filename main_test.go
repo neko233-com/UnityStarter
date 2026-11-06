@@ -111,10 +111,13 @@ func TestAndroidLicenseCanBeReviewedAndCanceled(t *testing.T) {
 	a := fixture()
 	a.manageOpen, a.manageModules = true, true
 	a.manageEditor = editorInstall{Version: "7000.0.0a16", Kind: kindUnity}
-	a.androidPlan = &androidInstallPlan{License: "Terms fixture for review", Packages: []androidPackage{{}, {}}}
+	a.androidPlan = &androidInstallPlan{License: "Terms fixture for review", CachedBytes: 256 << 20, Packages: []androidPackage{{}, {}}}
 	tt := ui.NewTester(a.view, 1180, 760)
 	if !tt.HasText(locales.AndroidLicenseTitle()) || !tt.HasText("Terms fixture for review") || !tt.HasText(locales.AndroidLicenseAccept()) {
 		t.Fatalf("license dialog missing: %q", tt.Texts())
+	}
+	if !tt.HasText(locales.AndroidCachedBytes("256.0 MB")) || !tt.HasText(locales.AndroidDiscardCache()) {
+		t.Fatalf("cached package controls missing: %q", tt.Texts())
 	}
 	if err := tt.Click(locales.ActionCancel()); err != nil {
 		t.Fatal(err)
@@ -122,6 +125,26 @@ func TestAndroidLicenseCanBeReviewedAndCanceled(t *testing.T) {
 	tt.Frame()
 	if a.androidPlan != nil || a.moduleBusy {
 		t.Fatal("cancel should not start installation")
+	}
+}
+
+func TestAndroidRecoveryStillRequiresLicenseConfirmation(t *testing.T) {
+	a := fixture()
+	a.manageOpen, a.manageModules = true, true
+	a.manageEditor = editorInstall{Version: "7000.0.0a16", Kind: kindUnity}
+	a.androidPlan = &androidInstallPlan{License: "Terms fixture for recovery", CachedBytes: 256 << 20, RecoveryPending: true}
+	tt := ui.NewTester(a.view, 1180, 760)
+	if !tt.HasText(locales.AndroidRecoveryPending()) || !tt.HasText(locales.AndroidLicenseRecover()) {
+		t.Fatalf("recovery confirmation missing: %q", tt.Texts())
+	}
+	if tt.HasText(locales.AndroidDiscardCache()) {
+		t.Fatal("recovery journal must not be discarded from the consent screen")
+	}
+	if err := tt.Click(locales.ActionCancel()); err != nil {
+		t.Fatal(err)
+	}
+	if a.androidPlan != nil || a.moduleBusy {
+		t.Fatal("canceling recovery must not start installation")
 	}
 }
 
@@ -133,7 +156,7 @@ func TestAndroidLicenseSnapshot(t *testing.T) {
 	a := fixture()
 	a.manageOpen, a.manageModules = true, true
 	a.manageEditor = editorInstall{Version: "7000.0.0a16", Kind: kindUnity}
-	a.androidPlan = &androidInstallPlan{License: strings.Repeat("Terms fixture. This text represents a long agreement to review before installing.\n\n", 200) + "END OF LICENSE FIXTURE", Packages: make([]androidPackage, 9)}
+	a.androidPlan = &androidInstallPlan{License: strings.Repeat("Terms fixture. This text represents a long agreement to review before installing.\n\n", 200) + "END OF LICENSE FIXTURE", CachedBytes: 256 << 20, Packages: make([]androidPackage, 9)}
 	for i := range a.androidPlan.Packages {
 		a.androidPlan.Packages[i].ExpectedSize = 120000000
 	}
@@ -145,6 +168,17 @@ func TestAndroidLicenseSnapshot(t *testing.T) {
 	tt.Scroll(550, 400, 0, 200000)
 	tt.Frame()
 	if err := writePNG(path+".bottom.png", tt.Image()); err != nil {
+		t.Fatal(err)
+	}
+	small := ui.NewTester(a.view, 900, 560)
+	small.Frame()
+	if err := writePNG(path+".small.png", small.Image()); err != nil {
+		t.Fatal(err)
+	}
+	a.androidPlan.RecoveryPending = true
+	recovery := ui.NewTester(a.view, 900, 560)
+	recovery.Frame()
+	if err := writePNG(path+".recovery.png", recovery.Image()); err != nil {
 		t.Fatal(err)
 	}
 }

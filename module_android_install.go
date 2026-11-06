@@ -177,6 +177,23 @@ func androidSDKFilesPresent(player string) bool {
 // installAndroidArchives extracts all packages into one sibling directory,
 // then publishes SDK and NDK only after every digest and expected file passes.
 func installAndroidArchives(root string, plan androidInstallPlan, archives []string) error {
+	return installAndroidArchivesJournal(root, plan, archives, nil, nil)
+}
+
+func installAndroidArchivesJournal(root string, plan androidInstallPlan, archives []string, cache *androidCache, afterMove func(string)) error {
+	if cache != nil {
+		key, _, err := androidCacheIdentity(root, plan)
+		if err != nil || key != cache.key {
+			return fmt.Errorf("Android cache does not match the installation plan")
+		}
+		_, pending, err := readAndroidJournal(cache)
+		if err != nil {
+			return err
+		}
+		if pending {
+			return fmt.Errorf("an earlier Android installation needs recovery")
+		}
+	}
 	if len(plan.Packages) == 0 || len(archives) != len(plan.Packages) || strings.TrimSpace(plan.License) == "" {
 		return fmt.Errorf("incomplete Android archive set")
 	}
@@ -212,7 +229,12 @@ func installAndroidArchives(root string, plan androidInstallPlan, archives []str
 	if err != nil {
 		return err
 	}
-	defer removeAndroidStage(parent, stage, ".unitystarter-android-")
+	keepStage := false
+	defer func() {
+		if !keepStage {
+			removeAndroidStage(parent, stage, ".unitystarter-android-")
+		}
+	}()
 	for i, pkg := range plan.Packages {
 		dest := filepath.Join(stage, filepath.FromSlash(pkg.Destination))
 		if err := os.MkdirAll(dest, 0o755); err != nil {
@@ -253,6 +275,12 @@ func installAndroidArchives(root string, plan androidInstallPlan, archives []str
 	if closeErr != nil {
 		return closeErr
 	}
+	if cache != nil {
+		if err := prepareAndroidJournal(cache, stage); err != nil {
+			return err
+		}
+		keepStage = true
+	}
 	var removed []string
 	for _, name := range []string{"SDK", "NDK"} {
 		if existed[name] {
@@ -273,6 +301,9 @@ func installAndroidArchives(root string, plan androidInstallPlan, archives []str
 		}
 		return err
 	}
+	if afterMove != nil {
+		afterMove("SDK")
+	}
 	if err := os.Rename(filepath.Join(stage, "NDK"), filepath.Join(parent, "NDK")); err != nil {
 		if rollbackErr := os.Rename(filepath.Join(parent, "SDK"), filepath.Join(stage, "SDK")); rollbackErr != nil {
 			return fmt.Errorf("Android NDK commit failed: %v; SDK rollback failed: %w", err, rollbackErr)
@@ -283,6 +314,9 @@ func installAndroidArchives(root string, plan androidInstallPlan, archives []str
 			}
 		}
 		return err
+	}
+	if afterMove != nil {
+		afterMove("NDK")
 	}
 	return nil
 }

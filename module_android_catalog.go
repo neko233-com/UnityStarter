@@ -52,9 +52,11 @@ type androidPackage struct {
 }
 
 type androidInstallPlan struct {
-	Module   editorModule
-	Packages []androidPackage
-	License  string
+	Module          editorModule
+	Packages        []androidPackage
+	License         string
+	CachedBytes     int64
+	RecoveryPending bool
 }
 
 func androidSDKCandidate(e editorInstall, m editorModule) bool {

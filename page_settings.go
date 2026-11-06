@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"strings"
 
 	"github.com/egoist/mygo"
@@ -45,6 +46,7 @@ func (a *app) settingsPage(c *ui.Context) {
 				})
 
 			a.installRootSection(c)
+			a.downloadCacheSection(c)
 			a.demoSection(c)
 
 			a.rootsSection(c, locales.SettingsPinnedProjects(), locales.SettingsPinnedProjectsHint(), a.prefs.PinnedProjects,
@@ -56,6 +58,26 @@ func (a *app) settingsPage(c *ui.Context) {
 				a.addProject)
 
 			a.aboutSection(c)
+		})
+	})
+}
+
+func (a *app) downloadCacheSection(c *ui.Context) {
+	t := c.Theme()
+	dir := downloadsDir()
+	ui.Column(c).Gap(8).Children(func() {
+		a.sectionTitle(c, locales.SettingsDownloadCache(), locales.SettingsDownloadCacheHint())
+		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
+			ui.Text(c, dir).FontSize(12).TextColor(t.TextMuted).Grow(1).Clip()
+			ui.Button(c, locales.ActionFolder()).OnClick(func() {
+				if err := os.MkdirAll(dir, 0o755); err != nil {
+					a.alert(locales.OpenFailed(err.Error()))
+					return
+				}
+				if err := mygo.Shell.OpenPath(dir); err != nil {
+					a.alert(locales.OpenFailed(err.Error()))
+				}
+			})
 		})
 	})
 }

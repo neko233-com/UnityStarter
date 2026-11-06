@@ -276,6 +276,108 @@ func (msgs Messages) AndroidPrepare() string {
 	return Catalog.Format(msgs.locale, "androidPrepare", nil)
 }
 
+// AndroidCachedBytes says "About {size} is cached and will be verified on retry."
+// in the language the app shows.
+func AndroidCachedBytes(size string) string { return In(i18n.Locale()).AndroidCachedBytes(size) }
+
+// AndroidCachedBytes says "About {size} is cached and will be verified on retry."
+// in the language of msgs.
+func (msgs Messages) AndroidCachedBytes(size string) string {
+	return Catalog.Format(msgs.locale, "androidCachedBytes", map[string]any{"size": size})
+}
+
+// AndroidDiscardCache says "Discard cache"
+// in the language the app shows.
+func AndroidDiscardCache() string { return In(i18n.Locale()).AndroidDiscardCache() }
+
+// AndroidDiscardCache says "Discard cache"
+// in the language of msgs.
+func (msgs Messages) AndroidDiscardCache() string {
+	return Catalog.Format(msgs.locale, "androidDiscardCache", nil)
+}
+
+// AndroidCacheClearing says "Discarding Android download cache…"
+// in the language the app shows.
+func AndroidCacheClearing() string { return In(i18n.Locale()).AndroidCacheClearing() }
+
+// AndroidCacheClearing says "Discarding Android download cache…"
+// in the language of msgs.
+func (msgs Messages) AndroidCacheClearing() string {
+	return Catalog.Format(msgs.locale, "androidCacheClearing", nil)
+}
+
+// AndroidCacheCleanupFailed says "Could not clear Android cache"
+// in the language the app shows.
+func AndroidCacheCleanupFailed() string { return In(i18n.Locale()).AndroidCacheCleanupFailed() }
+
+// AndroidCacheCleanupFailed says "Could not clear Android cache"
+// in the language of msgs.
+func (msgs Messages) AndroidCacheCleanupFailed() string {
+	return Catalog.Format(msgs.locale, "androidCacheCleanupFailed", nil)
+}
+
+// AndroidRecoveryPending says "An interrupted installation was found; accept the license to verify and recover it."
+// in the language the app shows.
+func AndroidRecoveryPending() string { return In(i18n.Locale()).AndroidRecoveryPending() }
+
+// AndroidRecoveryPending says "An interrupted installation was found; accept the license to verify and recover it."
+// in the language of msgs.
+func (msgs Messages) AndroidRecoveryPending() string {
+	return Catalog.Format(msgs.locale, "androidRecoveryPending", nil)
+}
+
+// AndroidRecovering says "Verifying and recovering the Android installation…"
+// in the language the app shows.
+func AndroidRecovering() string { return In(i18n.Locale()).AndroidRecovering() }
+
+// AndroidRecovering says "Verifying and recovering the Android installation…"
+// in the language of msgs.
+func (msgs Messages) AndroidRecovering() string {
+	return Catalog.Format(msgs.locale, "androidRecovering", nil)
+}
+
+// AndroidRecoveryLicenseHint says "Scroll to review the full Google license. Accepting verifies and recovers the interrupted installation."
+// in the language the app shows.
+func AndroidRecoveryLicenseHint() string { return In(i18n.Locale()).AndroidRecoveryLicenseHint() }
+
+// AndroidRecoveryLicenseHint says "Scroll to review the full Google license. Accepting verifies and recovers the interrupted installation."
+// in the language of msgs.
+func (msgs Messages) AndroidRecoveryLicenseHint() string {
+	return Catalog.Format(msgs.locale, "androidRecoveryLicenseHint", nil)
+}
+
+// AndroidLicenseRecover says "Accept license and recover"
+// in the language the app shows.
+func AndroidLicenseRecover() string { return In(i18n.Locale()).AndroidLicenseRecover() }
+
+// AndroidLicenseRecover says "Accept license and recover"
+// in the language of msgs.
+func (msgs Messages) AndroidLicenseRecover() string {
+	return Catalog.Format(msgs.locale, "androidLicenseRecover", nil)
+}
+
+// AndroidRecoveryCleanupFailed says "Installed, but recovery records could not be removed"
+// in the language the app shows.
+func AndroidRecoveryCleanupFailed() string { return In(i18n.Locale()).AndroidRecoveryCleanupFailed() }
+
+// AndroidRecoveryCleanupFailed says "Installed, but recovery records could not be removed"
+// in the language of msgs.
+func (msgs Messages) AndroidRecoveryCleanupFailed() string {
+	return Catalog.Format(msgs.locale, "androidRecoveryCleanupFailed", nil)
+}
+
+// AndroidDownloadRetained says "Android download interrupted; about {size} was retained for retry."
+// in the language the app shows.
+func AndroidDownloadRetained(size string) string {
+	return In(i18n.Locale()).AndroidDownloadRetained(size)
+}
+
+// AndroidDownloadRetained says "Android download interrupted; about {size} was retained for retry."
+// in the language of msgs.
+func (msgs Messages) AndroidDownloadRetained(size string) string {
+	return Catalog.Format(msgs.locale, "androidDownloadRetained", map[string]any{"size": size})
+}
+
 // InstallModuleUnavailable says "Use the official Hub to install this module"
 // in the language the app shows.
 func InstallModuleUnavailable() string { return In(i18n.Locale()).InstallModuleUnavailable() }
@@ -656,6 +758,26 @@ func SettingsInstallRootHint() string { return In(i18n.Locale()).SettingsInstall
 // in the language of msgs.
 func (msgs Messages) SettingsInstallRootHint() string {
 	return Catalog.Format(msgs.locale, "settingsInstallRootHint", nil)
+}
+
+// SettingsDownloadCache says "Download cache"
+// in the language the app shows.
+func SettingsDownloadCache() string { return In(i18n.Locale()).SettingsDownloadCache() }
+
+// SettingsDownloadCache says "Download cache"
+// in the language of msgs.
+func (msgs Messages) SettingsDownloadCache() string {
+	return Catalog.Format(msgs.locale, "settingsDownloadCache", nil)
+}
+
+// SettingsDownloadCacheHint says "Interrupted downloads are saved here; inspect older caches in the file manager."
+// in the language the app shows.
+func SettingsDownloadCacheHint() string { return In(i18n.Locale()).SettingsDownloadCacheHint() }
+
+// SettingsDownloadCacheHint says "Interrupted downloads are saved here; inspect older caches in the file manager."
+// in the language of msgs.
+func (msgs Messages) SettingsDownloadCacheHint() string {
+	return Catalog.Format(msgs.locale, "settingsDownloadCacheHint", nil)
 }
 
 // SettingsDemo says "Demo mode"
