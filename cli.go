@@ -536,6 +536,9 @@ func findRelease(version string) (downloadEntry, bool) {
 
 // downloadAndInstall runs a release's installer the way the hubs do.
 func downloadAndInstall(entry downloadEntry, root string) error {
+	if err := validateEditorInstallEntry(entry); err != nil {
+		return err
+	}
 	name := filepath.Base(strings.Split(entry.URL, "?")[0])
 	path := filepath.Join(downloadsDir(), name)
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Hour)
@@ -556,16 +559,7 @@ func downloadAndInstall(entry downloadEntry, root string) error {
 		return err
 	}
 	dest := filepath.Join(root, entry.Version)
-	if err := prepareEditorInstall(dest); err != nil {
-		return err
-	}
-	if err := runEditorInstaller(path, entry.Engine, dest); err != nil {
-		return err
-	}
-	if err := verifyInstalledEditor(entry.Engine, dest); err != nil {
-		return err
-	}
-	return os.Remove(filepath.Join(dest, installMarker))
+	return installVerifiedEditor(entry, path, dest, runEditorInstaller)
 }
 
 func rememberInstallRoot(settings *prefs, root string) {

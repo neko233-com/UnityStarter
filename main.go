@@ -65,6 +65,11 @@ func main() {
 			a.win.SetTitle(locales.AppTitle())
 		})
 		mygo.App.OnBeforeQuit(func(event *mygo.QuitEvent) {
+			if a.installingEditor() {
+				event.PreventDefault()
+				a.alert(locales.DownloadInstallInProgress())
+				return
+			}
 			if a.moduleBusy {
 				event.PreventDefault()
 				a.manageOpen, a.manageModules = true, true

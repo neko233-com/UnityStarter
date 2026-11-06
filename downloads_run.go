@@ -6,6 +6,7 @@ import (
 	"hash"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,6 +20,7 @@ import (
 type downloadJob struct {
 	Entry  downloadEntry
 	Path   string
+	Root   string // selected when the download-and-install action starts
 	Status string // downloading, downloaded, installing, installed, clearing, failedDownload, failedInstall
 	Done   int64
 	Total  int64
@@ -39,6 +41,42 @@ func editorDownloadExpectedSize(e downloadEntry) int64 {
 		return e.Size
 	}
 	return 0
+}
+
+// Automatic execution is limited to a known vendor HTTPS endpoint, an
+// ordinary version directory, and a usable vendor-provided integrity value.
+func validateEditorInstallEntry(e downloadEntry) error {
+	if e.Version == "" || parseEditorProductVersion(e.Version) != e.Version || kindOfVersion(e.Version) != e.Engine {
+		return fmt.Errorf("invalid editor version or engine")
+	}
+	u, err := url.Parse(e.URL)
+	if err != nil || u.Scheme != "https" || u.User != nil || u.RawPath != "" || u.RawQuery != "" || u.Fragment != "" {
+		return fmt.Errorf("invalid editor download URL")
+	}
+	if (e.Engine == kindUnity && u.Host != "download.unity3d.com") || (e.Engine == kindTuanjie && u.Host != "download.tuanjie.cn") {
+		return fmt.Errorf("untrusted editor download host")
+	}
+	prefix := "UnitySetup64-"
+	if e.Engine == kindTuanjie {
+		prefix = "TuanjieSetup64-"
+	}
+	if !strings.EqualFold(filepath.Base(u.Path), prefix+e.Version+".exe") {
+		return fmt.Errorf("unsupported editor installer")
+	}
+	h, _, err := integrityHasher(e.Integrity)
+	if err != nil || h == nil {
+		return fmt.Errorf("missing or invalid editor integrity")
+	}
+	return nil
+}
+
+func (a *app) installingEditor() bool {
+	for _, job := range a.jobs {
+		if job != nil && job.Status == "installing" {
+			return true
+		}
+	}
+	return false
 }
 
 func (a *app) discardDownload(e downloadEntry, job *downloadJob) {
@@ -81,6 +119,10 @@ func (a *app) startDownload(e downloadEntry) {
 	if a.win == nil {
 		return
 	}
+	if err := validateEditorInstallEntry(e); err != nil {
+		a.alert(locales.OpenFailed(err.Error()))
+		return
+	}
 	key := jobKey(e)
 	if job, ok := a.jobs[key]; ok && (job.Status == "downloading" || job.Status == "installing") {
 		return
@@ -90,7 +132,7 @@ func (a *app) startDownload(e downloadEntry) {
 		name = e.Engine + "-" + e.Version + ".exe"
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	job := &downloadJob{Entry: e, Path: filepath.Join(downloadsDir(), name), Status: "downloading", cancel: cancel}
+	job := &downloadJob{Entry: e, Path: filepath.Join(downloadsDir(), name), Root: a.installRoot(), Status: "downloading", cancel: cancel}
 	if a.jobs == nil {
 		a.jobs = map[string]*downloadJob{}
 	}
@@ -117,20 +159,26 @@ func (a *app) startDownload(e downloadEntry) {
 				job.Done, job.Total, job.Speed = done, total, speed
 			})
 		})
-		win.Update(func() {
-			switch {
-			case err == nil:
-				job.Status = "downloaded"
-				job.Done = job.Total
-			case ctx.Err() != nil:
-				delete(a.jobs, key)
-			default:
-				job.Status = "failedDownload"
-				job.Err = err.Error()
-				logger.Printf("download: %v", err)
-			}
-		})
+		win.Update(func() { a.finishEditorDownload(key, job, err, ctx.Err(), a.installJob) })
 	}()
+}
+
+func (a *app) finishEditorDownload(key string, job *downloadJob, downloadErr, contextErr error, install func(*downloadJob)) {
+	if a.jobs[key] != job {
+		return
+	}
+	if contextErr != nil {
+		delete(a.jobs, key)
+		return
+	}
+	if downloadErr != nil {
+		job.Status, job.Err = "failedDownload", downloadErr.Error()
+		logger.Printf("download: %v", downloadErr)
+		return
+	}
+	job.Status = "downloaded"
+	job.Done = job.Total
+	install(job)
 }
 
 // downloadFile writes the response to a temporary file beside its place, and
@@ -294,9 +342,12 @@ func (a *app) installJob(job *downloadJob) {
 	if a.win == nil {
 		return
 	}
-	root := a.installRoot()
+	root := job.Root
+	if root == "" {
+		root = a.installRoot()
+	}
 	dest := filepath.Join(root, job.Entry.Version)
-	if err := prepareEditorInstall(dest); err != nil {
+	if err := validateEditorInstallEntry(job.Entry); err != nil {
 		job.Status, job.Err = "failedInstall", err.Error()
 		return
 	}
@@ -304,13 +355,7 @@ func (a *app) installJob(job *downloadJob) {
 	win := a.win
 	logger.Printf("install: %s %s to %s", job.Entry.Engine, job.Entry.Version, dest)
 	go func() {
-		err := runEditorInstaller(job.Path, job.Entry.Engine, dest)
-		if err == nil {
-			err = verifyInstalledEditor(job.Entry.Engine, dest)
-		}
-		if err == nil {
-			err = os.Remove(filepath.Join(dest, installMarker))
-		}
+		err := installVerifiedEditor(job.Entry, job.Path, dest, runEditorInstaller)
 		win.Update(func() {
 			if err != nil {
 				job.Status = "failedInstall"
@@ -324,6 +369,30 @@ func (a *app) installJob(job *downloadJob) {
 			a.refresh()
 		})
 	}()
+}
+
+func installVerifiedEditor(entry downloadEntry, installer, dest string, run func(string, string, string) error) error {
+	if err := validateEditorInstallEntry(entry); err != nil {
+		return err
+	}
+	h, expected, _ := integrityHasher(entry.Integrity)
+	verified, err := reuseVerifiedDownload(context.Background(), installer, editorDownloadExpectedSize(entry), h, expected, func(int64, int64) {})
+	if err != nil {
+		return err
+	}
+	if !verified {
+		return fmt.Errorf("editor installer failed integrity verification")
+	}
+	if err := prepareEditorInstall(dest); err != nil {
+		return err
+	}
+	if err := run(installer, entry.Engine, dest); err != nil {
+		return err
+	}
+	if err := verifyInstalledEditor(entry.Engine, dest); err != nil {
+		return err
+	}
+	return os.Remove(filepath.Join(dest, installMarker))
 }
 
 const installMarker = ".unitystarter-installing"

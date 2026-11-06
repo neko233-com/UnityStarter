@@ -322,7 +322,11 @@ func (a *app) downloadAction(c *ui.Context, e downloadEntry) {
 	}
 	switch {
 	case job == nil:
-		if ui.PrimaryButton(c, locales.ActionDownload()).Clicked() {
+		button := ui.PrimaryButton(c, locales.DownloadAndInstall()).Disabled(validateEditorInstallEntry(e) != nil)
+		if validateEditorInstallEntry(e) != nil {
+			button.Tooltip(locales.DownloadInstallUnavailable())
+		}
+		if button.Clicked() {
 			a.startDownload(e)
 		}
 	case job.Status == "downloading":

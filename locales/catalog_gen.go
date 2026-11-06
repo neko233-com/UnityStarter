@@ -860,6 +860,36 @@ func (msgs Messages) InstallChooseLocation() string {
 	return Catalog.Format(msgs.locale, "installChooseLocation", nil)
 }
 
+// DownloadAndInstall says "Download and install"
+// in the language the app shows.
+func DownloadAndInstall() string { return In(i18n.Locale()).DownloadAndInstall() }
+
+// DownloadAndInstall says "Download and install"
+// in the language of msgs.
+func (msgs Messages) DownloadAndInstall() string {
+	return Catalog.Format(msgs.locale, "downloadAndInstall", nil)
+}
+
+// DownloadInstallUnavailable says "This release lacks verifiable official installer information"
+// in the language the app shows.
+func DownloadInstallUnavailable() string { return In(i18n.Locale()).DownloadInstallUnavailable() }
+
+// DownloadInstallUnavailable says "This release lacks verifiable official installer information"
+// in the language of msgs.
+func (msgs Messages) DownloadInstallUnavailable() string {
+	return Catalog.Format(msgs.locale, "downloadInstallUnavailable", nil)
+}
+
+// DownloadInstallInProgress says "An editor is installing. Wait until installation completes before quitting."
+// in the language the app shows.
+func DownloadInstallInProgress() string { return In(i18n.Locale()).DownloadInstallInProgress() }
+
+// DownloadInstallInProgress says "An editor is installing. Wait until installation completes before quitting."
+// in the language of msgs.
+func (msgs Messages) DownloadInstallInProgress() string {
+	return Catalog.Format(msgs.locale, "downloadInstallInProgress", nil)
+}
+
 // AndroidLegacyBaseline says "Legacy archives use fixed SHA-256 baselines observed from Google HTTPS downloads; some checksums are absent from the …"
 // in the language the app shows.
 func AndroidLegacyBaseline() string { return In(i18n.Locale()).AndroidLegacyBaseline() }
