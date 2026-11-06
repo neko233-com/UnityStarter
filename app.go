@@ -563,7 +563,7 @@ func (a *app) addProjectForEngine(engine string) {
 			return
 		}
 		a.prefs.PinnedProjects = dedupe(append(a.prefs.PinnedProjects, dir))
-		delete(a.prefs.HiddenProjects, localProjectKey(dir))
+		forgetProjectAliases(a.prefs.HiddenProjects, dir)
 		a.save()
 		a.pushToHub(dir)
 		a.refresh()
@@ -601,22 +601,22 @@ func (a *app) toggleFavorite(p projectEntry) {
 			return
 		}
 		a.hubWriteAt = time.Now()
-		if _, exists := a.prefs.LocalFavorites[key]; exists {
-			delete(a.prefs.LocalFavorites, key)
+		if len(a.prefs.LocalFavorites) > 0 {
+			forgetProjectAliases(a.prefs.LocalFavorites, p.Path)
 			a.save()
 		}
 	} else {
 		if a.prefs.LocalFavorites == nil {
 			a.prefs.LocalFavorites = map[string]bool{}
 		}
-		previous, existed := a.prefs.LocalFavorites[key]
+		previous := make(map[string]bool, len(a.prefs.LocalFavorites))
+		for path, favorite := range a.prefs.LocalFavorites {
+			previous[path] = favorite
+		}
+		forgetProjectAliases(a.prefs.LocalFavorites, p.Path)
 		a.prefs.LocalFavorites[key] = on
 		if err := savePrefs(a.prefs); err != nil {
-			if existed {
-				a.prefs.LocalFavorites[key] = previous
-			} else {
-				delete(a.prefs.LocalFavorites, key)
-			}
+			a.prefs.LocalFavorites = previous
 			a.alert(err.Error())
 			return
 		}

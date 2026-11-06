@@ -146,7 +146,7 @@ func (a *app) finishPendingProjects(ready []pendingProject) {
 			continue
 		}
 		a.prefs.PinnedProjects = dedupe(append(a.prefs.PinnedProjects, p.Path))
-		delete(a.prefs.HiddenProjects, localProjectKey(p.Path))
+		forgetProjectAliases(a.prefs.HiddenProjects, p.Path)
 		if err := savePrefs(a.prefs); err != nil {
 			logger.Printf("project creation settings: %v", err)
 			a.setPendingProjectError(p, err)

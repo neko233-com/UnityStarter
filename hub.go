@@ -115,9 +115,9 @@ func (h hub) addProject(p projectEntry) error {
 		return errNoRegistry
 	}
 	doc, data := readRegistry(h.Registry)
-	key := localProjectKey(p.Path)
+	key := projectIdentityKey(p.Path)
 	for path := range data {
-		if localProjectKey(path) == key {
+		if projectIdentityKey(path) == key {
 			return nil
 		}
 	}
@@ -152,9 +152,9 @@ func (h hub) addProject(p projectEntry) error {
 func (h hub) setFavorite(path string, on bool) error {
 	paths := h.favorites()
 	next := make([]string, 0, len(paths)+1)
-	key := localProjectKey(path)
+	key := projectIdentityKey(path)
 	for _, p := range paths {
-		if localProjectKey(p) != key {
+		if projectIdentityKey(p) != key {
 			next = append(next, p)
 		}
 	}
@@ -169,7 +169,7 @@ func (h hub) setFavorite(path string, on bool) error {
 		doc, data := readRegistry(h.Registry)
 		changed := false
 		for storedPath, raw := range data {
-			if localProjectKey(storedPath) != key {
+			if projectIdentityKey(storedPath) != key {
 				continue
 			}
 			var entry map[string]any
@@ -306,9 +306,9 @@ func randomID() string {
 // lists reports whether the hub's project list already holds a path.
 func (h hub) lists(path string) bool {
 	_, data := readRegistry(h.Registry)
-	key := localProjectKey(path)
+	key := projectIdentityKey(path)
 	for stored := range data {
-		if localProjectKey(stored) == key {
+		if projectIdentityKey(stored) == key {
 			return true
 		}
 	}

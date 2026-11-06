@@ -242,18 +242,18 @@ func (a *app) setProjectHidden(path string, hide bool) {
 	if a.prefs.HiddenProjects == nil {
 		a.prefs.HiddenProjects = map[string]string{}
 	}
-	previous, existed := a.prefs.HiddenProjects[key]
+	previous := make(map[string]string, len(a.prefs.HiddenProjects))
+	for stored, original := range a.prefs.HiddenProjects {
+		previous[stored] = original
+	}
 	if hide {
+		forgetProjectAliases(a.prefs.HiddenProjects, path)
 		a.prefs.HiddenProjects[key] = filepath.Clean(path)
 	} else {
-		delete(a.prefs.HiddenProjects, key)
+		forgetProjectAliases(a.prefs.HiddenProjects, path)
 	}
 	if err := savePrefs(a.prefs); err != nil {
-		if existed {
-			a.prefs.HiddenProjects[key] = previous
-		} else {
-			delete(a.prefs.HiddenProjects, key)
-		}
+		a.prefs.HiddenProjects = previous
 		a.alert(err.Error())
 		return
 	}

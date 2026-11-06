@@ -322,7 +322,7 @@ func scanProjectsWithRecentRoots(p prefs, editors []editorInstall, hubs []hub, r
 				break
 			}
 		}
-		if p.LocalFavorites[localProjectKey(entry.Path)] || (!automationWorktree && !pathWithinDirectory(entry.Path, tempRoot) && !generatedProjectPath(entry.Path)) {
+		if projectFavoriteOverride(p.LocalFavorites, entry.Path) || (!automationWorktree && !pathWithinDirectory(entry.Path, tempRoot) && !generatedProjectPath(entry.Path)) {
 			p.PinnedProjects = append(p.PinnedProjects, entry.Path)
 		}
 	}
@@ -335,6 +335,9 @@ func scanProjectsWithRecentRoots(p prefs, editors []editorInstall, hubs []hub, r
 func generatedProjectPath(path string) bool {
 	if !filepath.IsAbs(path) {
 		return false
+	}
+	if resolved, err := projectIdentityPath(path); err == nil {
+		path = resolved
 	}
 	for dir := filepath.Dir(filepath.Clean(path)); ; dir = filepath.Dir(dir) {
 		if (strings.EqualFold(filepath.Base(dir), "Library") || strings.EqualFold(filepath.Base(dir), "Temp")) && isProject(filepath.Dir(dir)) {
@@ -353,10 +356,10 @@ func pathWithinDirectory(path, root string) bool {
 	path, root = filepath.Clean(path), filepath.Clean(root)
 	// Windows' temporary directory may use an 8.3 name while EditorPrefs
 	// records the long name; resolve existing paths before comparing them.
-	if resolved, err := filepath.EvalSymlinks(path); err == nil {
+	if resolved, err := projectIdentityPath(path); err == nil {
 		path = resolved
 	}
-	if resolved, err := filepath.EvalSymlinks(root); err == nil {
+	if resolved, err := projectIdentityPath(root); err == nil {
 		root = resolved
 	}
 	rel, err := filepath.Rel(root, path)
@@ -370,6 +373,19 @@ func scanProjectsIn(p prefs, editors []editorInstall, hubs []hub, roots []string
 }
 
 func scanProjectsInMode(p prefs, editors []editorInstall, hubs []hub, roots []string, withVCS bool) []projectEntry {
+	hidden := make(map[string]bool, len(p.HiddenProjects))
+	for key, path := range p.HiddenProjects {
+		hidden[projectIdentityKey(key)] = true
+		hidden[projectIdentityKey(path)] = true
+	}
+	favorites := make(map[string]bool, len(p.LocalFavorites))
+	for path, favorite := range p.LocalFavorites {
+		key := projectIdentityKey(path)
+		// An explicit unstar wins if old aliases contain conflicting overrides.
+		if old, ok := favorites[key]; !ok || old {
+			favorites[key] = favorite
+		}
+	}
 	byVersion := map[string]editorInstall{}
 	for _, e := range editors {
 		previous, ok := byVersion[e.Version]
@@ -381,12 +397,12 @@ func scanProjectsInMode(p prefs, editors []editorInstall, hubs []hub, roots []st
 	found := map[string]projectEntry{}
 	add := func(dir string, hint projectHint) {
 		dir = filepath.Clean(dir)
-		key := localProjectKey(dir)
-		if _, hidden := p.HiddenProjects[key]; hidden {
+		key := projectIdentityKey(dir)
+		if hidden[key] {
 			return
 		}
 		if existing, ok := found[key]; ok {
-			if _, overridden := p.LocalFavorites[key]; !overridden && hint.Favorite {
+			if _, overridden := favorites[key]; !overridden && hint.Favorite {
 				existing.Favorite = true
 			}
 			if hint.Hub == existing.Kind {
@@ -423,7 +439,7 @@ func scanProjectsInMode(p prefs, editors []editorInstall, hubs []hub, roots []st
 			vcs = detectVSCCached(dir)
 		}
 		favorite := hint.Favorite
-		if local, ok := p.LocalFavorites[key]; ok {
+		if local, ok := favorites[key]; ok {
 			favorite = local
 		}
 		found[key] = projectEntry{
@@ -469,6 +485,36 @@ func localProjectKey(path string) string {
 		path = strings.ToLower(path)
 	}
 	return path
+}
+
+// Resolve existing directory aliases for project identity without changing the
+// keys of persisted settings, editor locks, or pending installations.
+func projectIdentityKey(path string) string {
+	if filepath.IsAbs(path) {
+		if resolved, err := projectIdentityPath(path); err == nil {
+			path = resolved
+		}
+	}
+	return localProjectKey(path)
+}
+
+func projectFavoriteOverride(favorites map[string]bool, path string) bool {
+	key := projectIdentityKey(path)
+	for stored, favorite := range favorites {
+		if favorite && projectIdentityKey(stored) == key {
+			return true
+		}
+	}
+	return false
+}
+
+func forgetProjectAliases[T any](entries map[string]T, path string) {
+	key := projectIdentityKey(path)
+	for stored := range entries {
+		if projectIdentityKey(stored) == key {
+			delete(entries, stored)
+		}
+	}
 }
 
 // projectHint is what a hub knows about a project before it is read.
