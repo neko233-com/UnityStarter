@@ -36,6 +36,8 @@
   "moduleDiskAvailable": "可用：{size}",
   "@moduleDiskAvailable": { "placeholders": { "size": { "type": "String", "example": "100 GB" } } },
   "activityTitle": "下载任务",
+  "visualStudioWorkloadMissing": "缺少工作负载",
+  "visualStudioWorkloadMissingHint": "已安装 Visual Studio，但此模块所需组件不完整。请使用 Visual Studio Installer 添加组件。",
   "activityEmpty": "暂无下载或安装任务",
   "activityViewAll": "查看全部任务",
   "activityOtherEngineTasks": "其他引擎有 {count} 个后台任务",

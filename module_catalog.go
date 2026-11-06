@@ -295,6 +295,9 @@ func (a *app) loadEditorModules(e editorInstall) {
 		if len(modules) == 0 {
 			modules, cached, err = moduleCatalogWithSource(ctx, e)
 		}
+		if err == nil {
+			checkVisualStudioModules(ctx, modules)
+		}
 		win.Update(func() {
 			a.moduleLoading = false
 			if a.manageEditor.Exe != e.Exe {

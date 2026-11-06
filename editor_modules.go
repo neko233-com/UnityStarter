@@ -39,6 +39,7 @@ type editorModule struct {
 	Visible               bool   `json:"visible"`
 	Selected              bool   `json:"selected"`
 	PresenceUnverified    bool   `json:"-"`
+	ToolStatus            string `json:"-"`
 	DownloadSize          int64  `json:"downloadSize"`
 	InstalledSize         int64  `json:"installedSize,omitempty"`
 	DependencyFingerprint string `json:"-"`
@@ -592,7 +593,11 @@ func (a *app) editorManageDialog(c *ui.Context) {
 										canSelect := moduleSelectable(e, m, a.moduleSelection)
 										checkbox := ui.Checkbox(c, &checked, m.Name).Grow(1).Disabled(a.moduleBusy || a.moduleLoading || len(a.moduleQueue) > 0 || (!canSelect && !checked)).OnClick(func() { a.setModuleSelection(e, m.ID, checked) })
 										if !canSelect && !checked {
-											checkbox.Tooltip(locales.InstallModuleUnavailable())
+											if m.ToolStatus == "incomplete" {
+												checkbox.Tooltip(locales.VisualStudioWorkloadMissingHint())
+											} else {
+												checkbox.Tooltip(locales.InstallModuleUnavailable())
+											}
 										}
 									}
 									downloadSize, diskSize := "—", "—"
@@ -610,6 +615,9 @@ func (a *app) editorManageDialog(c *ui.Context) {
 											label = locales.InstallModuleReported()
 										}
 										ui.Text(c, label).Width(70).FontSize(11).TextColor(t.TextMuted).Clip().Tooltip(label)
+									} else if m.ToolStatus == "incomplete" {
+										label := locales.VisualStudioWorkloadMissing()
+										ui.Text(c, label).Width(100).FontSize(11).TextColor(t.TextMuted).Clip().Tooltip(locales.VisualStudioWorkloadMissingHint())
 									} else {
 										_, _, _, supported := moduleInstallSpec(e, m)
 										android := androidSDKCandidate(e, m)

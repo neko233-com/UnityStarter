@@ -376,6 +376,28 @@ func (msgs Messages) ActivityTitle() string {
 	return Catalog.Format(msgs.locale, "activityTitle", nil)
 }
 
+// VisualStudioWorkloadMissing says "Workload missing"
+// in the language the app shows.
+func VisualStudioWorkloadMissing() string { return In(i18n.Locale()).VisualStudioWorkloadMissing() }
+
+// VisualStudioWorkloadMissing says "Workload missing"
+// in the language of msgs.
+func (msgs Messages) VisualStudioWorkloadMissing() string {
+	return Catalog.Format(msgs.locale, "visualStudioWorkloadMissing", nil)
+}
+
+// VisualStudioWorkloadMissingHint says "Visual Studio is installed, but the components required by this module are incomplete. Use the Visual Studio Installe…"
+// in the language the app shows.
+func VisualStudioWorkloadMissingHint() string {
+	return In(i18n.Locale()).VisualStudioWorkloadMissingHint()
+}
+
+// VisualStudioWorkloadMissingHint says "Visual Studio is installed, but the components required by this module are incomplete. Use the Visual Studio Installe…"
+// in the language of msgs.
+func (msgs Messages) VisualStudioWorkloadMissingHint() string {
+	return Catalog.Format(msgs.locale, "visualStudioWorkloadMissingHint", nil)
+}
+
 // ActivityEmpty says "No downloads or installations"
 // in the language the app shows.
 func ActivityEmpty() string { return In(i18n.Locale()).ActivityEmpty() }
