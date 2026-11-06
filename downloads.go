@@ -52,7 +52,20 @@ type unityDownload struct {
 // fetchUnityReleases reads the international releases, whose Windows
 // installer is the one the release lists.
 func fetchUnityReleases(ctx context.Context) ([]downloadEntry, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, unityReleasesURL, nil)
+	return fetchUnityReleasesForVersion(ctx, "")
+}
+
+func fetchUnityReleasesForVersion(ctx context.Context, version string) ([]downloadEntry, error) {
+	endpoint, err := url.Parse(unityReleasesURL)
+	if err != nil {
+		return nil, err
+	}
+	if version != "" {
+		query := endpoint.Query()
+		query.Set("version", version)
+		endpoint.RawQuery = query.Encode()
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +102,7 @@ func fetchUnityReleases(ctx context.Context) ([]downloadEntry, error) {
 			out = append(out, entry)
 		}
 	}
-	if len(out) == 0 {
+	if len(out) == 0 && version == "" {
 		return nil, fmt.Errorf("unity releases: none")
 	}
 	return out, nil

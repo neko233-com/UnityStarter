@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/egoist/mygo"
@@ -83,7 +84,20 @@ func (a *app) downloadsPage(c *ui.Context) {
 	a.ensureDownloads(false)
 	t := c.Theme()
 	engine := engineForPage(a.page)
-	entries := downloadsForEngine(a.downloads, engine)
+	entries := a.visibleDownloads(engine)
+	matchCount := len(entries)
+	active := a.activeDownloads(engine)
+	activeKeys := make(map[string]bool, len(active))
+	for _, e := range active {
+		activeKeys[jobKey(e)] = true
+	}
+	remaining := entries[:0]
+	for _, e := range entries {
+		if !activeKeys[jobKey(e)] {
+			remaining = append(remaining, e)
+		}
+	}
+	entries = remaining
 	a.header(c, channelName(engine)+" · "+locales.PageDownloads(), locales.PageDownloadsHint(), func() {
 		if engine == kindUnity {
 			ui.Button(c, locales.DownloadsArchive()).OnClick(func() {
@@ -92,9 +106,30 @@ func (a *app) downloadsPage(c *ui.Context) {
 		}
 		ui.Button(c, locales.ActionRefresh()).OnClick(func() { a.ensureDownloads(true) }).Disabled(a.downloadsBusy)
 	})
+	ui.Row(c).Padding(0, 26, 14, 26).Gap(8).AlignItems(ui.Center).Children(func() {
+		query := &a.downloadQueryUnity
+		if engine == kindTuanjie {
+			query = &a.downloadQueryTuanjie
+		}
+		ui.SearchField(c, query).Placeholder(locales.DownloadsSearchHint()).Label(locales.DownloadsSearchHint()).Width(250)
+		if engine == kindUnity {
+			ui.Button(c, locales.DownloadsSearchOfficial()).Disabled(a.unitySearchBusy || strings.TrimSpace(*query) == "").OnClick(func() { a.searchUnityReleases(strings.TrimSpace(a.downloadQueryUnity)) })
+			if a.unitySearchBusy {
+				ui.Spinner(c)
+			}
+		}
+	})
 	ui.Divider(c)
 
-	if len(entries) == 0 {
+	if len(entries) == 0 && len(active) == 0 {
+		if strings.TrimSpace(a.downloadQueryForEngine(engine)) != "" {
+			hint := locales.DownloadsSearchEmptyHint()
+			if engine == kindUnity && a.unitySearchQuery == strings.TrimSpace(a.downloadQueryUnity) && a.unitySearchErr != "" {
+				hint = a.unitySearchErr
+			}
+			a.emptyState(c, locales.DownloadsSearchEmpty(), hint)
+			return
+		}
 		if a.downloadsPending[engine] {
 			ui.Row(c).Padding(26).Gap(10).AlignItems(ui.Center).Children(func() {
 				ui.Spinner(c)
@@ -116,8 +151,20 @@ func (a *app) downloadsPage(c *ui.Context) {
 	}
 	ui.Scroll(c).Grow(1).Children(func() {
 		ui.Column(c).Padding(24, 26).Gap(20).MaxWidth(900).Children(func() {
+			if engine == kindUnity && a.unitySearchQuery != "" && a.unitySearchQuery == strings.TrimSpace(a.downloadQueryUnity) && a.unitySearchErr == "" {
+				ui.Text(c, locales.DownloadsSearchLimit()).FontSize(11).TextColor(t.TextMuted)
+			}
 			if err := a.downloadsErrs[engine]; err != "" {
 				ui.Text(c, locales.DownloadsError(err)).FontSize(11).TextColor(t.Danger)
+			}
+			if engine == kindUnity && a.unitySearchQuery == strings.TrimSpace(a.downloadQueryUnity) && a.unitySearchErr != "" {
+				ui.Text(c, locales.DownloadsError(a.unitySearchErr)).FontSize(11).TextColor(t.Danger)
+			}
+			if len(active) > 0 {
+				a.downloadGroup(c, locales.DownloadsActive(), engine, active, installed)
+			}
+			if matchCount == 0 && strings.TrimSpace(a.downloadQueryForEngine(engine)) != "" {
+				ui.Text(c, locales.DownloadsSearchEmpty()).FontSize(12).TextColor(t.TextMuted)
 			}
 			title := locales.DownloadsUnity()
 			if engine == kindTuanjie {
@@ -126,6 +173,75 @@ func (a *app) downloadsPage(c *ui.Context) {
 			a.downloadGroup(c, title, engine, entries, installed)
 		})
 	})
+}
+
+func (a *app) activeDownloads(engine string) []downloadEntry {
+	var active []downloadEntry
+	for _, job := range a.jobs {
+		if job != nil && job.Entry.Engine == engine && job.Status != "installed" {
+			active = append(active, job.Entry)
+		}
+	}
+	return downloadsForEngine(active, engine)
+}
+
+func (a *app) downloadQueryForEngine(engine string) string {
+	if engine == kindTuanjie {
+		return a.downloadQueryTuanjie
+	}
+	return a.downloadQueryUnity
+}
+
+func (a *app) visibleDownloads(engine string) []downloadEntry {
+	query := strings.TrimSpace(a.downloadQueryForEngine(engine))
+	entries := a.downloads
+	if engine == kindUnity && query != "" && query == a.unitySearchQuery && a.unitySearchErr == "" {
+		entries = a.unitySearchEntries
+	}
+	filtered := downloadsForEngine(entries, engine)
+	if query == "" {
+		return filtered
+	}
+	q := strings.ToLower(query)
+	result := filtered[:0]
+	for _, entry := range filtered {
+		if strings.Contains(strings.ToLower(entry.Version), q) {
+			result = append(result, entry)
+		}
+	}
+	return result
+}
+
+func (a *app) searchUnityReleases(query string) {
+	if a.win == nil || a.unitySearchBusy || query == "" {
+		return
+	}
+	a.unitySearchBusy = true
+	win := a.win
+	parent := a.updateCtx
+	if parent == nil {
+		parent = context.Background()
+	}
+	go func() {
+		ctx, cancel := context.WithTimeout(parent, 25*time.Second)
+		defer cancel()
+		entries, err := fetchUnityReleasesForVersion(ctx, query)
+		win.Update(func() { a.applyUnityReleaseSearch(query, entries, err) })
+	}()
+}
+
+func (a *app) applyUnityReleaseSearch(query string, entries []downloadEntry, err error) {
+	a.unitySearchBusy = false
+	if strings.TrimSpace(a.downloadQueryUnity) != query {
+		return
+	}
+	a.unitySearchQuery = query
+	a.unitySearchErr = ""
+	if err != nil {
+		a.unitySearchErr = err.Error()
+		return
+	}
+	a.unitySearchEntries = entries
 }
 
 func downloadsForEngine(entries []downloadEntry, engine string) []downloadEntry {

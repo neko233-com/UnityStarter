@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"crypto/sha256"
-	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -47,7 +46,7 @@ func appendUnityModules(out *[]editorModule, modules []unityModule, parent strin
 	for _, m := range modules {
 		checksum := ""
 		if strings.HasPrefix(m.Integrity, "md5-") {
-			if b, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(m.Integrity, "md5-")); err == nil && len(b) == 16 {
+			if _, b, err := integrityHasher(m.Integrity); err == nil && len(b) == 16 {
 				checksum = hex.EncodeToString(b)
 			}
 		}

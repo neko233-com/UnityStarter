@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -37,6 +38,15 @@ func TestUnityModuleCatalogAndOwnedState(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(root, "modules.json")); !os.IsNotExist(err) {
 		t.Fatal("created incomplete Hub metadata")
+	}
+}
+
+func TestLegacyUnityModuleIntegrity(t *testing.T) {
+	const digest = "6eab785d35754b9b0145e60237c8b192"
+	var modules []editorModule
+	appendUnityModules(&modules, []unityModule{{ID: "webgl", URL: "https://download.unity3d.com/web.exe", Integrity: "md5-" + base64.StdEncoding.EncodeToString([]byte(digest)), Destination: "{UNITY_PATH}"}}, "")
+	if len(modules) != 1 || modules[0].Checksum != digest || !standaloneModule(modules[0]) {
+		t.Fatalf("legacy module metadata rejected: %+v", modules)
 	}
 }
 

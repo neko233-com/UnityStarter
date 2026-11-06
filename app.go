@@ -35,7 +35,7 @@ const (
 
 	// appVersion is what the CLI prints and what the window shows when MyGo
 	// does not know the packaged version.
-	appVersion = "1.6.12"
+	appVersion = "1.6.13"
 	// appName is the name of the executable and of the app's data folder, as
 	// mygo.json names the app; the window shows a name with a space.
 	appName = "UnityStarter"
@@ -96,12 +96,18 @@ type app struct {
 
 	// downloads is what the engines offer to install, read from the caches
 	// and from Unity's releases API.
-	downloads        []downloadEntry
-	downloadsSince   time.Time
-	downloadsBusy    bool
-	downloadsReady   bool
-	downloadsErrs    map[string]string
-	downloadsPending map[string]bool
+	downloads            []downloadEntry
+	downloadsSince       time.Time
+	downloadsBusy        bool
+	downloadsReady       bool
+	downloadsErrs        map[string]string
+	downloadsPending     map[string]bool
+	downloadQueryUnity   string
+	downloadQueryTuanjie string
+	unitySearchQuery     string
+	unitySearchEntries   []downloadEntry
+	unitySearchBusy      bool
+	unitySearchErr       string
 	// jobs are the editors being downloaded or installed, by engine and
 	// version.
 	jobs          map[string]*downloadJob

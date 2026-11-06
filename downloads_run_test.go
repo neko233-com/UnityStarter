@@ -6,11 +6,13 @@ import (
 	"crypto/md5"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -50,6 +52,34 @@ func TestEditorDownloadExpectedSize(t *testing.T) {
 	}
 	if got := editorDownloadExpectedSize(downloadEntry{Engine: kindTuanjie, Size: 123}); got != 0 {
 		t.Fatalf("Tuanjie estimate treated as exact: %d", got)
+	}
+	legacy := "md5-" + base64.StdEncoding.EncodeToString([]byte("6eab785d35754b9b0145e60237c8b192"))
+	if got := editorDownloadExpectedSize(downloadEntry{Engine: kindUnity, Size: 3696795648, Integrity: legacy}); got != 0 {
+		t.Fatalf("legacy Unity estimate treated as exact: %d", got)
+	}
+}
+
+func TestLegacyUnityDownloadVerifiesRoundedMetadata(t *testing.T) {
+	payload := bytes.Repeat([]byte("unity-old"), (parallelMinimumSize/9)+1)
+	sum := md5.Sum(payload)
+	legacy := "md5-" + base64.StdEncoding.EncodeToString([]byte(hex.EncodeToString(sum[:])))
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("ETag", `"stable"`)
+		http.ServeContent(w, r, "editor.exe", time.Time{}, bytes.NewReader(payload))
+	}))
+	defer server.Close()
+	entry := downloadEntry{Engine: kindUnity, Size: int64(len(payload) - 123), Integrity: legacy}
+	dest := filepath.Join(t.TempDir(), "editor.exe")
+	if err := downloadFileVerifiedSize(context.Background(), server.URL, dest, entry.Integrity, editorDownloadExpectedSize(entry), func(int64, int64) {}); err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(dest)
+	if err != nil || !bytes.Equal(got, payload) {
+		t.Fatalf("download mismatch: %d bytes %v", len(got), err)
+	}
+	bad := "md5-" + base64.StdEncoding.EncodeToString([]byte(strings.Repeat("0", 32)))
+	if err := downloadFileVerifiedSize(context.Background(), server.URL, filepath.Join(t.TempDir(), "bad.exe"), bad, 0, func(int64, int64) {}); err == nil {
+		t.Fatal("wrong legacy digest was accepted")
 	}
 }
 

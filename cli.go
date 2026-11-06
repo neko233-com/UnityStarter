@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"text/tabwriter"
@@ -517,6 +516,15 @@ func cliInstall(opts cliOptions, args []string, out io.Writer) int {
 func findRelease(version string) (downloadEntry, bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
+	if kindOfVersion(version) == kindUnity {
+		if entries, err := fetchUnityReleasesForVersion(ctx, version); err == nil {
+			for _, e := range entries {
+				if e.Version == version {
+					return e, true
+				}
+			}
+		}
+	}
 	entries, _ := refreshReleaseCatalogs(ctx)
 	for _, e := range entries {
 		if e.Version == version {
@@ -551,9 +559,7 @@ func downloadAndInstall(entry downloadEntry, root string) error {
 	if err := prepareEditorInstall(dest); err != nil {
 		return err
 	}
-	cmd := exec.Command(path, installerArgs(entry.Engine, dest)...)
-	configureInstallerCmd(cmd, entry.Engine, dest)
-	if err := cmd.Run(); err != nil {
+	if err := runEditorInstaller(path, entry.Engine, dest); err != nil {
 		return err
 	}
 	if err := verifyInstalledEditor(entry.Engine, dest); err != nil {

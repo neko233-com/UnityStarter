@@ -131,6 +131,77 @@ func TestDownloadCatalogKeepsCurrentEntriesWhenRefreshFails(t *testing.T) {
 	}
 }
 
+func TestReleaseSearchKeepsEnginesAndRequestsSeparate(t *testing.T) {
+	a := fixture()
+	a.page = pageDownloads
+	a.downloadQueryUnity = "2022.3"
+	a.applyUnityReleaseSearch("old query", []downloadEntry{{Engine: kindUnity, Version: "old"}}, nil)
+	if a.unitySearchQuery != "" {
+		t.Fatal("stale search replaced current query")
+	}
+	a.applyUnityReleaseSearch("2022.3", []downloadEntry{
+		{Engine: kindUnity, Version: "2022.3.9f1"},
+		{Engine: kindUnity, Version: "2022.3.62f1"},
+	}, nil)
+	entries := a.visibleDownloads(kindUnity)
+	if len(entries) != 2 || entries[0].Version != "2022.3.62f1" {
+		t.Fatalf("archive search order: %+v", entries)
+	}
+	tt := ui.NewTester(a.view, 900, 560)
+	if !tt.HasText(locales.DownloadsSearchOfficial()) || !tt.HasText("2022.3.62f1") || !tt.HasText(locales.DownloadsSearchLimit()) {
+		t.Fatalf("archive search controls or results missing: %q", tt.Texts())
+	}
+	if path := os.Getenv("DOWNLOAD_SEARCH_SNAPSHOT"); path != "" {
+		if err := writePNG(path, tt.Image()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	a.downloadQueryTuanjie = "62t17"
+	tuanjie := a.visibleDownloads(kindTuanjie)
+	if len(tuanjie) != 1 || tuanjie[0].Engine != kindTuanjie {
+		t.Fatalf("Tuanjie query mixed with Unity search: %+v", tuanjie)
+	}
+	a.downloadQueryUnity = "6000"
+	a.applyUnityReleaseSearch("6000", nil, errors.New("offline"))
+	if got := a.visibleDownloads(kindUnity); len(got) != 2 || a.unitySearchErr == "" {
+		t.Fatalf("offline search lost local matches: %+v error=%q", got, a.unitySearchErr)
+	}
+}
+
+func TestReleaseSearchInputFiltersTheCurrentEngine(t *testing.T) {
+	a := fixture()
+	a.page = pageDownloads
+	tt := ui.NewTester(a.view, 1180, 760)
+	if err := tt.Click(locales.DownloadsSearchHint()); err != nil {
+		t.Fatal(err)
+	}
+	tt.Type("6000.0")
+	if a.downloadQueryUnity != "6000.0" || len(a.visibleDownloads(kindUnity)) != 1 {
+		t.Fatalf("search input not applied: %q %+v", a.downloadQueryUnity, a.visibleDownloads(kindUnity))
+	}
+	a.page = pageTuanjieDownloads
+	tt.Frame()
+	if a.downloadQueryTuanjie != "" || len(a.visibleDownloads(kindTuanjie)) != 1 {
+		t.Fatal("Unity query leaked into Tuanjie")
+	}
+}
+
+func TestArchiveDownloadRemainsVisibleAfterSearchCleared(t *testing.T) {
+	a := fixture()
+	a.page = pageDownloads
+	historical := downloadEntry{Engine: kindUnity, Version: "2022.3.62f1", URL: "https://download.unity3d.com/old.exe"}
+	a.jobs[jobKey(historical)] = &downloadJob{Entry: historical, Status: "downloading", Done: 10, Total: 100}
+	tt := ui.NewTester(a.view, 1180, 760)
+	if !tt.HasText(locales.DownloadsActive()) || !tt.HasText(historical.Version) {
+		t.Fatalf("active historical download disappeared: %q", tt.Texts())
+	}
+	a.page = pageTuanjieDownloads
+	tt.Frame()
+	if tt.HasText(historical.Version) {
+		t.Fatal("Unity download appeared in Tuanjie group")
+	}
+}
+
 func TestAndroidLicenseCanBeReviewedAndCanceled(t *testing.T) {
 	a := fixture()
 	a.manageOpen, a.manageModules = true, true

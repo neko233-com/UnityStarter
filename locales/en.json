@@ -125,6 +125,12 @@
   },
   "downloadsEmpty": "No releases found.",
   "downloadsLoading": "Loading releases…",
+  "downloadsActive": "Downloads and installations",
+  "downloadsSearchHint": "Search versions…",
+  "downloadsSearchOfficial": "Search official archive",
+  "downloadsSearchEmpty": "No matching releases",
+  "downloadsSearchEmptyHint": "Try another version; Unity releases can also be searched in the official archive.",
+  "downloadsSearchLimit": "The official search returns up to 25 matches; enter a more specific version to narrow the results.",
   "downloadsError": "Could not load releases: {error}",
   "@downloadsError": {
     "placeholders": { "error": { "type": "String", "example": "timeout" } }

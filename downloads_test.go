@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"encoding/hex"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -48,6 +50,78 @@ func TestFetchUnityReleases(t *testing.T) {
 	if got.URL != "https://download.unity3d.com/Windows64EditorInstaller/UnitySetup64-6000.0.85f2.exe" {
 		t.Errorf("url %s", got.URL)
 	}
+}
+
+func TestFetchUnityReleaseVersionSearch(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("version") != "2022.3.62f1" || r.URL.Query().Get("limit") != "25" {
+			t.Errorf("query: %s", r.URL.RawQuery)
+		}
+		_, _ = fmt.Fprint(w, `{"results":[{"version":"2022.3.62f1","downloads":[{"url":"https://download.unity3d.com/editor.exe","type":"EXE","platform":"WINDOWS","architecture":"X86_64"}]}]}`)
+	}))
+	defer server.Close()
+	previous := unityReleasesURL
+	unityReleasesURL = server.URL + "?limit=25"
+	defer func() { unityReleasesURL = previous }()
+	entries, err := fetchUnityReleasesForVersion(context.Background(), "2022.3.62f1")
+	if err != nil || len(entries) != 1 || entries[0].Version != "2022.3.62f1" {
+		t.Fatalf("version search: %+v %v", entries, err)
+	}
+}
+
+func TestFindReleaseSearchesUnityArchive(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("version") != "2022.3.62f1" {
+			t.Errorf("query: %s", r.URL.RawQuery)
+		}
+		_, _ = fmt.Fprint(w, `{"results":[{"version":"2022.3.62f1","downloads":[{"url":"https://download.unity3d.com/old.exe","type":"EXE","platform":"WINDOWS","architecture":"X86_64"}]}]}`)
+	}))
+	defer server.Close()
+	previous := unityReleasesURL
+	unityReleasesURL = server.URL + "?limit=25"
+	defer func() { unityReleasesURL = previous }()
+	entry, ok := findRelease("2022.3.62f1")
+	if !ok || entry.Version != "2022.3.62f1" || entry.Engine != kindUnity {
+		t.Fatalf("CLI archive lookup: %+v %v", entry, ok)
+	}
+}
+
+func TestLiveLegacyUnityVersionSearch(t *testing.T) {
+	if os.Getenv("UNITYSTARTER_LIVE_CATALOG") != "1" {
+		t.Skip("set UNITYSTARTER_LIVE_CATALOG=1 to check official metadata")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
+	defer cancel()
+	entries, err := fetchUnityReleasesForVersion(ctx, "2022.3.62f1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range entries {
+		if entry.Version == "2022.3.62f1" {
+			if !legacyUnityMD5(entry.Integrity) || editorDownloadExpectedSize(entry) != 0 {
+				t.Fatalf("legacy official metadata not recognized: %+v", entry)
+			}
+			h, expected, err := integrityHasher(entry.Integrity)
+			if err != nil || h == nil || len(expected) != 16 {
+				t.Fatalf("official digest rejected: %v", err)
+			}
+			req, err := http.NewRequestWithContext(ctx, http.MethodHead, entry.URL, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer resp.Body.Close()
+			if resp.StatusCode != http.StatusOK || !strings.EqualFold(strings.Trim(resp.Header.Get("ETag"), `"`), hex.EncodeToString(expected)) {
+				t.Fatalf("official file identity differs: status=%d etag=%q", resp.StatusCode, resp.Header.Get("ETag"))
+			}
+			t.Logf("official metadata size=%d, server size=%d", entry.Size, resp.ContentLength)
+			return
+		}
+	}
+	t.Fatalf("official version missing: %+v", entries)
 }
 
 func TestTuanjieCatalogWithoutHubAndOfflineFallback(t *testing.T) {

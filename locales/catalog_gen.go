@@ -994,6 +994,66 @@ func (msgs Messages) DownloadsLoading() string {
 	return Catalog.Format(msgs.locale, "downloadsLoading", nil)
 }
 
+// DownloadsActive says "Downloads and installations"
+// in the language the app shows.
+func DownloadsActive() string { return In(i18n.Locale()).DownloadsActive() }
+
+// DownloadsActive says "Downloads and installations"
+// in the language of msgs.
+func (msgs Messages) DownloadsActive() string {
+	return Catalog.Format(msgs.locale, "downloadsActive", nil)
+}
+
+// DownloadsSearchHint says "Search versions…"
+// in the language the app shows.
+func DownloadsSearchHint() string { return In(i18n.Locale()).DownloadsSearchHint() }
+
+// DownloadsSearchHint says "Search versions…"
+// in the language of msgs.
+func (msgs Messages) DownloadsSearchHint() string {
+	return Catalog.Format(msgs.locale, "downloadsSearchHint", nil)
+}
+
+// DownloadsSearchOfficial says "Search official archive"
+// in the language the app shows.
+func DownloadsSearchOfficial() string { return In(i18n.Locale()).DownloadsSearchOfficial() }
+
+// DownloadsSearchOfficial says "Search official archive"
+// in the language of msgs.
+func (msgs Messages) DownloadsSearchOfficial() string {
+	return Catalog.Format(msgs.locale, "downloadsSearchOfficial", nil)
+}
+
+// DownloadsSearchEmpty says "No matching releases"
+// in the language the app shows.
+func DownloadsSearchEmpty() string { return In(i18n.Locale()).DownloadsSearchEmpty() }
+
+// DownloadsSearchEmpty says "No matching releases"
+// in the language of msgs.
+func (msgs Messages) DownloadsSearchEmpty() string {
+	return Catalog.Format(msgs.locale, "downloadsSearchEmpty", nil)
+}
+
+// DownloadsSearchEmptyHint says "Try another version; Unity releases can also be searched in the official archive."
+// in the language the app shows.
+func DownloadsSearchEmptyHint() string { return In(i18n.Locale()).DownloadsSearchEmptyHint() }
+
+// DownloadsSearchEmptyHint says "Try another version; Unity releases can also be searched in the official archive."
+// in the language of msgs.
+func (msgs Messages) DownloadsSearchEmptyHint() string {
+	return Catalog.Format(msgs.locale, "downloadsSearchEmptyHint", nil)
+}
+
+// DownloadsSearchLimit says "The official search returns up to 25 matches; enter a more specific version to narrow the results."
+// in the language the app shows.
+func DownloadsSearchLimit() string { return In(i18n.Locale()).DownloadsSearchLimit() }
+
+// DownloadsSearchLimit says "The official search returns up to 25 matches; enter a more specific version to narrow the results."
+// in the language of msgs.
+func (msgs Messages) DownloadsSearchLimit() string {
+	return Catalog.Format(msgs.locale, "downloadsSearchLimit", nil)
+}
+
 // DownloadsError says "Could not load releases: {error}"
 // in the language the app shows.
 func DownloadsError(error string) string { return In(i18n.Locale()).DownloadsError(error) }

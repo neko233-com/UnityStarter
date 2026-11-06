@@ -31,10 +31,11 @@ func jobKey(e downloadEntry) string { return e.Engine + " " + e.Version }
 
 func downloadsDir() string { return filepath.Join(userDataDir(), "downloads") }
 
-// Unity's release API supplies an exact byte count. Tuanjie Hub's legacy
-// catalog contains rounded estimates, so it must not be used as a hard limit.
+// New Unity releases report exact sizes. Older Unity releases use a legacy
+// hexadecimal MD5 encoding and rounded size estimates, as does Tuanjie's
+// legacy catalog. Always verify their digest, but don't enforce the estimate.
 func editorDownloadExpectedSize(e downloadEntry) int64 {
-	if e.Engine == kindUnity && e.Size > 0 {
+	if e.Engine == kindUnity && e.Size > 0 && !legacyUnityMD5(e.Integrity) {
 		return e.Size
 	}
 	return 0
