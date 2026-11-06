@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/url"
+	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -151,7 +152,42 @@ func (a *app) docsPage(c *ui.Context) {
 		a.linkGroup(c, locales.GroupProjectDocs(), []link{
 			{locales.LinkRepo(), locales.LinkRepoHint(), urlRepo},
 		})
-	}, nil)
+	}, func() { a.offlineDocsGroup(c) })
+}
+
+func (a *app) offlineDocsGroup(c *ui.Context) {
+	var editors []editorInstall
+	for _, e := range a.editorsForEngine(a.activeEngine) {
+		if e.OfflineDocs != "" {
+			editors = append(editors, e)
+		}
+	}
+	if len(editors) == 0 {
+		return
+	}
+	t := c.Theme()
+	ui.Column(c).Gap(6).Children(func() {
+		ui.Text(c, locales.OfflineDocsTitle()).FontSize(14).Bold()
+		for _, editor := range editors {
+			e := editor
+			c.Key(e.Exe)
+			ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
+				ui.Column(c).Grow(1).Gap(2).Children(func() {
+					ui.Text(c, displayVersion(e.Version, e.DisplayVersion)).FontSize(13)
+					ui.Text(c, e.OfflineDocs).FontSize(11).TextColor(t.TextMuted).Clip()
+				})
+				for _, item := range []struct{ label, rel string }{{locales.OfflineDocsManual(), "Manual"}, {locales.OfflineDocsAPI(), "ScriptReference"}} {
+					item := item
+					ui.Button(c, item.label).OnClick(func() {
+						file := filepath.Join(e.OfflineDocs, "zh_CN", item.rel, "index.html")
+						if err := mygo.Shell.OpenPath(file); err != nil {
+							a.alert(locales.OpenFailed(err.Error()))
+						}
+					})
+				}
+			})
+		}
+	})
 }
 
 func (a *app) learnPage(c *ui.Context) {

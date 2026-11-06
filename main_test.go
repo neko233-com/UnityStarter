@@ -168,6 +168,26 @@ func TestModuleCatalogOfflineNoticeAndRefresh(t *testing.T) {
 	}
 }
 
+func TestOfflineDocumentationFollowsActiveEngine(t *testing.T) {
+	a := fixture()
+	a.page, a.activeEngine = pageDocs, kindTuanjie
+	a.editors = append(a.editors, editorInstall{Kind: kindTuanjie, Version: "2022.3.62t15", Exe: "tuanjie-editor", OfflineDocs: `D:\Docs\Tuanjie`})
+	tt := ui.NewTester(a.view, 900, 560)
+	if !tt.HasText(locales.OfflineDocsTitle()) || !tt.HasText(locales.OfflineDocsManual()) || !tt.HasText(locales.OfflineDocsAPI()) || !tt.HasText("2022.3.62t15") {
+		t.Fatalf("offline documentation missing: %q", tt.Texts())
+	}
+	if path := os.Getenv("OFFLINE_DOCS_SNAPSHOT"); path != "" {
+		if err := writePNG(path, tt.Image()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	a.activeEngine = kindUnity
+	tt.Frame()
+	if tt.HasText(locales.OfflineDocsTitle()) {
+		t.Fatal("Tuanjie offline documentation appeared in Unity")
+	}
+}
+
 func TestAndroidRecoveryStillRequiresLicenseConfirmation(t *testing.T) {
 	a := fixture()
 	a.manageOpen, a.manageModules = true, true

@@ -109,6 +109,9 @@ func moduleInstallSpec(e editorInstall, m editorModule) (integrity, player, exte
 	if sum, player, valid := openJDKArchive(m); valid && parentModuleSelected(e.Modules, m.Parent) {
 		return sum, player, ".zip", true
 	}
+	if sum, version, valid := tuanjieDocumentationArchive(m); valid && e.Kind == kindTuanjie && version == e.Version {
+		return sum, documentationModule, ".zip", true
+	}
 	return "", "", "", false
 }
 
@@ -166,7 +169,11 @@ func (a *app) installEditorModule(e editorInstall, m editorModule) {
 		defer cancel()
 		path := filepath.Join(downloadsDir(), "module-"+e.Version+"-"+m.ID+extension)
 		last := time.Now()
-		err := downloadFileVerified(ctx, m.URL, path, integrity, func(done, total int64) {
+		expectedSize := int64(0)
+		if player == documentationModule {
+			expectedSize = m.DownloadSize
+		}
+		err := downloadFileVerifiedSize(ctx, m.URL, path, integrity, expectedSize, func(done, total int64) {
 			if time.Since(last) < 200*time.Millisecond {
 				return
 			}
@@ -193,7 +200,9 @@ func (a *app) installEditorModule(e editorInstall, m editorModule) {
 			if !<-ready {
 				err = context.Canceled
 			} else {
-				if player != "" {
+				if player == documentationModule {
+					err = installTuanjieDocumentation(e.Root, path, integrity)
+				} else if player != "" {
 					err = installOpenJDK(e.Root, path, player, integrity)
 				} else {
 					err = runEditorInstaller(path, e.Kind, e.Root)

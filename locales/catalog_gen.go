@@ -224,14 +224,44 @@ func (msgs Messages) InstallModules() string {
 	return Catalog.Format(msgs.locale, "installModules", nil)
 }
 
-// InstallModuleHint says "Supports official standalone modules, OpenJDK, and some Unity Android SDK/NDK releases. Other modules require the off…"
+// InstallModuleHint says "Supports official standalone modules, OpenJDK, Tuanjie offline documentation, and some Unity Android SDK/NDK releases…"
 // in the language the app shows.
 func InstallModuleHint() string { return In(i18n.Locale()).InstallModuleHint() }
 
-// InstallModuleHint says "Supports official standalone modules, OpenJDK, and some Unity Android SDK/NDK releases. Other modules require the off…"
+// InstallModuleHint says "Supports official standalone modules, OpenJDK, Tuanjie offline documentation, and some Unity Android SDK/NDK releases…"
 // in the language of msgs.
 func (msgs Messages) InstallModuleHint() string {
 	return Catalog.Format(msgs.locale, "installModuleHint", nil)
+}
+
+// OfflineDocsTitle says "Offline documentation"
+// in the language the app shows.
+func OfflineDocsTitle() string { return In(i18n.Locale()).OfflineDocsTitle() }
+
+// OfflineDocsTitle says "Offline documentation"
+// in the language of msgs.
+func (msgs Messages) OfflineDocsTitle() string {
+	return Catalog.Format(msgs.locale, "offlineDocsTitle", nil)
+}
+
+// OfflineDocsManual says "Manual"
+// in the language the app shows.
+func OfflineDocsManual() string { return In(i18n.Locale()).OfflineDocsManual() }
+
+// OfflineDocsManual says "Manual"
+// in the language of msgs.
+func (msgs Messages) OfflineDocsManual() string {
+	return Catalog.Format(msgs.locale, "offlineDocsManual", nil)
+}
+
+// OfflineDocsAPI says "Scripting API"
+// in the language the app shows.
+func OfflineDocsAPI() string { return In(i18n.Locale()).OfflineDocsAPI() }
+
+// OfflineDocsAPI says "Scripting API"
+// in the language of msgs.
+func (msgs Messages) OfflineDocsAPI() string {
+	return Catalog.Format(msgs.locale, "offlineDocsAPI", nil)
 }
 
 // AndroidLicenseTitle says "Android SDK and NDK license"

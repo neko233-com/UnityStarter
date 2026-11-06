@@ -33,6 +33,7 @@ type editorInstall struct {
 	Modules   []editorModule
 	// ModulesCached means the list came from this app's saved official catalog.
 	ModulesCached bool
+	OfflineDocs   string
 }
 
 // projectEntry is a project found on disk.
@@ -269,7 +270,14 @@ func scanEditorsIn(roots []string) []editorInstall {
 					version = actual
 				}
 				modules, cached := scannedEditorModules(dir, kind, version)
-				out = append(out, editorInstall{Version: version, Kind: kind, Exe: exe, Root: dir, Simulated: isSimulatedEditor(dir), Modules: modules, ModulesCached: cached})
+				docs := ""
+				if kind == kindTuanjie {
+					candidate := filepath.Join(dir, "Editor", "Data", "Documentation")
+					if documentationFilesPresent(candidate) {
+						docs = candidate
+					}
+				}
+				out = append(out, editorInstall{Version: version, Kind: kind, Exe: exe, Root: dir, Simulated: isSimulatedEditor(dir), Modules: modules, ModulesCached: cached, OfflineDocs: docs})
 			}
 		}
 	}

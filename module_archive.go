@@ -64,6 +64,9 @@ func parentModuleSelected(modules []editorModule, parent string) bool {
 }
 
 func moduleFilesPresent(root string, m editorModule) bool {
+	if _, _, ok := tuanjieDocumentationArchive(m); ok {
+		return documentationFilesPresent(filepath.Join(root, "Editor", "Data", "Documentation"))
+	}
 	if m.ID == "android-sdk-ndk-tools" && m.Parent == "android" && m.EULA == androidLicenseURL {
 		return androidSDKFilesPresent(filepath.Join(root, "Editor", "Data", "PlaybackEngines", "AndroidPlayer"))
 	}
@@ -163,13 +166,17 @@ func extractJDKArchive(archive, stage, integrity string) error {
 }
 
 func extractVerifiedArchive(archive, stage, integrity string, maxEntries int) error {
+	return extractVerifiedArchiveWithMD5(archive, stage, integrity, maxEntries, false)
+}
+
+func extractVerifiedArchiveWithMD5(archive, stage, integrity string, maxEntries int, allowMD5 bool) error {
 	f, err := os.Open(archive)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 	h, expected, err := integrityHasher(integrity)
-	if err != nil || h == nil || !(strings.HasPrefix(integrity, "sha1-") || strings.HasPrefix(integrity, "sha256-") || strings.HasPrefix(integrity, "sha384-")) {
+	if err != nil || h == nil || !(strings.HasPrefix(integrity, "sha1-") || strings.HasPrefix(integrity, "sha256-") || strings.HasPrefix(integrity, "sha384-") || (allowMD5 && strings.HasPrefix(integrity, "md5-"))) {
 		return fmt.Errorf("missing or invalid archive integrity")
 	}
 	if _, err := io.Copy(h, f); err != nil {
