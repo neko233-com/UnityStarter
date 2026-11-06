@@ -100,7 +100,7 @@ go tool mygo generate # 修改 locales/*.json 后重新生成语言包
 
 ## 已知限制
 
-- Visual Studio Community 的状态通过本机 Microsoft `vswhere` 检查：只有对应版本的 IDE 和清单中的四项组件都满足才显示已安装；缺少组件时显示提示。安装或补充工作负载目前仍需 Visual Studio Installer。
+- Visual Studio Community 的状态通过本机 Microsoft `vswhere` 检查：只有对应版本的 IDE 和清单中的四项组件都满足才显示已安装。已有 IDE 但缺少组件时，可在模块列表打开 Visual Studio Installer 并传入所需组件；需在微软安装器中完成操作，随后刷新模块列表核对结果。首次安装 Visual Studio 或存在多个匹配实例时仍需手动处理。
 - 团结引擎 Hub 的项目清单不可写，新增的团结项目不会出现在团结 Hub 里（收藏与目录会同步）。
 - 资源商店与发行页只打开官方站点，官方没有开放商店/发行 API。
 - 发布包未做代码签名，Windows 可能提示未知发布者。

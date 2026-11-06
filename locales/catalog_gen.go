@@ -386,6 +386,36 @@ func (msgs Messages) VisualStudioWorkloadMissing() string {
 	return Catalog.Format(msgs.locale, "visualStudioWorkloadMissing", nil)
 }
 
+// VisualStudioModify says "Add components"
+// in the language the app shows.
+func VisualStudioModify() string { return In(i18n.Locale()).VisualStudioModify() }
+
+// VisualStudioModify says "Add components"
+// in the language of msgs.
+func (msgs Messages) VisualStudioModify() string {
+	return Catalog.Format(msgs.locale, "visualStudioModify", nil)
+}
+
+// VisualStudioInstallerOpened says "Installer launch requested. Complete the operation in Visual Studio Installer, then refresh this list to verify the c…"
+// in the language the app shows.
+func VisualStudioInstallerOpened() string { return In(i18n.Locale()).VisualStudioInstallerOpened() }
+
+// VisualStudioInstallerOpened says "Installer launch requested. Complete the operation in Visual Studio Installer, then refresh this list to verify the c…"
+// in the language of msgs.
+func (msgs Messages) VisualStudioInstallerOpened() string {
+	return Catalog.Format(msgs.locale, "visualStudioInstallerOpened", nil)
+}
+
+// VisualStudioInstanceChanged says "The Visual Studio installation changed. Refresh the module list and try again."
+// in the language the app shows.
+func VisualStudioInstanceChanged() string { return In(i18n.Locale()).VisualStudioInstanceChanged() }
+
+// VisualStudioInstanceChanged says "The Visual Studio installation changed. Refresh the module list and try again."
+// in the language of msgs.
+func (msgs Messages) VisualStudioInstanceChanged() string {
+	return Catalog.Format(msgs.locale, "visualStudioInstanceChanged", nil)
+}
+
 // VisualStudioWorkloadMissingHint says "Visual Studio is installed, but the components required by this module are incomplete. Use the Visual Studio Installe…"
 // in the language the app shows.
 func VisualStudioWorkloadMissingHint() string {

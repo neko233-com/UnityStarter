@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -16,11 +18,35 @@ func visualStudioFixture(name string) editorModule {
 
 func TestVisualStudioWorkloadDetection(t *testing.T) {
 	modules := []editorModule{visualStudioFixture("2022"), visualStudioFixture("2026"), {ID: "other", Selected: true}}
-	all := []byte(`[{"instanceId":"a","productId":"Microsoft.VisualStudio.Product.Community","installationVersion":"17.14.1","isComplete":true,"isLaunchable":true},{"instanceId":"b","productId":"Microsoft.VisualStudio.Product.Community","installationVersion":"18.2.1","isComplete":true,"isLaunchable":true}]`)
-	ready := []byte(`[{"instanceId":"b","productId":"Microsoft.VisualStudio.Product.Community","installationVersion":"18.2.1","isComplete":true,"isLaunchable":true}]`)
+	instances := []visualStudioInstance{
+		{InstanceID: "a", ProductID: "Microsoft.VisualStudio.Product.Community", InstallationVersion: "17.14.1", InstallationPath: filepath.Join(t.TempDir(), "VS 2022"), IsComplete: true, IsLaunchable: true},
+		{InstanceID: "b", ProductID: "Microsoft.VisualStudio.Product.Community", InstallationVersion: "18.2.1", InstallationPath: filepath.Join(t.TempDir(), "VS 2026"), IsComplete: true, IsLaunchable: true},
+	}
+	all, _ := json.Marshal(instances)
+	ready, _ := json.Marshal(instances[1:])
 	applyVisualStudioState(modules, all, ready)
 	if modules[0].Selected || modules[0].ToolStatus != "incomplete" || !modules[1].Selected || modules[1].ToolStatus != "ready" || !modules[2].Selected {
 		t.Fatalf("incorrect workload detection: %+v", modules)
+	}
+	args, err := visualStudioModifyArgs(modules[0])
+	if err != nil || len(args) != 3+2*len(visualStudioComponents) || args[0] != "modify" || args[2] != instances[0].InstallationPath {
+		t.Fatalf("invalid installer arguments: %q, %v", args, err)
+	}
+	for i, component := range visualStudioComponents {
+		if args[3+i*2] != "--add" || args[4+i*2] != component {
+			t.Fatalf("unexpected component arguments: %q", args)
+		}
+	}
+	duplicate := instances[0]
+	duplicate.InstanceID = "another"
+	instances = append(instances, duplicate)
+	ambiguous, _ := json.Marshal(instances)
+	applyVisualStudioState(modules, ambiguous, ready)
+	if modules[0].ToolStatus != "ambiguous" || modules[0].ToolPath != "" {
+		t.Fatalf("multiple matching instances require explicit selection: %+v", modules[0])
+	}
+	if _, err := visualStudioModifyArgs(modules[0]); err == nil {
+		t.Fatal("ambiguous instance was accepted")
 	}
 	before := modules[0]
 	applyVisualStudioState(modules, []byte("broken"), []byte("[]"))
@@ -38,11 +64,11 @@ func TestVisualStudioWorkloadDetection(t *testing.T) {
 func TestVisualStudioMissingWorkloadIsVisible(t *testing.T) {
 	a := fixture()
 	m := visualStudioFixture("2022")
-	m.ToolStatus = "incomplete"
+	m.ToolStatus, m.ToolPath = "incomplete", t.TempDir()
 	a.manageEditor.Modules = []editorModule{m}
 	a.manageOpen, a.manageModules = true, true
 	tt := ui.NewTester(a.view, 1180, 760)
-	if !tt.HasText(m.Name) || !tt.HasText(locales.VisualStudioWorkloadMissing()) {
+	if !tt.HasText(m.Name) || !tt.HasText(locales.VisualStudioModify()) {
 		t.Fatalf("missing workload not visible: %q", tt.Texts())
 	}
 }

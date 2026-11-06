@@ -40,6 +40,7 @@ type editorModule struct {
 	Selected              bool   `json:"selected"`
 	PresenceUnverified    bool   `json:"-"`
 	ToolStatus            string `json:"-"`
+	ToolPath              string `json:"-"`
 	DownloadSize          int64  `json:"downloadSize"`
 	InstalledSize         int64  `json:"installedSize,omitempty"`
 	DependencyFingerprint string `json:"-"`
@@ -616,8 +617,7 @@ func (a *app) editorManageDialog(c *ui.Context) {
 										}
 										ui.Text(c, label).Width(70).FontSize(11).TextColor(t.TextMuted).Clip().Tooltip(label)
 									} else if m.ToolStatus == "incomplete" {
-										label := locales.VisualStudioWorkloadMissing()
-										ui.Text(c, label).Width(100).FontSize(11).TextColor(t.TextMuted).Clip().Tooltip(locales.VisualStudioWorkloadMissingHint())
+										ui.Button(c, locales.VisualStudioModify()).Width(100).Disabled(a.moduleBusy || a.moduleLoading || len(a.moduleQueue) > 0).OnClick(func() { a.openVisualStudioModifier(e, m) }).Tooltip(locales.VisualStudioWorkloadMissingHint())
 									} else {
 										_, _, _, supported := moduleInstallSpec(e, m)
 										android := androidSDKCandidate(e, m)
