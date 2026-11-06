@@ -1356,6 +1356,68 @@ func (msgs Messages) ActionRetryDownload() string {
 	return Catalog.Format(msgs.locale, "actionRetryDownload", nil)
 }
 
+// ModuleBatchInstall says "Install selected ({count})"
+// in the language the app shows.
+func ModuleBatchInstall(count int) string { return In(i18n.Locale()).ModuleBatchInstall(count) }
+
+// ModuleBatchInstall says "Install selected ({count})"
+// in the language of msgs.
+func (msgs Messages) ModuleBatchInstall(count int) string {
+	return Catalog.Format(msgs.locale, "moduleBatchInstall", map[string]any{"count": count})
+}
+
+// ModuleBatchProgress says "Installing selected module {current} of {total}"
+// in the language the app shows.
+func ModuleBatchProgress(current int, total int) string {
+	return In(i18n.Locale()).ModuleBatchProgress(current, total)
+}
+
+// ModuleBatchProgress says "Installing selected module {current} of {total}"
+// in the language of msgs.
+func (msgs Messages) ModuleBatchProgress(current int, total int) string {
+	return Catalog.Format(msgs.locale, "moduleBatchProgress", map[string]any{"current": current, "total": total})
+}
+
+// ModuleBatchUnavailable says "The selected modules or their dependencies changed. Review the selection and try again."
+// in the language the app shows.
+func ModuleBatchUnavailable() string { return In(i18n.Locale()).ModuleBatchUnavailable() }
+
+// ModuleBatchUnavailable says "The selected modules or their dependencies changed. Review the selection and try again."
+// in the language of msgs.
+func (msgs Messages) ModuleBatchUnavailable() string {
+	return Catalog.Format(msgs.locale, "moduleBatchUnavailable", nil)
+}
+
+// ModuleBatchDone says "Selected modules installed."
+// in the language the app shows.
+func ModuleBatchDone() string { return In(i18n.Locale()).ModuleBatchDone() }
+
+// ModuleBatchDone says "Selected modules installed."
+// in the language of msgs.
+func (msgs Messages) ModuleBatchDone() string {
+	return Catalog.Format(msgs.locale, "moduleBatchDone", nil)
+}
+
+// ModuleBatchStopped says "Batch stopped. Remaining modules are still selected."
+// in the language the app shows.
+func ModuleBatchStopped() string { return In(i18n.Locale()).ModuleBatchStopped() }
+
+// ModuleBatchStopped says "Batch stopped. Remaining modules are still selected."
+// in the language of msgs.
+func (msgs Messages) ModuleBatchStopped() string {
+	return Catalog.Format(msgs.locale, "moduleBatchStopped", nil)
+}
+
+// ModuleBatchSelectionChanged says "Some selections were removed because the module list changed."
+// in the language the app shows.
+func ModuleBatchSelectionChanged() string { return In(i18n.Locale()).ModuleBatchSelectionChanged() }
+
+// ModuleBatchSelectionChanged says "Some selections were removed because the module list changed."
+// in the language of msgs.
+func (msgs Messages) ModuleBatchSelectionChanged() string {
+	return Catalog.Format(msgs.locale, "moduleBatchSelectionChanged", nil)
+}
+
 // DownloadStalled says "No data received for 45 seconds. Retry to continue."
 // in the language the app shows.
 func DownloadStalled() string { return In(i18n.Locale()).DownloadStalled() }

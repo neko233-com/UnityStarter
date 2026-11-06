@@ -302,8 +302,15 @@ func (a *app) loadEditorModules(e editorInstall) {
 			}
 			a.manageEditor.Modules = modules
 			a.manageEditor.ModulesCached = cached
+			selectionChanged := a.reconcileModuleSelection(a.manageEditor)
 			if cached {
 				a.moduleStatus = locales.InstallModuleCached()
+			}
+			if selectionChanged {
+				if a.moduleStatus != "" {
+					a.moduleStatus += " · "
+				}
+				a.moduleStatus += locales.ModuleBatchSelectionChanged()
 			}
 			if e.Kind == kindUnity {
 				a.refresh()

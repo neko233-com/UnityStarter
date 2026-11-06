@@ -47,11 +47,12 @@ func (a *app) prepareAndroidSDK(e editorInstall, m editorModule) {
 		}
 		win.Update(func() {
 			a.moduleLoading = false
-			if !a.manageOpen || !a.manageModules || a.manageEditor.Exe != e.Exe {
+			if (!a.manageOpen && len(a.moduleQueue) == 0) || !a.manageModules || a.manageEditor.Exe != e.Exe {
 				return
 			}
 			if err != nil {
 				a.moduleStatus = locales.OpenFailed(err.Error())
+				a.finishModuleQueueItem(m.ID, false)
 				return
 			}
 			a.moduleStatus = ""
@@ -170,6 +171,10 @@ func (a *app) installAndroidSDK(e editorInstall, plan androidInstallPlan) {
 		var cacheErr error
 		var retained int64
 		retained, cacheErr = finishAndroidCache(cache, e.Root, plan, physicalDone && err == nil && journalErr == nil, ctx.Err())
+		if releaseEditor != nil {
+			releaseEditor()
+			releaseEditor = nil
+		}
 		win.Update(func() {
 			a.moduleBusy, a.moduleInstalling, a.moduleCancel = false, false, nil
 			if errors.Is(err, context.Canceled) {
@@ -177,6 +182,7 @@ func (a *app) installAndroidSDK(e editorInstall, plan androidInstallPlan) {
 				if cacheErr != nil {
 					a.moduleStatus = locales.AndroidCacheCleanupFailed() + ": " + cacheErr.Error()
 				}
+				a.finishModuleQueueItem(plan.Module.ID, false)
 				return
 			}
 			if err != nil {
@@ -191,6 +197,7 @@ func (a *app) installAndroidSDK(e editorInstall, plan androidInstallPlan) {
 				if cacheErr != nil {
 					a.moduleStatus += " · " + locales.AndroidCacheCleanupFailed() + ": " + cacheErr.Error()
 				}
+				a.finishModuleQueueItem(plan.Module.ID, false)
 				return
 			}
 			a.moduleStatus = locales.InstallModuleDone()
@@ -214,6 +221,7 @@ func (a *app) installAndroidSDK(e editorInstall, plan androidInstallPlan) {
 			}
 			a.manageEditor.Modules = modules
 			a.refresh()
+			a.finishModuleQueueItem(plan.Module.ID, true)
 		})
 	}()
 }

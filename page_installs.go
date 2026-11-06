@@ -80,7 +80,7 @@ func (a *app) installsPage(c *ui.Context) {
 				if ui.Button(c, locales.ActionFolder()).Clicked() {
 					mygo.Shell.ShowItemInFolder(e.Exe)
 				}
-				otherBusy := (a.moduleBusy || a.moduleLoading || a.uninstallBusy) && !strings.EqualFold(a.manageEditor.Exe, e.Exe)
+				otherBusy := (a.moduleBusy || a.moduleLoading || a.uninstallBusy || len(a.moduleQueue) > 0 || a.androidPlan != nil) && !strings.EqualFold(a.manageEditor.Exe, e.Exe)
 				ui.Button(c, locales.InstallManage()).Disabled(otherBusy).OnClick(func() { a.openEditorManagement(e) })
 			})
 		})
@@ -93,20 +93,22 @@ func (a *app) installsPage(c *ui.Context) {
 
 func (a *app) openEditorManagement(e editorInstall) {
 	same := a.manageEditor.Exe != "" && strings.EqualFold(a.manageEditor.Exe, e.Exe)
-	if (a.moduleBusy || a.moduleLoading || a.uninstallBusy) && !same {
+	if (a.moduleBusy || a.moduleLoading || a.uninstallBusy || len(a.moduleQueue) > 0 || a.androidPlan != nil) && !same {
 		return
 	}
 	if same && (a.uninstallBusy || a.uninstallStatus != "") {
 		a.manageOpen, a.manageModules, a.manageUninstall = true, false, true
 		return
 	}
-	if same && (a.moduleBusy || a.moduleLoading || (a.manageModules && a.moduleStatus != "")) {
+	if same && (a.moduleBusy || a.moduleLoading || len(a.moduleQueue) > 0 || a.androidPlan != nil || (a.manageModules && a.moduleStatus != "")) {
 		a.manageOpen, a.manageModules, a.manageUninstall = true, true, false
 		return
 	}
 	a.manageEditor, a.manageOpen = e, true
 	a.manageModules, a.manageUninstall = false, false
 	a.moduleStatus, a.androidPlan = "", nil
+	a.moduleSelection, a.moduleQueue, a.moduleQueueTotal = nil, nil, 0
+	a.moduleQueueWarnings = nil
 	a.uninstallStatus = ""
 }
 
@@ -126,13 +128,17 @@ func (a *app) uninstallActivityBanner(c *ui.Context) {
 // A dismissed modal must not strand an active module operation. Keep a
 // route back to its status and cancellation on every page and engine tab.
 func (a *app) moduleActivityBanner(c *ui.Context) {
-	active := a.moduleBusy || a.moduleLoading
+	active := a.moduleBusy || a.moduleLoading || len(a.moduleQueue) > 0 || a.androidPlan != nil
 	if a.manageOpen || (!active && (!a.manageModules || a.moduleStatus == "")) {
 		return
 	}
 	status := a.moduleStatus
 	if status == "" {
-		status = locales.InstallModuleLoading()
+		if a.androidPlan != nil {
+			status = locales.AndroidLicenseTitle()
+		} else {
+			status = locales.InstallModuleLoading()
+		}
 	}
 	ui.Row(c).Padding(8, 22).Gap(10).AlignItems(ui.Center).Background(c.Theme().Surface).Children(func() {
 		if active {

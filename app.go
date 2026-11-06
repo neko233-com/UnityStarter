@@ -74,6 +74,11 @@ type app struct {
 	moduleLoading          bool
 	moduleInstalling       bool
 	moduleStatus           string
+	moduleSelection        map[string]bool
+	moduleQueue            []string
+	moduleQueueTotal       int
+	moduleQueueWarnings    []string
+	moduleQueueRunner      func(editorInstall, editorModule, bool)
 	licenseCheckBusy       bool
 	licenseCheckState      string
 	moduleCancel           context.CancelFunc

@@ -272,12 +272,9 @@ func (a *app) installEditorModule(e editorInstall, m editorModule) {
 		if err != nil && !errors.Is(err, context.Canceled) {
 			err = fmt.Errorf("module download failed")
 		}
+		var releaseEditor func()
 		if err == nil {
-			var release func()
-			release, err = acquireEditorLock(e.Exe)
-			if err == nil {
-				defer release()
-			}
+			releaseEditor, err = acquireEditorLock(e.Exe)
 		}
 		if err == nil {
 			ready := make(chan bool, 1)
@@ -321,12 +318,16 @@ func (a *app) installEditorModule(e editorInstall, m editorModule) {
 				}
 			}
 		}
+		if releaseEditor != nil {
+			releaseEditor()
+		}
 		win.Update(func() {
 			a.moduleBusy = false
 			a.moduleInstalling = false
 			a.moduleCancel = nil
 			if errors.Is(err, context.Canceled) {
 				a.moduleStatus = ""
+				a.finishModuleQueueItem(m.ID, false)
 				return
 			}
 			if err != nil {
@@ -335,6 +336,7 @@ func (a *app) installEditorModule(e editorInstall, m editorModule) {
 				} else {
 					a.moduleStatus = locales.OpenFailed(err.Error())
 				}
+				a.finishModuleQueueItem(m.ID, false)
 				return
 			}
 			a.moduleStatus = locales.InstallModuleDone()
@@ -352,6 +354,7 @@ func (a *app) installEditorModule(e editorInstall, m editorModule) {
 			}
 			a.manageEditor.Modules = modules
 			a.refresh()
+			a.finishModuleQueueItem(m.ID, true)
 		})
 	}()
 }
@@ -439,7 +442,15 @@ func (a *app) editorManageDialog(c *ui.Context) {
 						if plan.CachedBytes > 0 && !plan.RecoveryPending {
 							ui.Button(c, locales.AndroidDiscardCache()).Disabled(a.moduleLoading).OnClick(func() { a.discardAndroidCache(e, a.androidPlan) })
 						}
-						ui.Button(c, locales.ActionCancel()).Disabled(a.moduleLoading).OnClick(func() { a.androidPlan = nil })
+						ui.Button(c, locales.ActionCancel()).Disabled(a.moduleLoading).OnClick(func() {
+							a.androidPlan = nil
+							queued := len(a.moduleQueue) > 0
+							a.moduleStatus = ""
+							a.finishModuleQueueItem(plan.Module.ID, false)
+							if !queued {
+								a.moduleStatus = ""
+							}
+						})
 						label := locales.AndroidLicenseAccept()
 						if plan.RecoveryPending {
 							label = locales.AndroidLicenseRecover()
@@ -458,6 +469,9 @@ func (a *app) editorManageDialog(c *ui.Context) {
 				if a.moduleStatus != "" {
 					ui.Text(c, a.moduleStatus).FontSize(12).TextColor(t.TextMuted)
 				}
+				if len(a.moduleQueue) > 0 {
+					ui.Text(c, locales.ModuleBatchProgress(a.moduleQueueTotal-len(a.moduleQueue)+1, a.moduleQueueTotal)).FontSize(12).TextColor(t.TextMuted)
+				}
 				ui.Scroll(c).Height(300).Children(func() {
 					ui.Column(c).Gap(5).Children(func() {
 						for _, module := range e.Modules {
@@ -467,17 +481,23 @@ func (a *app) editorManageDialog(c *ui.Context) {
 							}
 							c.Key(m.ID)
 							ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
-								ui.Text(c, m.Name).Grow(1).FontSize(12).Clip()
 								if m.Selected {
+									ui.Text(c, m.Name).Grow(1).FontSize(12).Clip()
 									label := locales.DownloadsInstalled()
 									if m.PresenceUnverified {
 										label = locales.InstallModuleReported()
 									}
 									ui.Badge(c, label)
 								} else {
+									checked := a.moduleSelection[m.ID]
+									canSelect := moduleSelectable(e, m, a.moduleSelection)
+									checkbox := ui.Checkbox(c, &checked, m.Name).Grow(1).Disabled(a.moduleBusy || a.moduleLoading || len(a.moduleQueue) > 0 || (!canSelect && !checked)).OnClick(func() { a.setModuleSelection(e, m.ID, checked) })
+									if !canSelect && !checked {
+										checkbox.Tooltip(locales.InstallModuleUnavailable())
+									}
 									_, _, _, supported := moduleInstallSpec(e, m)
 									android := androidSDKCandidate(e, m)
-									button := ui.Button(c, locales.ActionInstall()).Disabled(a.moduleBusy || a.moduleLoading || (!supported && !android)).OnClick(func() {
+									button := ui.Button(c, locales.ActionInstall()).Disabled(a.moduleBusy || a.moduleLoading || len(a.moduleQueue) > 0 || (!supported && !android)).OnClick(func() {
 										if android {
 											a.prepareAndroidSDK(e, m)
 										} else {
@@ -505,10 +525,11 @@ func (a *app) editorManageDialog(c *ui.Context) {
 							}
 						})
 					} else if !a.moduleBusy {
-						ui.Button(c, locales.DialogOK()).OnClick(func() {
+						ui.Button(c, locales.DialogOK()).Disabled(a.moduleLoading || len(a.moduleQueue) > 0).OnClick(func() {
 							a.manageOpen, a.manageModules = false, false
 							a.moduleStatus = ""
 						})
+						ui.PrimaryButton(c, locales.ModuleBatchInstall(len(a.moduleSelection))).Disabled(a.uninstallBusy || a.moduleLoading || len(a.moduleSelection) == 0 || len(a.moduleQueue) > 0).OnClick(func() { a.startModuleQueue(e) })
 					}
 				})
 				return
