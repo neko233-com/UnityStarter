@@ -260,6 +260,7 @@
   "newProjectTitle": "新建项目",
   "newProjectHint": "由编辑器创建工程并打开它。",
   "newProjectWaiting": "正在等待项目文件",
+  "newProjectRegisterFailed": "项目登记失败，正在重试",
   "newProjectForget": "停止跟踪",
   "newProjectName": "项目名称",
   "newProjectLocation": "位置",

@@ -127,6 +127,7 @@ func (a *app) finishPendingProjects(ready []pendingProject) {
 		delete(a.prefs.HiddenProjects, localProjectKey(p.Path))
 		if err := savePrefs(a.prefs); err != nil {
 			logger.Printf("project creation settings: %v", err)
+			a.setPendingProjectError(p, err)
 			continue
 		}
 		if !a.prefs.NoHubSync {
@@ -134,6 +135,7 @@ func (a *app) finishPendingProjects(ready []pendingProject) {
 			added, err := exportProjects(a.hubs, []projectEntry{entry})
 			if err != nil {
 				logger.Printf("project creation hub export: %v", err)
+				a.setPendingProjectError(p, err)
 				continue
 			}
 			if added > 0 {
@@ -142,14 +144,23 @@ func (a *app) finishPendingProjects(ready []pendingProject) {
 		}
 		if err := os.Remove(p.file); err != nil {
 			logger.Printf("project creation intent: %v", err)
+			a.setPendingProjectError(p, err)
 			continue
 		}
+		delete(a.pendingProjectErrors, p.file)
 		a.pendingProjectList = slices.DeleteFunc(a.pendingProjectList, func(item pendingProject) bool { return item.file == p.file })
 		changed = true
 	}
 	if changed {
 		a.refresh()
 	}
+}
+
+func (a *app) setPendingProjectError(p pendingProject, err error) {
+	if a.pendingProjectErrors == nil {
+		a.pendingProjectErrors = make(map[string]string)
+	}
+	a.pendingProjectErrors[p.file] = err.Error()
 }
 
 // Forgetting tracking never deletes project files or stops the editor.
@@ -159,4 +170,5 @@ func (a *app) forgetPendingProject(p pendingProject) {
 		return
 	}
 	a.pendingProjectList = slices.DeleteFunc(a.pendingProjectList, func(item pendingProject) bool { return item.file == p.file })
+	delete(a.pendingProjectErrors, p.file)
 }

@@ -39,7 +39,13 @@ func (a *app) projectsPage(c *ui.Context) {
 		}
 		c.Key(p.file)
 		ui.Row(c).Padding(8, 22).Gap(10).AlignItems(ui.Center).Background(c.Theme().Surface).Children(func() {
-			ui.Text(c, locales.NewProjectWaiting()+" · "+p.Path).Grow(1).FontSize(12).Clip().Tooltip(p.Path)
+			label := locales.NewProjectWaiting() + " · " + p.Path
+			color := c.Theme().TextMuted
+			if err := a.pendingProjectErrors[p.file]; err != "" {
+				label = locales.NewProjectRegisterFailed() + " · " + p.Path + ": " + err
+				color = c.Theme().Danger
+			}
+			ui.Text(c, label).Grow(1).FontSize(12).TextColor(color).Clip().Tooltip(label)
 			ui.Button(c, locales.NewProjectForget()).OnClick(func() { a.forgetPendingProject(p) })
 		})
 	}

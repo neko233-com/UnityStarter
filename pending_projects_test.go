@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
@@ -71,6 +72,43 @@ func TestProjectCreationLaunchFailureRemovesOnlyIntent(t *testing.T) {
 	}
 	if _, err := os.Stat(path); err != nil {
 		t.Fatalf("project directory should not be deleted: %v", err)
+	}
+}
+
+func TestProjectRegistrationFailureRemainsVisibleAndRetries(t *testing.T) {
+	t.Setenv("APPDATA", t.TempDir())
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	path := filepath.Join(t.TempDir(), "Game")
+	e := editorInstall{Version: "6000.0.2f1", Kind: kindUnity, Exe: "editor"}
+	if err := startProjectCreation(path, e, func(string, []string, string) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+	writeProject(t, path, e.Version)
+	for _, dir := range []string{"Assets", "Packages"} {
+		if err := os.MkdirAll(filepath.Join(path, dir), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(path, "Packages", "manifest.json"), []byte(`{"dependencies":{}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	pending := pendingProjects()
+	a := newApp()
+	a.pendingProjectList = pending
+	a.hubs = []hub{{Kind: kindUnity, Registry: t.TempDir()}}
+	a.finishPendingProjects(pending)
+	if len(pendingProjects()) != 1 || a.pendingProjectErrors[pending[0].file] == "" {
+		t.Fatal("failed Hub registration lost the pending request or its error")
+	}
+	tt := ui.NewTester(a.view, 1180, 760)
+	if !strings.Contains(strings.Join(tt.Texts(), "\n"), locales.NewProjectRegisterFailed()) {
+		t.Fatalf("registration failure not visible: %q", tt.Texts())
+	}
+	h := hub{Kind: kindUnity, Registry: filepath.Join(t.TempDir(), "projects-v1.json")}
+	a.hubs = []hub{h}
+	a.finishPendingProjects(pending)
+	if !h.lists(path) || len(pendingProjects()) != 0 || a.pendingProjectErrors[pending[0].file] != "" {
+		t.Fatal("retry did not register the project and clear the error")
 	}
 }
 

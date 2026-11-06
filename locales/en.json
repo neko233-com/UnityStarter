@@ -345,6 +345,7 @@
   "newProjectTitle": "New project",
   "newProjectHint": "The editor creates the project and opens it.",
   "newProjectWaiting": "Waiting for project files",
+  "newProjectRegisterFailed": "Project registration failed; retrying",
   "newProjectForget": "Stop tracking",
   "newProjectName": "Project name",
   "newProjectLocation": "Location",

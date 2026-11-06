@@ -117,13 +117,14 @@ type app struct {
 	updateCtx     context.Context
 	updateCancel  context.CancelFunc
 
-	newOpen            bool
-	newDir             string
-	newName            string
-	newEditor          string
-	newEngine          string
-	newError           string
-	pendingProjectList []pendingProject
+	newOpen              bool
+	newDir               string
+	newName              string
+	newEditor            string
+	newEngine            string
+	newError             string
+	pendingProjectList   []pendingProject
+	pendingProjectErrors map[string]string
 }
 
 func newApp() *app {

@@ -2614,6 +2614,16 @@ func (msgs Messages) NewProjectWaiting() string {
 	return Catalog.Format(msgs.locale, "newProjectWaiting", nil)
 }
 
+// NewProjectRegisterFailed says "Project registration failed; retrying"
+// in the language the app shows.
+func NewProjectRegisterFailed() string { return In(i18n.Locale()).NewProjectRegisterFailed() }
+
+// NewProjectRegisterFailed says "Project registration failed; retrying"
+// in the language of msgs.
+func (msgs Messages) NewProjectRegisterFailed() string {
+	return Catalog.Format(msgs.locale, "newProjectRegisterFailed", nil)
+}
+
 // NewProjectForget says "Stop tracking"
 // in the language the app shows.
 func NewProjectForget() string { return In(i18n.Locale()).NewProjectForget() }
