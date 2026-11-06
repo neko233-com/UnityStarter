@@ -1,0 +1,29 @@
+version: '3'
+
+tasks:
+  default:
+    desc: List available tasks
+    cmds: [task --list]
+  test:
+    desc: Run Go tests and static checks
+    cmds:
+      - go test ./...
+      - go vet ./...
+      - go tool mygo vet .
+  build:
+    desc: Build the native application, NSIS installer, and per-user MSI
+    cmds:
+      - go tool mygo build
+      - pwsh -NoProfile -File _tools/build-msi.ps1
+  checksums:
+    desc: Generate SHA-256 checksums for release artifacts
+    cmds:
+      - pwsh -NoProfile -File _tools/release-checksums.ps1
+  release:
+    desc: Publish the verified artifacts for the current version tag
+    cmds:
+      - pwsh -NoProfile -File _tools/publish-release.ps1
+  install:
+    desc: Install and open a verified MSI (MSI_PATH, MSI_SHA256, EXE_SHA256)
+    cmds:
+      - pwsh -NoProfile -File _tools/install-msi.ps1

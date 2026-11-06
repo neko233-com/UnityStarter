@@ -16,12 +16,14 @@ jobs:
         with:
           go-version: "1.27.x"
           cache: true
+      - uses: go-task/setup-task@v2
+        with:
+          version: '3.52.0'
       - name: Check formatting
         run: |
           $files = gofmt -l .
           if ($files) { Write-Error "gofmt needed: $files"; exit 1 }
-      - run: go vet ./...
-      - run: go test ./...
+      - run: task test
       - name: Check concurrent downloads for races
         run: go test -race -run 'TestParallelDownload' ./...
 
@@ -34,8 +36,12 @@ jobs:
         with:
           go-version: "1.27.x"
           cache: true
+      - uses: go-task/setup-task@v2
+        with:
+          version: '3.52.0'
       - name: Build the app and its installer
-        run: go tool mygo build
+        run: task build
+      - run: task checksums
       - uses: actions/upload-artifact@v4
         with:
           name: UnityStarter-windows-amd64
@@ -50,27 +56,15 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+      - uses: go-task/setup-task@v2
+        with:
+          version: '3.52.0'
       - uses: actions/download-artifact@v4
         with:
           name: UnityStarter-windows-amd64
-          path: dist
+          path: build/windows-amd64
       - name: Verify version and publish release
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
-        shell: pwsh
-        run: |
-          $version = (Get-Content mygo.json -Raw | ConvertFrom-Json).version
-          if ($env:RELEASE_TAG -cne "v$version") { throw "Tag does not match mygo.json version" }
-          $installer = "dist/unitystarter-setup-$version-amd64.exe"
-          $exe = 'dist/UnityStarter.exe'
-          foreach ($file in @($installer, $exe)) {
-            if (!(Test-Path -LiteralPath $file)) { throw "Missing release asset: $file" }
-          }
-          @($installer, $exe) | ForEach-Object {
-            $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $_).Hash.ToLowerInvariant()
-            "$hash  $([IO.Path]::GetFileName($_))"
-          } | Set-Content -Encoding ascii dist/SHA256SUMS.txt
-          $notes = '请查阅 README 中的已知限制。Unity Personal 首次激活需要在 Unity Hub 登录；SHA256SUMS.txt 可用于校验发布文件。'
-          gh release create $env:RELEASE_TAG $installer $exe dist/SHA256SUMS.txt --verify-tag --title "UnityStarter $version" --notes $notes --generate-notes
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        run: task release

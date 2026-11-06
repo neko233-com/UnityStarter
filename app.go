@@ -15,21 +15,25 @@ import (
 )
 
 const (
-	pageProjects  = "/projects"
-	pageFavorites = "/favorites"
-	pageInstalls  = "/installs"
-	pageDownloads = "/downloads"
-	pageStore     = "/store"
-	pagePublish   = "/publish"
-	pageLicense   = "/license"
-	pageDocs      = "/docs"
-	pageLearn     = "/learn"
-	pageFeedback  = "/feedback"
-	pageSettings  = "/settings"
+	pageProjects         = "/projects"
+	pageFavorites        = "/favorites"
+	pageInstalls         = "/installs"
+	pageDownloads        = "/downloads"
+	pageTuanjieProjects  = "/tuanjie/projects"
+	pageTuanjieFavorites = "/tuanjie/favorites"
+	pageTuanjieInstalls  = "/tuanjie/installs"
+	pageTuanjieDownloads = "/tuanjie/downloads"
+	pageStore            = "/store"
+	pagePublish          = "/publish"
+	pageLicense          = "/license"
+	pageDocs             = "/docs"
+	pageLearn            = "/learn"
+	pageFeedback         = "/feedback"
+	pageSettings         = "/settings"
 
 	// appVersion is what the CLI prints and what the window shows when MyGo
 	// does not know the packaged version.
-	appVersion = "1.4.0"
+	appVersion = "1.5.2"
 	// appName is the name of the executable and of the app's data folder, as
 	// mygo.json names the app; the window shows a name with a space.
 	appName = "UnityStarter"
@@ -38,9 +42,10 @@ const (
 // app is the state of the window: what was found on this machine, the page
 // shown, and the dialog being filled.
 type app struct {
-	win   *mygo.Window
-	page  string
-	query string
+	win         *mygo.Window
+	page        string
+	query       string
+	queryEngine string
 
 	editors  []editorInstall
 	projects []projectEntry
@@ -68,12 +73,18 @@ type app struct {
 	downloadsErr   string
 	// jobs are the editors being downloaded or installed, by engine and
 	// version.
-	jobs map[string]*downloadJob
+	jobs          map[string]*downloadJob
+	updateBusy    bool
+	updatePending string
+	updateStatus  string
+	updateCtx     context.Context
+	updateCancel  context.CancelFunc
 
 	newOpen   bool
 	newDir    string
 	newName   string
 	newEditor string
+	newEngine string
 	newError  string
 }
 
@@ -136,16 +147,8 @@ func (a *app) view(c *ui.Context) {
 				})
 			})
 			ui.Sidebar(c, &a.page, func() {
-				ui.SidebarSection(c, locales.SidebarWorkspace(), nil, func() {
-					ui.SidebarItem(c, pageProjects, iconProjects, locales.SidebarProjects()).Children(func() {
-						ui.Badge(c, fmt.Sprint(len(a.projects)))
-					})
-					ui.SidebarItem(c, pageInstalls, iconInstalls, locales.SidebarInstalls()).Children(func() {
-						ui.Badge(c, fmt.Sprint(len(a.editors)))
-					})
-					ui.SidebarItem(c, pageDownloads, iconDownload, locales.SidebarDownloads())
-					ui.SidebarItem(c, pageFavorites, iconFavorite, locales.SidebarFavorites())
-				})
+				a.engineNavigation(c, kindUnity, pageProjects, pageInstalls, pageDownloads, pageFavorites)
+				a.engineNavigation(c, kindTuanjie, pageTuanjieProjects, pageTuanjieInstalls, pageTuanjieDownloads, pageTuanjieFavorites)
 				ui.SidebarSection(c, locales.SidebarServices(), nil, func() {
 					ui.SidebarItem(c, pageStore, iconStore, locales.PageStore())
 					ui.SidebarItem(c, pagePublish, iconPublish, locales.PagePublish())
@@ -160,12 +163,13 @@ func (a *app) view(c *ui.Context) {
 			}).Grow(1)
 		})
 		ui.Column(c).Grow(1).Fill().Children(func() {
+			a.updateBanner(c)
 			switch a.page {
-			case pageFavorites:
+			case pageProjects, pageFavorites, pageTuanjieProjects, pageTuanjieFavorites:
 				a.projectsPage(c)
-			case pageInstalls:
+			case pageInstalls, pageTuanjieInstalls:
 				a.installsPage(c)
-			case pageDownloads:
+			case pageDownloads, pageTuanjieDownloads:
 				a.downloadsPage(c)
 			case pageStore:
 				a.storePage(c)
@@ -187,6 +191,41 @@ func (a *app) view(c *ui.Context) {
 		})
 	})
 	a.newProjectDialog(c)
+}
+
+func engineForPage(page string) string {
+	if strings.HasPrefix(page, "/tuanjie/") {
+		return kindTuanjie
+	}
+	return kindUnity
+}
+
+func favoritesPage(page string) bool { return page == pageFavorites || page == pageTuanjieFavorites }
+
+func (a *app) engineNavigation(c *ui.Context, engine, projects, installs, downloads, favorites string) {
+	name := channelName(engine)
+	ui.SidebarSection(c, name, nil, func() {
+		ui.SidebarItem(c, projects, iconProjects, name+" · "+locales.SidebarProjects()).Children(func() {
+			count := 0
+			for _, p := range a.projects {
+				if p.Kind == engine {
+					count++
+				}
+			}
+			ui.Badge(c, fmt.Sprint(count))
+		})
+		ui.SidebarItem(c, installs, iconInstalls, name+" · "+locales.SidebarInstalls()).Children(func() {
+			count := 0
+			for _, e := range a.editors {
+				if e.Kind == engine {
+					count++
+				}
+			}
+			ui.Badge(c, fmt.Sprint(count))
+		})
+		ui.SidebarItem(c, downloads, iconDownload, name+" · "+locales.SidebarDownloads())
+		ui.SidebarItem(c, favorites, iconFavorite, name+" · "+locales.SidebarFavorites())
+	})
 }
 
 // header is the title of a page, with its count and its actions.
@@ -265,9 +304,17 @@ func (a *app) openProject(p projectEntry) {
 }
 
 func (a *app) addProject() {
+	a.addProjectForEngine("")
+}
+
+func (a *app) addProjectForEngine(engine string) {
 	a.pickFolder(locales.DialogAddProject(), func(dir string) {
 		if !isProject(dir) {
 			a.alert(locales.NotAProject(dir))
+			return
+		}
+		if version, _, ok := readProject(dir); engine != "" && ok && kindOfVersion(version) != engine {
+			a.alert(locales.ProjectWrongEngine())
 			return
 		}
 		a.prefs.PinnedProjects = dedupe(append(a.prefs.PinnedProjects, dir))
@@ -280,16 +327,11 @@ func (a *app) addProject() {
 // hubFor is the hub a project's star and additions go to: the one that
 // lists it, else the Unity Hub, which holds a project list this app writes.
 func (a *app) hubFor(p projectEntry) (hub, bool) {
-	for _, h := range a.hubs {
-		if h.Kind == p.Hub {
-			return h, true
-		}
-	}
 	if a.prefs.NoHubSync {
 		return hub{}, false
 	}
 	for _, h := range a.hubs {
-		if h.Kind == kindUnity && h.writable() {
+		if h.Kind == p.Kind {
 			return h, true
 		}
 	}
@@ -308,7 +350,7 @@ func (a *app) toggleFavorite(p projectEntry) {
 		return
 	}
 	on := !p.Favorite
-	if h.Kind != p.Hub {
+	if h.Kind != p.Hub && h.writable() {
 		if err := h.addProject(p); err != nil {
 			a.alert(locales.HubWriteFailed(err.Error()))
 			return
@@ -324,9 +366,7 @@ func (a *app) toggleFavorite(p projectEntry) {
 			continue
 		}
 		a.projects[i].Favorite = on
-		if a.projects[i].Hub == "" {
-			a.projects[i].Hub = h.Kind
-		}
+		a.projects[i].Hub = h.Kind
 	}
 }
 

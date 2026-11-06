@@ -1,5 +1,11 @@
 {
   "appTitle": "UnityStarter",
+  "updateChecking": "Checking for updates…",
+  "updateReady": "Version {version} is ready; it will install the next time you start the app.",
+  "@updateReady": { "placeholders": { "version": { "type": "String", "example": "1.5.1" } } },
+  "updateRestart": "Update and restart",
+  "projectWrongEngine": "This project belongs to the other engine. Open its engine group and add it there.",
+  "tuanjieDownloadsEmptyHint": "No Tuanjie releases are cached. Open Tuanjie Hub to refresh its release list.",
   "sidebarFavorites": "Favorites",
   "pageLearn": "Learn",
   "pageLearnHint": "Official learning and community resources.",

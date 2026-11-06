@@ -228,6 +228,9 @@ func (a *app) aboutSection(c *ui.Context) {
 		a.sectionTitle(c, locales.SettingsAbout(), locales.SettingsAboutText())
 		ui.Text(c, locales.SettingsVersion(version)).FontSize(12).TextColor(t.TextMuted)
 		ui.Text(c, prefsPath()).FontSize(11).TextColor(t.TextMuted).Clip()
+		if a.updateStatus != "" {
+			ui.Text(c, a.updateStatus).FontSize(12).TextColor(t.TextMuted)
+		}
 		ui.Row(c).Gap(8).Children(func() {
 			if ui.Button(c, locales.ActionOpenDataDir()).Clicked() {
 				if dir, err := mygo.App.Path(mygo.PathUserData); err == nil {

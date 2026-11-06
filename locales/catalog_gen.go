@@ -44,6 +44,56 @@ func (msgs Messages) AppTitle() string {
 	return Catalog.Format(msgs.locale, "appTitle", nil)
 }
 
+// UpdateChecking says "Checking for updates…"
+// in the language the app shows.
+func UpdateChecking() string { return In(i18n.Locale()).UpdateChecking() }
+
+// UpdateChecking says "Checking for updates…"
+// in the language of msgs.
+func (msgs Messages) UpdateChecking() string {
+	return Catalog.Format(msgs.locale, "updateChecking", nil)
+}
+
+// UpdateReady says "Version {version} is ready; it will install the next time you start the app."
+// in the language the app shows.
+func UpdateReady(version string) string { return In(i18n.Locale()).UpdateReady(version) }
+
+// UpdateReady says "Version {version} is ready; it will install the next time you start the app."
+// in the language of msgs.
+func (msgs Messages) UpdateReady(version string) string {
+	return Catalog.Format(msgs.locale, "updateReady", map[string]any{"version": version})
+}
+
+// UpdateRestart says "Update and restart"
+// in the language the app shows.
+func UpdateRestart() string { return In(i18n.Locale()).UpdateRestart() }
+
+// UpdateRestart says "Update and restart"
+// in the language of msgs.
+func (msgs Messages) UpdateRestart() string {
+	return Catalog.Format(msgs.locale, "updateRestart", nil)
+}
+
+// ProjectWrongEngine says "This project belongs to the other engine. Open its engine group and add it there."
+// in the language the app shows.
+func ProjectWrongEngine() string { return In(i18n.Locale()).ProjectWrongEngine() }
+
+// ProjectWrongEngine says "This project belongs to the other engine. Open its engine group and add it there."
+// in the language of msgs.
+func (msgs Messages) ProjectWrongEngine() string {
+	return Catalog.Format(msgs.locale, "projectWrongEngine", nil)
+}
+
+// TuanjieDownloadsEmptyHint says "No Tuanjie releases are cached. Open Tuanjie Hub to refresh its release list."
+// in the language the app shows.
+func TuanjieDownloadsEmptyHint() string { return In(i18n.Locale()).TuanjieDownloadsEmptyHint() }
+
+// TuanjieDownloadsEmptyHint says "No Tuanjie releases are cached. Open Tuanjie Hub to refresh its release list."
+// in the language of msgs.
+func (msgs Messages) TuanjieDownloadsEmptyHint() string {
+	return Catalog.Format(msgs.locale, "tuanjieDownloadsEmptyHint", nil)
+}
+
 // SidebarFavorites says "Favorites"
 // in the language the app shows.
 func SidebarFavorites() string { return In(i18n.Locale()).SidebarFavorites() }

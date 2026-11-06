@@ -14,14 +14,17 @@ Windows 10/11 x64，单文件约 10 MB。
   - 写入保留 Hub 原有字段，临时文件 + rename 原子替换；Hub 运行时可能用内存状态覆盖，下一次 Hub 写文件时本程序会重新导入。
 - **服务页**：资源商店、游戏发行、付费与许可、技术文档、问题反馈，链接取自两个 Hub 的 `cloudConfig.json`；许可页列出本机授权文件，反馈页一键生成带诊断信息的 GitHub Issue。
 - **多语言**：默认跟随系统语言，内置 English 与简体中文，窗口与 CLI 共用文案。
-- **工作台**：深色主题、收藏项目和官方学习资源；下载列表标记 LTS、Alpha 和 Beta。
+- **工作台**：原生深色界面将 Unity 国际版和团结引擎分为两个独立分组，每组都有项目、安装、下载与收藏标签；编辑器和下载版本按版本从新到旧排列，并标记 LTS、Alpha 和 Beta。
 
 ## 安装
 
 从 [Releases](https://github.com/neko233-com/UnityStarter/releases) 下载：
 
-- `unitystarter-setup-<version>-amd64.exe`：安装到 `%LOCALAPPDATA%\Programs\UnityStarter`，带开始菜单与桌面快捷方式，并把 **`unitystarter`** 注册到用户 PATH（`…\UnityStarter\bin`）、App Paths 与开始菜单（Win 搜索 `unitystarter` / `UnityStarter` 均可找到）。
+- `unitystarter-<version>-amd64.msi`：推荐的当前用户安装包，安装到 `%LOCALAPPDATA%\Programs\UnityStarterMSI`，注册开始菜单、App Paths 和用户 PATH。后台检查正式版更新，校验 MSI 的大小和 SHA-256 后下载；可以点击「更新并重启」，也可以下次启动时自动安装。安装失败会保留原程序并显示错误，可手动重试。
+- `unitystarter-setup-<version>-amd64.exe`：原 NSIS 安装包，安装到 `%LOCALAPPDATA%\Programs\UnityStarter`，带开始菜单与桌面快捷方式；更新时请手动下载新版 MSI 或安装包。
 - `UnityStarter.exe`：免安装，直接运行；若需命令行别名，可执行 `_tools\register-cli.ps1 -InstallDir <目录>`。
+
+发布页的 `SHA256SUMS.txt` 可用于检查下载完整性。MSI 与旧版 NSIS 安装在不同目录，不会删除旧安装目录里的编辑器；安装 MSI 后，新终端优先使用 MSI 的命令行入口。
 
 ## CLI
 
@@ -60,17 +63,17 @@ CLI 同样可用：`unitystarter install 6000.0.85f2 --simulate`。
 
 ## 开发
 
-需要 Go 1.27+。
+需要 Go 1.27+、Task 和 .NET SDK；MSI 构建通过本地工具清单安装 WiX。
 
 ```sh
 go tool mygo dev      # 开发（热重载）
-go test ./...         # 视图、CLI、Hub 同步、扫描测试
-go vet ./...
-go tool mygo build    # 打包 exe 与 NSIS 安装包到 build/windows-amd64/
+task test             # 测试与静态检查
+task build            # 构建 exe、NSIS 和 MSI
+task checksums        # 生成 SHA256SUMS.txt
 go tool mygo generate # 修改 locales/*.json 后重新生成语言包
 ```
 
-CI 见 `.github/workflows/ci.yml`：format、vet、test，构建产物上传；推送 `v*` 标签时自动发布 Release。
+`task install` 使用环境变量 `MSI_PATH`、`MSI_SHA256` 和 `EXE_SHA256` 校验、安装并启动 MSI。CI 见 `.github/workflows/ci.yml`：测试并构建产物；推送与版本一致的 `v*` 标签后通过 `task release` 发布 Release。
 
 ## 已知限制
 

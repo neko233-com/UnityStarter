@@ -89,7 +89,7 @@ func TestView(t *testing.T) {
 	if !tt.HasText("demo") {
 		t.Fatalf("texts %q lack the project", tt.Texts())
 	}
-	if err := tt.Click(locales.SidebarInstalls()); err != nil {
+	if err := tt.Click(channelName(kindUnity) + " · " + locales.SidebarInstalls()); err != nil {
 		t.Fatal(err)
 	}
 	if !tt.HasText(locales.InstallsTitle()) {
@@ -101,7 +101,7 @@ func TestView(t *testing.T) {
 	if !tt.HasText(locales.SettingsLanguage()) {
 		t.Errorf("texts %q after choosing settings", tt.Texts())
 	}
-	if err := tt.Click(locales.SidebarDownloads()); err != nil {
+	if err := tt.Click(channelName(kindUnity) + " · " + locales.SidebarDownloads()); err != nil {
 		t.Fatal(err)
 	}
 	if !tt.HasText(locales.PageDownloads()) {
@@ -124,7 +124,7 @@ func TestView(t *testing.T) {
 func TestFavoritesAndLearningPages(t *testing.T) {
 	a := fixture()
 	tt := ui.NewTester(a.view, 1180, 760)
-	if err := tt.Click(locales.SidebarFavorites()); err != nil {
+	if err := tt.Click(channelName(kindUnity) + " · " + locales.SidebarFavorites()); err != nil {
 		t.Fatal(err)
 	}
 	if !tt.HasText("demo") || tt.HasText("cozy") {
@@ -135,6 +135,55 @@ func TestFavoritesAndLearningPages(t *testing.T) {
 	}
 	if !tt.HasText("Unity Learn") {
 		t.Fatalf("learning page: %q", tt.Texts())
+	}
+}
+
+func TestEngineGroupsStaySeparateAndSorted(t *testing.T) {
+	a := fixture()
+	a.editors = append(a.editors,
+		editorInstall{Version: "2022.3.62t2", Kind: kindTuanjie, Exe: "t2"},
+		editorInstall{Version: "2022.3.62t17", Kind: kindTuanjie, Exe: "t17"},
+	)
+	a.downloads = append(a.downloads,
+		downloadEntry{Engine: kindTuanjie, Version: "2022.3.62t2"},
+		downloadEntry{Engine: kindUnity, Version: "6000.3.28b99"},
+	)
+	tt := ui.NewTester(a.view, 1180, 760)
+	if !tt.HasText("demo") || tt.HasText("cozy") {
+		t.Fatalf("Unity projects: %q", tt.Texts())
+	}
+	if err := tt.Click(channelName(kindTuanjie) + " · " + locales.SidebarProjects()); err != nil {
+		t.Fatal(err)
+	}
+	if !tt.HasText("cozy") || tt.HasText("demo") {
+		t.Fatalf("Tuanjie projects: %q", tt.Texts())
+	}
+	if err := tt.Click(channelName(kindTuanjie) + " · " + locales.SidebarInstalls()); err != nil {
+		t.Fatal(err)
+	}
+	if !tt.HasText("2022.3.62t17") || tt.HasText("2022.3.51f1") {
+		t.Fatalf("Tuanjie installs: %q", tt.Texts())
+	}
+	got := a.editorsForEngine(kindTuanjie)
+	if len(got) != 2 || got[0].Version != "2022.3.62t17" || got[1].Version != "2022.3.62t2" {
+		t.Fatalf("install order: %+v", got)
+	}
+	if err := tt.Click(channelName(kindTuanjie) + " · " + locales.SidebarDownloads()); err != nil {
+		t.Fatal(err)
+	}
+	if !tt.HasText("2022.3.62t17") || tt.HasText("6000.3.28f1") {
+		t.Fatalf("Tuanjie downloads: %q", tt.Texts())
+	}
+	gotDownloads := downloadsForEngine(a.downloads, kindUnity)
+	if len(gotDownloads) != 3 || gotDownloads[0].Version != "6000.3.28f1" || gotDownloads[1].Version != "6000.3.28b99" {
+		t.Fatalf("download order: %+v", gotDownloads)
+	}
+	if err := tt.Click(channelName(kindUnity) + " · " + locales.SidebarProjects()); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText("demo") || tt.HasText("cozy") {
+		t.Fatalf("Unity projects after switching back: %q", tt.Texts())
 	}
 }
 

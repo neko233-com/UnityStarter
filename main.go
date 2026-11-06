@@ -13,6 +13,9 @@ import (
 func main() {
 	// A command runs without a window; the window opens with none.
 	if args := os.Args[1:]; len(args) > 0 {
+		if args[0] == "--apply-pending-update" {
+			os.Exit(runUpdateHelper(args[1:]))
+		}
 		os.Exit(runCLI(args, os.Stdout, scanAll))
 	}
 
@@ -20,6 +23,13 @@ func main() {
 	// One window: starting the app again brings the running one forward.
 	if !mygo.App.RequestSingleInstanceLock() {
 		return
+	}
+	if isManagedInstall() {
+		if _, err := readPendingUpdate(); err == nil {
+			if err := startUpdateHelper(os.Getpid()); err == nil {
+				return
+			}
+		}
 	}
 	mygo.App.OnSecondInstance(func(args []string, workingDir string) {
 		if a.win == nil {
@@ -52,9 +62,15 @@ func main() {
 			if a.hubCancel != nil {
 				a.hubCancel()
 			}
+			if a.updateCancel != nil {
+				a.updateCancel()
+			}
 		})
 		a.startHubWatch()
 		a.refresh()
+		if isManagedInstall() {
+			a.startAutomaticUpdates()
+		}
 	})
 	if err := mygo.App.Run(); err != nil {
 		log.Fatal(err)

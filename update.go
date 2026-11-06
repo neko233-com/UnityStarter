@@ -17,8 +17,16 @@ import (
 var latestReleaseURL = "https://api.github.com/repos/neko233-com/UnityStarter/releases/latest"
 
 type latestRelease struct {
-	Tag string
-	URL string
+	Tag    string
+	URL    string
+	Assets []releaseAsset
+}
+
+type releaseAsset struct {
+	Name   string `json:"name"`
+	URL    string `json:"browser_download_url"`
+	Digest string `json:"digest"`
+	Size   int64  `json:"size"`
 }
 
 func checkLatestRelease(ctx context.Context) (latestRelease, error) {
@@ -37,8 +45,9 @@ func checkLatestRelease(ctx context.Context) (latestRelease, error) {
 		return latestRelease{}, fmt.Errorf("releases: %s", resp.Status)
 	}
 	var body struct {
-		TagName string `json:"tag_name"`
-		HTMLURL string `json:"html_url"`
+		TagName string         `json:"tag_name"`
+		HTMLURL string         `json:"html_url"`
+		Assets  []releaseAsset `json:"assets"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
 		return latestRelease{}, err
@@ -46,7 +55,7 @@ func checkLatestRelease(ctx context.Context) (latestRelease, error) {
 	if body.TagName == "" {
 		return latestRelease{}, fmt.Errorf("releases: no tag")
 	}
-	return latestRelease{Tag: body.TagName, URL: body.HTMLURL}, nil
+	return latestRelease{Tag: body.TagName, URL: body.HTMLURL, Assets: body.Assets}, nil
 }
 
 // newerVersion reports whether a release tag names a version newer than this
@@ -57,6 +66,10 @@ func newerVersion(tag string) bool {
 
 // checkUpdates asks GitHub for the newest release, and offers to open it.
 func (a *app) checkUpdates() {
+	if isManagedInstall() {
+		a.queueUpdateCheck(true)
+		return
+	}
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()

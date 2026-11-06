@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -248,9 +249,6 @@ func scanProjectsIn(p prefs, editors []editorInstall, hubs []hub, roots []string
 		if k, ok := kindByVersion[version]; ok {
 			kind = k
 		}
-		if hint.Hub != "" {
-			kind = hint.Hub
-		}
 		found[dir] = projectEntry{
 			Path:     dir,
 			Name:     name,
@@ -424,8 +422,52 @@ func kindOfVersion(version string) string {
 	return kindUnity
 }
 
-// compareVersions orders versions by their numbers, then their suffix.
+var editorVersionPattern = regexp.MustCompile(`(?i)^(\d+)\.(\d+)\.(\d+)(?:([a-z]+)(\d+))?(.*)$`)
+
+// compareVersions orders the three version components, release channel, then
+// the channel revision; a final f1 is newer than a beta b99 of the same base.
 func compareVersions(a, b string) int {
+	am, bm := editorVersionPattern.FindStringSubmatch(a), editorVersionPattern.FindStringSubmatch(b)
+	if am != nil && bm != nil {
+		for i := 1; i <= 3; i++ {
+			x, _ := strconv.Atoi(am[i])
+			y, _ := strconv.Atoi(bm[i])
+			if x < y {
+				return -1
+			}
+			if x > y {
+				return 1
+			}
+		}
+		rank := map[string]int{"a": 0, "b": 1, "f": 2, "t": 2, "p": 3, "": 4}
+		achannel, bchannel := strings.ToLower(am[4]), strings.ToLower(bm[4])
+		x, ok := rank[achannel]
+		if !ok {
+			x = -1
+		}
+		y, ok := rank[bchannel]
+		if !ok {
+			y = -1
+		}
+		if x < y {
+			return -1
+		}
+		if x > y {
+			return 1
+		}
+		if achannel != bchannel {
+			return strings.Compare(achannel, bchannel)
+		}
+		x, _ = strconv.Atoi(am[5])
+		y, _ = strconv.Atoi(bm[5])
+		if x < y {
+			return -1
+		}
+		if x > y {
+			return 1
+		}
+		return strings.Compare(strings.ToLower(a), strings.ToLower(b))
+	}
 	as, bs := versionParts(a), versionParts(b)
 	for i := 0; i < len(as) || i < len(bs); i++ {
 		var x, y int

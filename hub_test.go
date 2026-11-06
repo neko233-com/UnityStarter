@@ -74,6 +74,30 @@ func TestHubSync(t *testing.T) {
 	}
 }
 
+func TestTuanjieFavoriteUsesTuanjieHub(t *testing.T) {
+	unityDir, tuanjieDir := t.TempDir(), t.TempDir()
+	unity := hub{Kind: kindUnity, Registry: filepath.Join(unityDir, "projects-v1.json"), Favorites: filepath.Join(unityDir, "favoriteProjects.json")}
+	tuanjie := hub{Kind: kindTuanjie, Favorites: filepath.Join(tuanjieDir, "favoriteProjects.json")}
+	p := projectEntry{Path: filepath.Join(t.TempDir(), "project"), Kind: kindTuanjie, Hub: kindUnity}
+	a := newApp()
+	a.hubs = []hub{unity, tuanjie}
+	a.projects = []projectEntry{p}
+	a.toggleFavorite(p)
+	if paths := tuanjie.favorites(); len(paths) != 1 || paths[0] != p.Path {
+		t.Fatalf("Tuanjie favorites: %v", paths)
+	}
+	if paths := unity.favorites(); len(paths) != 0 {
+		t.Fatalf("Unity favorites unexpectedly changed: %v", paths)
+	}
+	if a.projects[0].Hub != kindTuanjie || !a.projects[0].Favorite {
+		t.Fatalf("project state: %+v", a.projects[0])
+	}
+	a.prefs.NoHubSync = true
+	if _, ok := a.hubFor(p); ok {
+		t.Fatal("disabled hub sync still selected a hub")
+	}
+}
+
 // A hub that keeps no project list is read through its favorites, and
 // refuses to be written.
 func TestHubWithoutRegistry(t *testing.T) {

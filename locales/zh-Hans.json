@@ -1,6 +1,12 @@
 {
   "@@locale": "zh-Hans",
   "appTitle": "UnityStarter",
+  "updateChecking": "正在检查更新…",
+  "updateReady": "版本 {version} 已下载，下次启动时自动安装。",
+  "@updateReady": { "placeholders": { "version": { "type": "String", "example": "1.5.1" } } },
+  "updateRestart": "更新并重启",
+  "projectWrongEngine": "该项目属于另一种引擎，请切换到对应引擎分组后添加。",
+  "tuanjieDownloadsEmptyHint": "未找到团结引擎版本缓存，请打开团结引擎 Hub 刷新版本列表。",
   "sidebarFavorites": "收藏",
   "pageLearn": "学习",
   "pageLearnHint": "官方学习与社区资源。",

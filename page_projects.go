@@ -13,15 +13,20 @@ import (
 )
 
 func (a *app) projectsPage(c *ui.Context) {
+	engine := engineForPage(a.page)
+	if a.queryEngine != engine {
+		a.query = ""
+		a.queryEngine = engine
+	}
 	items := a.filteredProjects()
 	title := locales.ProjectsTitle()
-	if a.page == pageFavorites {
+	if favoritesPage(a.page) {
 		title = locales.SidebarFavorites()
 	}
-	a.header(c, title, locales.ProjectsCount(len(items)), func() {
+	a.header(c, channelName(engine)+" · "+title, locales.ProjectsCount(len(items)), func() {
 		ui.SearchField(c, &a.query).Placeholder(locales.ProjectsSearch()).Width(220)
 		ui.Button(c, locales.ActionRefresh()).OnClick(a.refresh).Disabled(a.scanning)
-		ui.Button(c, locales.ActionAddProject()).OnClick(a.addProject)
+		ui.Button(c, locales.ActionAddProject()).OnClick(func() { a.addProjectForEngine(engine) })
 		ui.PrimaryButton(c, locales.ActionNewProject()).OnClick(a.openNewProject)
 	})
 	ui.Divider(c)
@@ -31,7 +36,7 @@ func (a *app) projectsPage(c *ui.Context) {
 		a.projectRow(c, items[i])
 	}).Grow(1).Children(func() {
 		if len(items) == 0 {
-			if a.page == pageFavorites && strings.TrimSpace(a.query) == "" {
+			if favoritesPage(a.page) && strings.TrimSpace(a.query) == "" {
 				a.emptyState(c, locales.FavoritesEmptyTitle(), locales.FavoritesEmptyHint())
 			} else {
 				a.emptyState(c, locales.ProjectsEmptyTitle(), locales.ProjectsEmptyHint())
@@ -42,12 +47,9 @@ func (a *app) projectsPage(c *ui.Context) {
 
 func (a *app) filteredProjects() []projectEntry {
 	q := strings.ToLower(strings.TrimSpace(a.query))
-	if q == "" && a.page != pageFavorites {
-		return a.projects
-	}
 	out := make([]projectEntry, 0, len(a.projects))
 	for _, p := range a.projects {
-		if a.page == pageFavorites && !p.Favorite {
+		if p.Kind != engineForPage(a.page) || favoritesPage(a.page) && !p.Favorite {
 			continue
 		}
 		if strings.Contains(strings.ToLower(p.Name), q) ||
@@ -150,7 +152,10 @@ func channelName(kind string) string {
 func (a *app) editorLabels() ([]string, []string) {
 	labels := make([]string, 0, len(a.editors))
 	exes := make([]string, 0, len(a.editors))
-	for _, e := range a.editors {
+	for _, e := range a.editorsForEngine(a.newEngine) {
+		if e.Simulated {
+			continue
+		}
 		labels = append(labels, e.Version+" · "+channelName(e.Kind))
 		exes = append(exes, e.Exe)
 	}
@@ -167,7 +172,9 @@ func indexOf(values []string, want string) int {
 }
 
 func (a *app) openNewProject() {
-	if len(a.editors) == 0 {
+	a.newEngine = engineForPage(a.page)
+	_, exes := a.editorLabels()
+	if len(exes) == 0 {
 		a.alert(locales.NoEditorInstalled())
 		return
 	}
@@ -175,7 +182,7 @@ func (a *app) openNewProject() {
 	a.newError = ""
 	a.newName = ""
 	a.newDir = a.defaultProjectDir()
-	a.newEditor = a.editors[0].Exe
+	a.newEditor = exes[0]
 }
 
 func (a *app) defaultProjectDir() string {
@@ -246,6 +253,10 @@ func (a *app) createProject() {
 	name := strings.TrimSpace(a.newName)
 	if name == "" || a.newDir == "" || a.newEditor == "" {
 		a.newError = locales.NewProjectIncomplete()
+		return
+	}
+	if editor, ok := a.editorInstall(a.newEditor); !ok || editor.Kind != a.newEngine || editor.Simulated {
+		a.newError = locales.NoEditorInstalled()
 		return
 	}
 	dir := filepath.Join(a.newDir, name)

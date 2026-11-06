@@ -79,6 +79,16 @@ func TestCompareVersions(t *testing.T) {
 	if compareVersions("2021.3.1f1", "2022.3.51f1") >= 0 {
 		t.Error("2021 sorts after 2022")
 	}
+	for _, pair := range [][2]string{
+		{"7000.0.0f1", "7000.0.0b99"},
+		{"7000.0.0b1", "7000.0.0a16"},
+		{"2022.3.62t17", "2022.3.62t2"},
+		{"6000.0.0p1", "6000.0.0f99"},
+	} {
+		if compareVersions(pair[0], pair[1]) <= 0 {
+			t.Errorf("%s should sort after %s", pair[0], pair[1])
+		}
+	}
 }
 
 // Projects a hub lists are imported, and its favorites are kept.
@@ -104,5 +114,19 @@ func TestScanProjectsFromHub(t *testing.T) {
 	p := projects[0]
 	if p.Name != "renamed" || p.Hub != kindUnity || !p.Favorite {
 		t.Errorf("project %+v", p)
+	}
+}
+
+func TestProjectVersionDeterminesEngineEvenWhenListedByOtherHub(t *testing.T) {
+	dir := t.TempDir()
+	project := filepath.Join(dir, "tuanjie-project")
+	writeProject(t, project, "2022.3.62t17")
+	h := hub{Kind: kindUnity, Registry: filepath.Join(dir, "projects-v1.json"), Favorites: filepath.Join(dir, "favoriteProjects.json")}
+	if err := h.addProject(projectEntry{Path: project, Name: "tuanjie-project", Version: "2022.3.62t17"}); err != nil {
+		t.Fatal(err)
+	}
+	projects := scanProjectsIn(prefs{}, nil, []hub{h}, nil)
+	if len(projects) != 1 || projects[0].Kind != kindTuanjie {
+		t.Fatalf("project engine: %+v", projects)
 	}
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"sort"
 	"time"
 
 	"github.com/egoist/mygo"
@@ -58,15 +59,19 @@ func (a *app) ensureDownloads(force bool) {
 func (a *app) downloadsPage(c *ui.Context) {
 	a.ensureDownloads(false)
 	t := c.Theme()
-	a.header(c, locales.PageDownloads(), locales.PageDownloadsHint(), func() {
-		ui.Button(c, locales.DownloadsArchive()).OnClick(func() {
-			_ = mygo.Shell.OpenExternal(urlUnityArchive)
-		})
+	engine := engineForPage(a.page)
+	entries := downloadsForEngine(a.downloads, engine)
+	a.header(c, channelName(engine)+" · "+locales.PageDownloads(), locales.PageDownloadsHint(), func() {
+		if engine == kindUnity {
+			ui.Button(c, locales.DownloadsArchive()).OnClick(func() {
+				_ = mygo.Shell.OpenExternal(urlUnityArchive)
+			})
+		}
 		ui.Button(c, locales.ActionRefresh()).OnClick(func() { a.ensureDownloads(true) }).Disabled(a.downloadsBusy)
 	})
 	ui.Divider(c)
 
-	if len(a.downloads) == 0 {
+	if len(entries) == 0 {
 		if a.downloadsBusy {
 			ui.Row(c).Padding(26).Gap(10).AlignItems(ui.Center).Children(func() {
 				ui.Spinner(c)
@@ -74,7 +79,11 @@ func (a *app) downloadsPage(c *ui.Context) {
 			})
 			return
 		}
-		a.emptyState(c, locales.DownloadsEmpty(), a.downloadsErr)
+		hint := a.downloadsErr
+		if engine == kindTuanjie {
+			hint = locales.TuanjieDownloadsEmptyHint()
+		}
+		a.emptyState(c, locales.DownloadsEmpty(), hint)
 		return
 	}
 
@@ -82,27 +91,29 @@ func (a *app) downloadsPage(c *ui.Context) {
 	for _, e := range a.editors {
 		installed[e.Kind+" "+e.Version] = true
 	}
-	unity, tuanjie := splitDownloads(a.downloads)
 	ui.Scroll(c).Grow(1).Children(func() {
 		ui.Column(c).Padding(24, 26).Gap(20).MaxWidth(900).Children(func() {
-			if a.downloadsErr != "" {
+			if engine == kindUnity && a.downloadsErr != "" {
 				ui.Text(c, locales.DownloadsError(a.downloadsErr)).FontSize(11).TextColor(t.Danger)
 			}
-			a.downloadGroup(c, locales.DownloadsUnity(), kindUnity, unity, installed)
-			a.downloadGroup(c, locales.DownloadsTuanjie(), kindTuanjie, tuanjie, installed)
+			title := locales.DownloadsUnity()
+			if engine == kindTuanjie {
+				title = locales.DownloadsTuanjie()
+			}
+			a.downloadGroup(c, title, engine, entries, installed)
 		})
 	})
 }
 
-func splitDownloads(entries []downloadEntry) (unity, tuanjie []downloadEntry) {
+func downloadsForEngine(entries []downloadEntry, engine string) []downloadEntry {
+	var result []downloadEntry
 	for _, e := range entries {
-		if e.Engine == kindTuanjie {
-			tuanjie = append(tuanjie, e)
-		} else {
-			unity = append(unity, e)
+		if e.Engine == engine {
+			result = append(result, e)
 		}
 	}
-	return unity, tuanjie
+	sort.SliceStable(result, func(i, j int) bool { return compareVersions(result[i].Version, result[j].Version) > 0 })
+	return result
 }
 
 func (a *app) downloadGroup(c *ui.Context, title, engine string, entries []downloadEntry, installed map[string]bool) {
