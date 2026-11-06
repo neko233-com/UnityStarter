@@ -95,15 +95,27 @@ func runUpdateHelper(args []string) int {
 	_ = os.Remove(pendingUpdatePath())
 	if err != nil {
 		recordUpdateFailure(pending.Version, err)
-		_ = startDetached(managedUpdateExe(), nil, filepath.Dir(managedUpdateExe()))
+		_ = startUpdatedApp()
 		return 1
 	}
 	_ = os.Remove(updateFailurePath())
-	if err := startDetached(managedUpdateExe(), nil, filepath.Dir(managedUpdateExe())); err != nil {
+	if err := startUpdatedApp(); err != nil {
 		recordUpdateFailure(pending.Version, err)
 		return 1
 	}
 	return 0
+}
+
+// The updater itself is hidden, but the restarted application must have a
+// normal visible window. Do not use startDetached: it sets HideWindow.
+func startUpdatedApp() error {
+	exe := managedUpdateExe()
+	cmd := exec.Command(exe)
+	cmd.Dir = filepath.Dir(exe)
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	return cmd.Process.Release()
 }
 
 func waitForUpdateParent(pid int) error {
