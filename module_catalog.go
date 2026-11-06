@@ -118,7 +118,7 @@ func annotateSDKDependencies(modules []editorModule) {
 		modules[i].DependencyFingerprint = ""
 		var children []dependency
 		for _, child := range modules {
-			if child.Parent == modules[i].ID && child.Required {
+			if (child.Parent == modules[i].ID && child.Required) || child.Sync == modules[i].ID {
 				children = append(children, dependency{child.ID, child.URL, child.Integrity, child.Checksum, child.Destination, child.RenameFrom, child.RenameTo, child.EULA, child.EULA2, child.Command, child.DownloadSize})
 			}
 		}
@@ -258,6 +258,7 @@ func moduleCatalogWithSource(ctx context.Context, e editorInstall) ([]editorModu
 			logger.Printf("Unity module catalog cache: %v", cacheErr)
 		}
 	}
+	annotateSDKDependencies(modules)
 	applyOwnedModuleState(e.Root, modules)
 	return modules, fromCache, nil
 }

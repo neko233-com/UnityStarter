@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -18,6 +20,68 @@ func androidFixture() (editorInstall, editorModule) {
 		modules = append(modules, editorModule{ID: id, Parent: root.ID, Required: true, URL: "https://dl.google.com/android/repository/" + id + ".zip", Destination: "{UNITY_PATH}/Editor/Data/PlaybackEngines/AndroidPlayer/SDK", DownloadSize: 42})
 	}
 	return editorInstall{Kind: kindUnity, Modules: modules}, root
+}
+
+func TestLegacyAndroidDependenciesAreTrackedBeforeRecordingInstall(t *testing.T) {
+	root := t.TempDir()
+	modules := []editorModule{
+		{ID: "android-sdk-ndk-tools", URL: "https://dl.google.com/android/repository/sdk-tools-windows-4333796.zip", Destination: "{UNITY_PATH}/Editor/Data/PlaybackEngines/AndroidPlayer/SDK"},
+		{ID: "android-ndk", Sync: "android-sdk-ndk-tools", URL: "https://dl.google.com/android/repository/android-ndk-r23b-windows.zip"},
+	}
+	data, err := json.Marshal(modules)
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(root, "modules.json")
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	annotateSDKDependencies(modules)
+	if modules[0].DependencyFingerprint == "" {
+		t.Fatal("legacy synchronized dependency was not tracked")
+	}
+	stale := modules[0]
+	modules[1].URL += "-changed"
+	data, _ = json.Marshal(modules)
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := markModuleInstalled(root, stale); err != errModuleMetadataChanged {
+		t.Fatalf("changed dependency accepted: %v", err)
+	}
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []editorModule
+	if err := json.Unmarshal(contents, &got); err != nil || got[0].Selected {
+		t.Fatal("changed installation was marked selected")
+	}
+	annotateSDKDependencies(modules)
+	if err := markModuleInstalled(root, modules[0]); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestLiveTuanjieLegacyDependencyMetadata(t *testing.T) {
+	root := os.Getenv("UNITYSTARTER_TUANJIE_EDITOR_ROOT")
+	if root == "" {
+		t.Skip("set UNITYSTARTER_TUANJIE_EDITOR_ROOT to check installed metadata")
+	}
+	modules := readEditorModules(root)
+	count, fingerprint := 0, ""
+	for _, m := range modules {
+		if m.ID == "android-sdk-ndk-tools" {
+			fingerprint = m.DependencyFingerprint
+		}
+		if m.Sync == "android-sdk-ndk-tools" {
+			count++
+		}
+	}
+	if count != 7 || fingerprint == "" {
+		t.Fatalf("legacy dependency metadata: count=%d fingerprint=%q", count, fingerprint)
+	}
+	t.Logf("official Tuanjie Android SDK group: %d synchronized dependencies", count)
 }
 
 func TestAndroidPlanUsesOfficialDependencyChecksumsAndLicense(t *testing.T) {

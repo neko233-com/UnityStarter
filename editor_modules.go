@@ -28,6 +28,7 @@ type editorModule struct {
 	Destination           string `json:"destination"`
 	Command               string `json:"cmd"`
 	Parent                string `json:"parent"`
+	Sync                  string `json:"sync,omitempty"`
 	Required              bool   `json:"required,omitempty"`
 	RenameFrom            string `json:"renameFrom,omitempty"`
 	RenameTo              string `json:"renameTo,omitempty"`
@@ -135,14 +136,19 @@ func markModuleInstalled(root string, module editorModule) error {
 	if err := json.Unmarshal(data, &rows); err != nil {
 		return err
 	}
+	var currentModules []editorModule
+	if err := json.Unmarshal(data, &currentModules); err != nil {
+		return err
+	}
+	annotateSDKDependencies(currentModules)
 	found := false
-	for _, row := range rows {
+	for i, row := range rows {
 		var key string
 		_ = json.Unmarshal(row["id"], &key)
 		if key == module.ID {
 			var current editorModule
 			encoded, err := json.Marshal(row)
-			if err != nil || json.Unmarshal(encoded, &current) != nil || current.URL != module.URL || current.Checksum != module.Checksum || current.Integrity != module.Integrity || current.Destination != module.Destination || current.Parent != module.Parent || current.EULA != module.EULA || current.EULA2 != module.EULA2 || current.Command != module.Command || current.RenameFrom != module.RenameFrom || current.RenameTo != module.RenameTo {
+			if err != nil || json.Unmarshal(encoded, &current) != nil || current.URL != module.URL || current.Checksum != module.Checksum || current.Integrity != module.Integrity || current.Destination != module.Destination || current.Parent != module.Parent || current.Sync != module.Sync || current.EULA != module.EULA || current.EULA2 != module.EULA2 || current.Command != module.Command || current.RenameFrom != module.RenameFrom || current.RenameTo != module.RenameTo || currentModules[i].DependencyFingerprint != module.DependencyFingerprint {
 				return errModuleMetadataChanged
 			}
 			row["selected"] = json.RawMessage("true")
