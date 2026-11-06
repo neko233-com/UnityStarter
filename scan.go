@@ -272,11 +272,9 @@ func scanEditorsIn(roots []string) []editorInstall {
 				}
 				modules, cached := scannedEditorModules(dir, kind, version)
 				docs := ""
-				if kind == kindTuanjie {
-					candidate := filepath.Join(dir, "Editor", "Data", "Documentation")
-					if documentationFilesPresent(candidate) {
-						docs = candidate
-					}
+				candidate := filepath.Join(dir, "Editor", "Data", "Documentation")
+				if documentationFilesPresentIn(candidate, offlineDocumentationLanguage(kind)) {
+					docs = candidate
 				}
 				out = append(out, editorInstall{Version: version, Kind: kind, Exe: exe, Root: dir, Simulated: isSimulatedEditor(dir), Modules: modules, ModulesCached: cached, OfflineDocs: docs})
 			}

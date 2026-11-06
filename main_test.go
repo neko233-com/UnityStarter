@@ -348,6 +348,11 @@ func TestOfflineDocumentationFollowsActiveEngine(t *testing.T) {
 	if tt.HasText(locales.OfflineDocsTitle()) {
 		t.Fatal("Tuanjie offline documentation appeared in Unity")
 	}
+	a.editors = append(a.editors, editorInstall{Kind: kindUnity, Version: "6000.0.1f1", Exe: "unity-editor", OfflineDocs: `D:\Docs\Unity`})
+	tt.Frame()
+	if !tt.HasText(locales.OfflineDocsTitle()) || !tt.HasText("6000.0.1f1") || tt.HasText("2022.3.62t15") {
+		t.Fatalf("Unity offline documentation not isolated: %q", tt.Texts())
+	}
 }
 
 func TestAndroidRecoveryStillRequiresLicenseConfirmation(t *testing.T) {

@@ -94,6 +94,46 @@ func TestTuanjieDocumentationAtomicInstallAndExistingFiles(t *testing.T) {
 	}
 }
 
+func TestOfflineDocumentationDetectionForBothEngines(t *testing.T) {
+	for _, tc := range []struct{ kind, exe, language string }{
+		{kindUnity, "Unity.exe", "en"},
+		{kindTuanjie, "Tuanjie.exe", "zh_CN"},
+	} {
+		t.Run(tc.kind, func(t *testing.T) {
+			root := documentationFixtureRoot(t)
+			if err := os.WriteFile(filepath.Join(root, "Editor", tc.exe), []byte("fixture"), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			docs := filepath.Join(root, "Editor", "Data", "Documentation")
+			for _, section := range []string{"Manual", "ScriptReference"} {
+				file := filepath.Join(docs, tc.language, section, "index.html")
+				if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(file, []byte(section), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			editors := scanEditorsIn([]string{root})
+			if len(editors) != 1 || editors[0].Kind != tc.kind || editors[0].OfflineDocs != docs {
+				t.Fatalf("documentation not discovered: %+v", editors)
+			}
+			for _, section := range []string{"Manual", "ScriptReference"} {
+				want := filepath.Join(docs, tc.language, section, "index.html")
+				if got := offlineDocumentationEntry(editors[0], section); got != want {
+					t.Fatalf("%s entry = %q, want %q", section, got, want)
+				}
+			}
+			if err := os.Remove(filepath.Join(docs, tc.language, "Manual", "index.html")); err != nil {
+				t.Fatal(err)
+			}
+			if editors = scanEditorsIn([]string{root}); len(editors) != 1 || editors[0].OfflineDocs != "" {
+				t.Fatalf("incomplete documentation advertised: %+v", editors)
+			}
+		})
+	}
+}
+
 func TestTuanjieDocumentationRejectsUnsafeOrIncompleteArchives(t *testing.T) {
 	for _, files := range []map[string]string{
 		{"../outside": "bad"},

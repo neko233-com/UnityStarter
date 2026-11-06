@@ -179,7 +179,7 @@ func (a *app) offlineDocsGroup(c *ui.Context) {
 				for _, item := range []struct{ label, rel string }{{locales.OfflineDocsManual(), "Manual"}, {locales.OfflineDocsAPI(), "ScriptReference"}} {
 					item := item
 					ui.Button(c, item.label).OnClick(func() {
-						file := filepath.Join(e.OfflineDocs, "zh_CN", item.rel, "index.html")
+						file := offlineDocumentationEntry(e, item.rel)
 						if err := mygo.Shell.OpenPath(file); err != nil {
 							a.alert(locales.OpenFailed(err.Error()))
 						}
@@ -188,6 +188,17 @@ func (a *app) offlineDocsGroup(c *ui.Context) {
 			})
 		}
 	})
+}
+
+func offlineDocumentationLanguage(kind string) string {
+	if kind == kindTuanjie {
+		return "zh_CN"
+	}
+	return "en"
+}
+
+func offlineDocumentationEntry(e editorInstall, section string) string {
+	return filepath.Join(e.OfflineDocs, offlineDocumentationLanguage(e.Kind), section, "index.html")
 }
 
 func (a *app) learnPage(c *ui.Context) {

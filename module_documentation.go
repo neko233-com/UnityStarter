@@ -34,8 +34,12 @@ func tuanjieDocumentationArchive(m editorModule) (integrity, version string, ok 
 }
 
 func documentationFilesPresent(dir string) bool {
-	for _, rel := range []string{"zh_CN/Manual/index.html", "zh_CN/ScriptReference/index.html"} {
-		info, err := os.Lstat(filepath.Join(dir, filepath.FromSlash(rel)))
+	return documentationFilesPresentIn(dir, "zh_CN")
+}
+
+func documentationFilesPresentIn(dir, language string) bool {
+	for _, section := range []string{"Manual", "ScriptReference"} {
+		info, err := os.Lstat(filepath.Join(dir, language, section, "index.html"))
 		if err != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 || info.Size() == 0 {
 			return false
 		}
