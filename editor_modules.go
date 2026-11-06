@@ -231,7 +231,7 @@ func markModuleInstalled(root string, module editorModule) error {
 }
 
 func (a *app) installEditorModule(e editorInstall, m editorModule) {
-	integrity, player, extension, supported := moduleInstallSpec(e, m)
+	_, _, _, supported := moduleInstallSpec(e, m)
 	if a.win == nil || a.moduleBusy || e.Simulated || m.Selected || !supported {
 		return
 	}
@@ -240,12 +240,7 @@ func (a *app) installEditorModule(e editorInstall, m editorModule) {
 	win := a.win
 	go func() {
 		defer cancel()
-		path := filepath.Join(downloadsDir(), "module-"+e.Version+"-"+m.ID+extension)
 		last := time.Now()
-		expectedSize := int64(0)
-		if player == documentationModule {
-			expectedSize = m.DownloadSize
-		}
 		progress := func(done, total int64) {
 			if time.Since(last) < 200*time.Millisecond {
 				return
@@ -257,26 +252,7 @@ func (a *app) installEditorModule(e editorInstall, m editorModule) {
 				}
 			})
 		}
-		var language []byte
-		var err error
-		if player == unityDocumentationModule {
-			integrity, expectedSize, err = unityDocumentationRemote(ctx, m)
-			if err == nil {
-				err = downloadFileVerifiedSize(ctx, m.URL, path, integrity, expectedSize, progress)
-			}
-		} else if player == languageModule {
-			language, err = downloadEditorLanguage(ctx, m, progress)
-		} else {
-			err = downloadFileVerifiedSize(ctx, m.URL, path, integrity, expectedSize, progress)
-		}
-		if err != nil && !errors.Is(err, context.Canceled) {
-			err = fmt.Errorf("module download failed")
-		}
-		var releaseEditor func()
-		if err == nil {
-			releaseEditor, err = acquireEditorLock(e.Exe)
-		}
-		if err == nil {
+		beforeInstall := func() error {
 			ready := make(chan bool, 1)
 			win.Update(func() {
 				if ctx.Err() != nil {
@@ -287,76 +263,120 @@ func (a *app) installEditorModule(e editorInstall, m editorModule) {
 				}
 			})
 			if !<-ready {
-				err = context.Canceled
-			} else {
-				if player == languageModule {
-					err = installEditorLanguage(e.Root, m, language)
-				} else if player == documentationModule {
-					err = installTuanjieDocumentation(e.Root, path, integrity)
-				} else if player == unityDocumentationModule {
-					err = installDocumentation(e.Root, path, integrity, "en")
-				} else if player != "" {
-					err = installOpenJDK(e.Root, path, player, integrity)
-				} else {
-					err = runEditorInstaller(path, e.Kind, e.Root)
-				}
+				return context.Canceled
 			}
+			return nil
 		}
-		if err == nil && player == "" {
-			if !moduleFilesPresent(e.Root, m) {
-				err = fmt.Errorf("module installation completed but expected files were not found")
-			}
-		}
-		physicalDone := err == nil
-		localOnly := false
-		if err == nil {
-			err = markModuleInstalled(e.Root, m)
-			if err != nil && !errors.Is(err, errModuleMetadataChanged) {
-				if localErr := markOwnedModuleInstalled(e.Root, m); localErr == nil {
-					localOnly = true
-					err = nil
-				}
-			}
-		}
-		if releaseEditor != nil {
-			releaseEditor()
-		}
+		result := executeEditorModule(ctx, e, m, progress, beforeInstall)
 		win.Update(func() {
-			a.moduleBusy = false
-			a.moduleInstalling = false
-			a.moduleCancel = nil
-			if errors.Is(err, context.Canceled) {
-				a.moduleStatus = ""
-				a.finishModuleQueueItem(m.ID, false)
-				return
-			}
-			if err != nil {
-				if physicalDone {
-					a.moduleStatus = locales.InstallModuleRecordFailed() + ": " + err.Error()
-				} else {
-					a.moduleStatus = locales.OpenFailed(err.Error())
-				}
-				a.finishModuleQueueItem(m.ID, false)
-				return
-			}
-			a.moduleStatus = locales.InstallModuleDone()
-			if localOnly {
-				a.moduleStatus = locales.InstallModuleLocalOnly()
-			}
-			modules := readEditorModules(e.Root)
-			if len(modules) == 0 {
-				modules = append([]editorModule(nil), e.Modules...)
-				for i := range modules {
-					if modules[i].ID == m.ID {
-						modules[i].Selected = true
-					}
-				}
-			}
-			a.manageEditor.Modules = modules
-			a.refresh()
-			a.finishModuleQueueItem(m.ID, true)
+			a.finishEditorModuleInstall(e, m, result)
 		})
 	}()
+}
+
+type moduleInstallResult struct {
+	err          error
+	physicalDone bool
+	localOnly    bool
+}
+
+// executeEditorModule performs the same verified download and install for an
+// individual action or a queue item. The editor lock is released before the
+// caller may start the next item.
+func executeEditorModule(ctx context.Context, e editorInstall, m editorModule, progress func(int64, int64), beforeInstall func() error) moduleInstallResult {
+	integrity, player, extension, supported := moduleInstallSpec(e, m)
+	if e.Simulated || m.Selected || !supported {
+		return moduleInstallResult{err: fmt.Errorf("unsupported module")}
+	}
+	path := filepath.Join(downloadsDir(), "module-"+e.Version+"-"+m.ID+extension)
+	expectedSize := int64(0)
+	if player == documentationModule {
+		expectedSize = m.DownloadSize
+	}
+	var language []byte
+	var err error
+	if player == unityDocumentationModule {
+		integrity, expectedSize, err = unityDocumentationRemote(ctx, m)
+		if err == nil {
+			err = downloadFileVerifiedSize(ctx, m.URL, path, integrity, expectedSize, progress)
+		}
+	} else if player == languageModule {
+		language, err = downloadEditorLanguage(ctx, m, progress)
+	} else {
+		err = downloadFileVerifiedSize(ctx, m.URL, path, integrity, expectedSize, progress)
+	}
+	if err != nil {
+		if !errors.Is(err, context.Canceled) {
+			err = fmt.Errorf("module download failed")
+		}
+		return moduleInstallResult{err: err}
+	}
+	releaseEditor, err := acquireEditorLock(e.Exe)
+	if err != nil {
+		return moduleInstallResult{err: err}
+	}
+	defer releaseEditor()
+	if err = beforeInstall(); err != nil {
+		return moduleInstallResult{err: err}
+	}
+	if player == languageModule {
+		err = installEditorLanguage(e.Root, m, language)
+	} else if player == documentationModule {
+		err = installTuanjieDocumentation(e.Root, path, integrity)
+	} else if player == unityDocumentationModule {
+		err = installDocumentation(e.Root, path, integrity, "en")
+	} else if player != "" {
+		err = installOpenJDK(e.Root, path, player, integrity)
+	} else {
+		err = runEditorInstaller(path, e.Kind, e.Root)
+	}
+	if err == nil && player == "" && !moduleFilesPresent(e.Root, m) {
+		err = fmt.Errorf("module installation completed but expected files were not found")
+	}
+	result := moduleInstallResult{err: err, physicalDone: err == nil}
+	if result.err == nil {
+		result.err = markModuleInstalled(e.Root, m)
+		if result.err != nil && !errors.Is(result.err, errModuleMetadataChanged) {
+			if localErr := markOwnedModuleInstalled(e.Root, m); localErr == nil {
+				result.localOnly, result.err = true, nil
+			}
+		}
+	}
+	return result
+}
+
+func (a *app) finishEditorModuleInstall(e editorInstall, m editorModule, result moduleInstallResult) {
+	a.moduleBusy, a.moduleInstalling, a.moduleCancel = false, false, nil
+	if errors.Is(result.err, context.Canceled) {
+		a.moduleStatus = ""
+		a.finishModuleQueueItem(m.ID, false)
+		return
+	}
+	if result.err != nil {
+		if result.physicalDone {
+			a.moduleStatus = locales.InstallModuleRecordFailed() + ": " + result.err.Error()
+		} else {
+			a.moduleStatus = locales.OpenFailed(result.err.Error())
+		}
+		a.finishModuleQueueItem(m.ID, false)
+		return
+	}
+	a.moduleStatus = locales.InstallModuleDone()
+	if result.localOnly {
+		a.moduleStatus = locales.InstallModuleLocalOnly()
+	}
+	modules := readEditorModules(e.Root)
+	if len(modules) == 0 {
+		modules = append([]editorModule(nil), e.Modules...)
+		for i := range modules {
+			if modules[i].ID == m.ID {
+				modules[i].Selected = true
+			}
+		}
+	}
+	a.manageEditor.Modules = modules
+	a.refresh()
+	a.finishModuleQueueItem(m.ID, true)
 }
 
 func editorUninstaller(e editorInstall) string {

@@ -88,6 +88,8 @@ go tool mygo generate # 修改 locales/*.json 后重新生成语言包
 
 `task install-local` 会先关闭本机 UnityStarter；若窗口未及时关闭，会强制结束受管理的 UnityStarter 进程，然后安装并启动本机构建。`task install` 使用环境变量 `MSI_PATH`、`MSI_SHA256` 和 `EXE_SHA256` 校验、安装并启动 MSI。CI 见 `.github/workflows/ci.yml`：测试并构建产物；推送与版本一致的 `v*` 标签后通过 `task release` 发布 Release。
 
+设置 `UNITYSTARTER_TEST_OFFICIAL_BATCH=1` 后运行 `go test . -run TestOfficialLanguage`，可在临时编辑器目录实测官方语言包的批量下载、安装、取消和目标文件冲突；测试不会修改现有编辑器。队列调度使用测试回调，不能代替真实桌面交互或平台构建验收。
+
 ## 已知限制
 
 - 团结引擎 Hub 的项目清单不可写，新增的团结项目不会出现在团结 Hub 里（收藏与目录会同步）。
