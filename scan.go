@@ -296,10 +296,37 @@ func scanProjects(p prefs, editors []editorInstall, hubs []hub) []projectEntry {
 }
 
 func scanProjectsMode(p prefs, editors []editorInstall, hubs []hub, withVCS bool) []projectEntry {
-	for _, recent := range recentEditorProjects() {
-		p.PinnedProjects = append(p.PinnedProjects, recent.Path)
+	return scanProjectsWithRecent(p, editors, hubs, append(defaultProjectRoots(), p.ProjectRoots...), recentEditorProjects(), os.TempDir(), withVCS)
+}
+
+// Editor recent history also contains temporary projects made by automation.
+// Ignore those automatic entries, while preserving explicit user additions,
+// configured project roots, and projects listed by a Hub.
+func scanProjectsWithRecent(p prefs, editors []editorInstall, hubs []hub, roots []string, recent []recentEditorProject, tempRoot string, withVCS bool) []projectEntry {
+	p.PinnedProjects = append([]string(nil), p.PinnedProjects...)
+	for _, entry := range recent {
+		if p.LocalFavorites[localProjectKey(entry.Path)] || !pathWithinDirectory(entry.Path, tempRoot) {
+			p.PinnedProjects = append(p.PinnedProjects, entry.Path)
+		}
 	}
-	return scanProjectsInMode(p, editors, hubs, append(defaultProjectRoots(), p.ProjectRoots...), withVCS)
+	return scanProjectsInMode(p, editors, hubs, roots, withVCS)
+}
+
+func pathWithinDirectory(path, root string) bool {
+	if !filepath.IsAbs(path) || !filepath.IsAbs(root) {
+		return false
+	}
+	path, root = filepath.Clean(path), filepath.Clean(root)
+	// Windows' temporary directory may use an 8.3 name while EditorPrefs
+	// records the long name; resolve existing paths before comparing them.
+	if resolved, err := filepath.EvalSymlinks(path); err == nil {
+		path = resolved
+	}
+	if resolved, err := filepath.EvalSymlinks(root); err == nil {
+		root = resolved
+	}
+	rel, err := filepath.Rel(root, path)
+	return err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(os.PathSeparator)) && !filepath.IsAbs(rel)
 }
 
 // scanProjectsIn reads the projects of the hubs, of the roots and of the

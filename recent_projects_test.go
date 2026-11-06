@@ -46,3 +46,79 @@ func TestLiveRecentEditorProject(t *testing.T) {
 	}
 	t.Fatalf("recent project %s not found", want)
 }
+
+func TestRecentTemporaryProjectsAndExplicitAdditions(t *testing.T) {
+	base := t.TempDir()
+	tempRoot := filepath.Join(base, "Temp")
+	temporary := filepath.Join(tempRoot, "UniCli", "Project")
+	regular := filepath.Join(base, "TempProject", "Game")
+	writeProject(t, temporary, "2022.3.62t17")
+	writeProject(t, regular, "2022.3.62t17")
+	recent := []recentEditorProject{{Path: temporary, Kind: kindTuanjie}, {Path: regular, Kind: kindTuanjie}}
+	projects := scanProjectsWithRecent(prefs{}, nil, nil, nil, recent, tempRoot, false)
+	if len(projects) != 1 || projects[0].Path != regular {
+		t.Fatalf("automatic temporary project was not filtered: %+v", projects)
+	}
+	projects = scanProjectsWithRecent(prefs{PinnedProjects: []string{temporary}}, nil, nil, nil, recent, tempRoot, false)
+	if len(projects) != 2 {
+		t.Fatalf("explicitly added temporary project was lost: %+v", projects)
+	}
+	projects = scanProjectsWithRecent(prefs{LocalFavorites: map[string]bool{localProjectKey(temporary): true}}, nil, nil, nil, recent, tempRoot, false)
+	if len(projects) != 2 {
+		t.Fatalf("explicitly favorited temporary project was lost: %+v", projects)
+	}
+	projects = scanProjectsWithRecent(prefs{}, nil, nil, []string{temporary}, recent, tempRoot, false)
+	if len(projects) != 2 {
+		t.Fatalf("explicit project root was lost: %+v", projects)
+	}
+	h := hub{Kind: kindUnity, Registry: filepath.Join(base, "projects-v1.json"), Favorites: filepath.Join(base, "favoriteProjects.json")}
+	if err := h.addProject(projectEntry{Path: temporary, Name: "intentional", Version: "2022.3.62t17"}); err != nil {
+		t.Fatal(err)
+	}
+	projects = scanProjectsWithRecent(prefs{}, nil, []hub{h}, nil, recent, tempRoot, false)
+	if len(projects) != 2 {
+		t.Fatalf("Hub project was lost: %+v", projects)
+	}
+}
+
+func TestLiveRecentTemporaryFilter(t *testing.T) {
+	want := os.Getenv("UNITYSTARTER_EXPECT_TEMP_PROJECT")
+	if want == "" {
+		t.Skip("set UNITYSTARTER_EXPECT_TEMP_PROJECT to check a real editor recent entry")
+	}
+	recent := recentEditorProjects()
+	found := false
+	for _, entry := range recent {
+		if strings.EqualFold(filepath.Clean(entry.Path), filepath.Clean(want)) {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatal("target is not in editor recent history")
+	}
+	if !pathWithinDirectory(want, os.TempDir()) {
+		t.Fatalf("temporary directory not recognized: %s", os.TempDir())
+	}
+	projects := scanProjectsWithRecent(prefs{}, nil, nil, nil, recent, os.TempDir(), false)
+	for _, p := range projects {
+		if strings.EqualFold(filepath.Clean(p.Path), filepath.Clean(want)) {
+			t.Fatal("temporary recent project remains visible")
+		}
+	}
+	_, actual, _ := scanWithVCS(loadPrefs(), false)
+	for _, p := range actual {
+		if strings.EqualFold(filepath.Clean(p.Path), filepath.Clean(want)) {
+			t.Fatal("temporary project remains in the real project list")
+		}
+	}
+	t.Logf("real project scan contains %d projects and excludes the temporary entry", len(actual))
+	projects = scanProjectsWithRecent(prefs{PinnedProjects: []string{want}}, nil, nil, nil, recent, os.TempDir(), false)
+	for _, p := range projects {
+		if strings.EqualFold(filepath.Clean(p.Path), filepath.Clean(want)) {
+			t.Logf("confirmed editor recent source, filtered automatically and retained when explicitly added")
+			return
+		}
+	}
+	t.Fatal("explicitly added temporary project missing")
+}
