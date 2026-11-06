@@ -25,7 +25,7 @@ jobs:
           if ($files) { Write-Error "gofmt needed: $files"; exit 1 }
       - run: task test
       - name: Check concurrent downloads for races
-        run: go test -race -run 'TestParallelDownload|TestSHA256Downloads|TestOpenJDK' ./...
+        run: go test -race -run 'TestParallelDownload|TestSHA256Downloads|TestOpenJDK|TestReleaseCatalog|TestTuanjieCatalog' ./...
 
   build:
     needs: test

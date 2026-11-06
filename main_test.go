@@ -82,6 +82,30 @@ func fixture() *app {
 	return a
 }
 
+func TestDownloadErrorsAreSeparatedByEngine(t *testing.T) {
+	a := fixture()
+	a.downloadsErrs = map[string]string{kindUnity: "unity unavailable", kindTuanjie: "tuanjie unavailable"}
+	a.page = pageDownloads
+	tt := ui.NewTester(a.view, 1180, 760)
+	if !tt.HasText(locales.DownloadsError("unity unavailable")) || tt.HasText(locales.DownloadsError("tuanjie unavailable")) {
+		t.Fatalf("Unity errors: %q", tt.Texts())
+	}
+	a.page = pageTuanjieDownloads
+	tt.Frame()
+	if !tt.HasText(locales.DownloadsError("tuanjie unavailable")) || tt.HasText(locales.DownloadsError("unity unavailable")) {
+		t.Fatalf("Tuanjie errors: %q", tt.Texts())
+	}
+}
+
+func TestDownloadCatalogUpdatesEachEngineIndependently(t *testing.T) {
+	a := fixture()
+	a.downloadsPending = map[string]bool{kindUnity: true, kindTuanjie: true}
+	a.applyReleaseCatalog(releaseCatalogResult{engine: kindTuanjie, entries: []downloadEntry{{Engine: kindTuanjie, Version: "2022.3.62t17"}}})
+	if len(downloadsForEngine(a.downloads, kindTuanjie)) != 1 || len(downloadsForEngine(a.downloads, kindUnity)) != 2 || a.downloadsPending[kindTuanjie] || !a.downloadsPending[kindUnity] {
+		t.Fatalf("first catalog lost independent state: %+v pending=%v", a.downloads, a.downloadsPending)
+	}
+}
+
 // The view runs without a window in tests, which click as a user would.
 func TestView(t *testing.T) {
 	a := fixture()

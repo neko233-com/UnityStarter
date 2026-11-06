@@ -435,13 +435,7 @@ func writeJSON(out io.Writer, v any) int {
 func cliReleases(opts cliOptions, scanFn func(prefs) scanResult, out io.Writer) int {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	var entries []downloadEntry
-	if unities, err := fetchUnityReleases(ctx); err == nil {
-		entries = append(entries, unities...)
-	} else {
-		logger.Printf("releases: %v", err)
-	}
-	entries = append(entries, tuanjieReleases()...)
+	entries, _ := refreshReleaseCatalogs(ctx)
 	if len(entries) == 0 {
 		fmt.Fprintln(out, locales.DownloadsEmpty())
 		return 1
@@ -523,11 +517,7 @@ func cliInstall(opts cliOptions, args []string, out io.Writer) int {
 func findRelease(version string) (downloadEntry, bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	var entries []downloadEntry
-	if unities, err := fetchUnityReleases(ctx); err == nil {
-		entries = append(entries, unities...)
-	}
-	entries = append(entries, tuanjieReleases()...)
+	entries, _ := refreshReleaseCatalogs(ctx)
 	for _, e := range entries {
 		if e.Version == version {
 			return e, true

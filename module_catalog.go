@@ -95,6 +95,11 @@ func fetchUnityModules(ctx context.Context, version string) ([]editorModule, err
 }
 
 func cachedTuanjieModules(version string, dirs []string) []editorModule {
+	if data, err := os.ReadFile(tuanjieReleasesCachePath()); err == nil {
+		if modules := tuanjieModulesFromCatalog(data, version); len(modules) > 0 {
+			return modules
+		}
+	}
 	for _, dir := range dirs {
 		if !strings.Contains(strings.ToLower(filepath.Base(dir)), "tuanjie") {
 			continue
@@ -103,23 +108,21 @@ func cachedTuanjieModules(version string, dirs []string) []editorModule {
 		if err != nil {
 			continue
 		}
-		var file struct {
-			Official []struct {
-				Version string         `json:"version"`
-				Modules []editorModule `json:"modules"`
-			} `json:"official"`
-			Beta []struct {
-				Version string         `json:"version"`
-				Modules []editorModule `json:"modules"`
-			} `json:"beta"`
+		if modules := tuanjieModulesFromCatalog(data, version); len(modules) > 0 {
+			return modules
 		}
-		if json.Unmarshal(data, &file) != nil {
-			continue
-		}
-		for _, release := range append(file.Official, file.Beta...) {
-			if release.Version == version {
-				return release.Modules
-			}
+	}
+	return nil
+}
+
+func tuanjieModulesFromCatalog(data []byte, version string) []editorModule {
+	var file tuanjieCatalog
+	if json.Unmarshal(data, &file) != nil {
+		return nil
+	}
+	for _, release := range append(file.Official, file.Beta...) {
+		if release.Version == version {
+			return release.Modules
 		}
 	}
 	return nil
@@ -181,7 +184,17 @@ func moduleCatalog(ctx context.Context, e editorInstall) ([]editorModule, error)
 	if e.Kind == kindTuanjie {
 		modules = cachedTuanjieModules(e.Version, hubConfigDirs())
 		if len(modules) == 0 {
-			return nil, fmt.Errorf("no cached modules for this editor")
+			data, fetchErr := fetchTuanjieCatalog(ctx)
+			if fetchErr != nil {
+				return nil, fetchErr
+			}
+			if cacheErr := writeFileAtomic(tuanjieReleasesCachePath(), data); cacheErr != nil {
+				logger.Printf("Tuanjie catalog cache: %v", cacheErr)
+			}
+			modules = tuanjieModulesFromCatalog(data, e.Version)
+			if len(modules) == 0 {
+				return nil, fmt.Errorf("no modules for this editor in the official catalog")
+			}
 		}
 	} else {
 		modules, err = fetchUnityModules(ctx, e.Version)

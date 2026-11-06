@@ -6,7 +6,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -113,9 +115,140 @@ func writeCachedUnityReleases(entries []downloadEntry) {
 	_ = writeFileAtomic(unityReleasesCachePath(), data)
 }
 
-// tuanjieReleases reads the releases Tuanjie Hub keeps on this computer.
+// tuanjieReleases reads our own official catalog cache, falling back to the
+// installed Hub's cache when this app has not fetched the catalog yet.
 func tuanjieReleases() []downloadEntry {
+	if data, err := os.ReadFile(tuanjieReleasesCachePath()); err == nil {
+		if entries := parseTuanjieReleases(data); len(entries) > 0 {
+			return entries
+		}
+	}
 	return tuanjieReleasesIn(hubConfigDirs())
+}
+
+var tuanjieReleasesURL = "https://public-cdn.tuanjie.cn/hub/prod/releases-win32.json"
+
+type tuanjieRelease struct {
+	Version      string         `json:"version"`
+	DownloadURL  string         `json:"downloadUrl"`
+	DownloadSize int64          `json:"downloadSize"`
+	LTS          bool           `json:"lts"`
+	Checksum     string         `json:"checksum"`
+	Modules      []editorModule `json:"modules"`
+}
+
+type tuanjieCatalog struct {
+	Official []tuanjieRelease `json:"official"`
+	Beta     []tuanjieRelease `json:"beta"`
+}
+
+func tuanjieReleasesCachePath() string {
+	return filepath.Join(userDataDir(), "releases-tuanjie.json")
+}
+
+func fetchTuanjieCatalog(ctx context.Context) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, tuanjieReleasesURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Accept", "application/json")
+	resp, err := (&http.Client{Timeout: 20 * time.Second}).Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("Tuanjie catalog unavailable: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Tuanjie catalog: %s", resp.Status)
+	}
+	data, err := io.ReadAll(io.LimitReader(resp.Body, 16<<20+1))
+	if err != nil {
+		return nil, err
+	}
+	if len(data) > 16<<20 || len(parseTuanjieReleases(data)) == 0 {
+		return nil, fmt.Errorf("invalid Tuanjie catalog")
+	}
+	return data, nil
+}
+
+func parseTuanjieReleases(data []byte) []downloadEntry {
+	var file tuanjieCatalog
+	if json.Unmarshal(data, &file) != nil {
+		return nil
+	}
+	var out []downloadEntry
+	for index, r := range append(file.Official, file.Beta...) {
+		u, err := url.Parse(r.DownloadURL)
+		if err != nil || u.Scheme != "https" || u.Host != "download.tuanjie.cn" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || !strings.HasSuffix(strings.ToLower(u.Path), ".exe") || !moduleIDPattern.MatchString(r.Version) {
+			continue
+		}
+		integrity := ""
+		if r.Checksum != "" {
+			digest, err := hex.DecodeString(r.Checksum)
+			if err != nil || len(digest) != 16 {
+				continue
+			}
+			integrity = "md5-" + base64.StdEncoding.EncodeToString(digest)
+		}
+		stream := ""
+		if index >= len(file.Official) {
+			stream = "BETA"
+		}
+		out = append(out, downloadEntry{Engine: kindTuanjie, Version: r.Version, LTS: r.LTS, URL: r.DownloadURL, Size: r.DownloadSize, Stream: stream, Integrity: integrity})
+	}
+	return out
+}
+
+// Both catalogs are independent. A timeout or an error in either service
+// leaves the other engine and any last known catalog usable.
+type releaseCatalogResult struct {
+	engine  string
+	entries []downloadEntry
+	err     error
+}
+
+func startReleaseCatalogFetch(ctx context.Context) <-chan releaseCatalogResult {
+	results := make(chan releaseCatalogResult, 2)
+	go func() {
+		entries, err := fetchUnityReleases(ctx)
+		if err != nil {
+			entries = readCachedUnityReleases()
+		} else {
+			writeCachedUnityReleases(entries)
+		}
+		results <- releaseCatalogResult{kindUnity, entries, err}
+	}()
+	go func() {
+		data, err := fetchTuanjieCatalog(ctx)
+		var entries []downloadEntry
+		if err != nil {
+			entries = tuanjieReleases()
+		} else {
+			entries = parseTuanjieReleases(data)
+			if cacheErr := writeFileAtomic(tuanjieReleasesCachePath(), data); cacheErr != nil {
+				logger.Printf("Tuanjie catalog cache: %v", cacheErr)
+			}
+		}
+		results <- releaseCatalogResult{kindTuanjie, entries, err}
+	}()
+	return results
+}
+
+func refreshReleaseCatalogs(ctx context.Context) ([]downloadEntry, map[string]string) {
+	results := startReleaseCatalogFetch(ctx)
+	var unity, tuanjie []downloadEntry
+	errors := map[string]string{}
+	for i := 0; i < 2; i++ {
+		r := <-results
+		if r.err != nil {
+			errors[r.engine] = r.err.Error()
+		}
+		if r.engine == kindUnity {
+			unity = r.entries
+		} else {
+			tuanjie = r.entries
+		}
+	}
+	return append(unity, tuanjie...), errors
 }
 
 func tuanjieReleasesIn(dirs []string) []downloadEntry {
@@ -127,48 +260,9 @@ func tuanjieReleasesIn(dirs []string) []downloadEntry {
 		if err != nil {
 			continue
 		}
-		type release struct {
-			Version      string `json:"version"`
-			DownloadURL  string `json:"downloadUrl"`
-			DownloadSize int64  `json:"downloadSize"`
-			LTS          bool   `json:"lts"`
-			Checksum     string `json:"checksum"`
+		if out := parseTuanjieReleases(data); len(out) > 0 {
+			return out
 		}
-		var file struct {
-			Official []release `json:"official"`
-			Beta     []release `json:"beta"`
-		}
-		if json.Unmarshal(data, &file) != nil {
-			continue
-		}
-		out := make([]downloadEntry, 0, len(file.Official)+len(file.Beta))
-		for index, r := range append(file.Official, file.Beta...) {
-			if r.DownloadURL == "" {
-				continue
-			}
-			integrity := ""
-			if r.Checksum != "" {
-				digest, err := hex.DecodeString(r.Checksum)
-				if err != nil || len(digest) != 16 {
-					continue
-				}
-				integrity = "md5-" + base64.StdEncoding.EncodeToString(digest)
-			}
-			stream := ""
-			if index >= len(file.Official) {
-				stream = "BETA"
-			}
-			out = append(out, downloadEntry{
-				Engine:    kindTuanjie,
-				Version:   r.Version,
-				LTS:       r.LTS,
-				URL:       r.DownloadURL,
-				Size:      r.DownloadSize,
-				Stream:    stream,
-				Integrity: integrity,
-			})
-		}
-		return out
 	}
 	return nil
 }

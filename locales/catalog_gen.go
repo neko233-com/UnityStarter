@@ -384,11 +384,11 @@ func (msgs Messages) ProjectWrongEngine() string {
 	return Catalog.Format(msgs.locale, "projectWrongEngine", nil)
 }
 
-// TuanjieDownloadsEmptyHint says "No Tuanjie releases are cached. Open Tuanjie Hub to refresh its release list."
+// TuanjieDownloadsEmptyHint says "No Tuanjie releases found. Check your network and refresh."
 // in the language the app shows.
 func TuanjieDownloadsEmptyHint() string { return In(i18n.Locale()).TuanjieDownloadsEmptyHint() }
 
-// TuanjieDownloadsEmptyHint says "No Tuanjie releases are cached. Open Tuanjie Hub to refresh its release list."
+// TuanjieDownloadsEmptyHint says "No Tuanjie releases found. Check your network and refresh."
 // in the language of msgs.
 func (msgs Messages) TuanjieDownloadsEmptyHint() string {
 	return Catalog.Format(msgs.locale, "tuanjieDownloadsEmptyHint", nil)

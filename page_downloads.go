@@ -32,28 +32,44 @@ func (a *app) ensureDownloads(force bool) {
 		return
 	}
 	a.downloadsBusy = true
+	a.downloadsPending = map[string]bool{kindUnity: true, kindTuanjie: true}
+	win := a.win
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
 		defer cancel()
-		entries, err := fetchUnityReleases(ctx)
-		a.win.Update(func() {
-			a.downloadsBusy = false
-			if err != nil {
-				logger.Printf("downloads: %v", err)
-				a.downloadsErr = err.Error()
-				if len(a.downloads) == 0 {
-					a.downloads = tuanjieReleases()
+		results := startReleaseCatalogFetch(ctx)
+		for i := 0; i < 2; i++ {
+			result := <-results
+			win.Update(func() {
+				a.applyReleaseCatalog(result)
+				if len(a.downloadsPending) == 0 {
+					a.downloadsBusy = false
+					a.downloadsSince = time.Now()
 				}
-				return
-			}
-			a.downloadsErr = ""
-			writeCachedUnityReleases(entries)
-			a.downloads = append(entries, tuanjieReleases()...)
-			a.downloadsSince = time.Now()
-			a.downloadsReady = true
-			logger.Printf("downloads: %d releases", len(a.downloads))
-		})
+			})
+		}
 	}()
+}
+
+func (a *app) applyReleaseCatalog(result releaseCatalogResult) {
+	remaining := make([]downloadEntry, 0, len(a.downloads)+len(result.entries))
+	for _, entry := range a.downloads {
+		if entry.Engine != result.engine {
+			remaining = append(remaining, entry)
+		}
+	}
+	a.downloads = append(remaining, result.entries...)
+	if a.downloadsErrs == nil {
+		a.downloadsErrs = map[string]string{}
+	}
+	if result.err != nil {
+		a.downloadsErrs[result.engine] = result.err.Error()
+	} else {
+		delete(a.downloadsErrs, result.engine)
+	}
+	delete(a.downloadsPending, result.engine)
+	a.downloadsReady = true
+	logger.Printf("downloads: %s %d releases", result.engine, len(result.entries))
 }
 
 func (a *app) downloadsPage(c *ui.Context) {
@@ -72,15 +88,15 @@ func (a *app) downloadsPage(c *ui.Context) {
 	ui.Divider(c)
 
 	if len(entries) == 0 {
-		if a.downloadsBusy {
+		if a.downloadsPending[engine] {
 			ui.Row(c).Padding(26).Gap(10).AlignItems(ui.Center).Children(func() {
 				ui.Spinner(c)
 				ui.Text(c, locales.DownloadsLoading()).FontSize(12).TextColor(t.TextMuted)
 			})
 			return
 		}
-		hint := a.downloadsErr
-		if engine == kindTuanjie {
+		hint := a.downloadsErrs[engine]
+		if hint == "" && engine == kindTuanjie {
 			hint = locales.TuanjieDownloadsEmptyHint()
 		}
 		a.emptyState(c, locales.DownloadsEmpty(), hint)
@@ -93,8 +109,8 @@ func (a *app) downloadsPage(c *ui.Context) {
 	}
 	ui.Scroll(c).Grow(1).Children(func() {
 		ui.Column(c).Padding(24, 26).Gap(20).MaxWidth(900).Children(func() {
-			if engine == kindUnity && a.downloadsErr != "" {
-				ui.Text(c, locales.DownloadsError(a.downloadsErr)).FontSize(11).TextColor(t.Danger)
+			if err := a.downloadsErrs[engine]; err != "" {
+				ui.Text(c, locales.DownloadsError(err)).FontSize(11).TextColor(t.Danger)
 			}
 			title := locales.DownloadsUnity()
 			if engine == kindTuanjie {
