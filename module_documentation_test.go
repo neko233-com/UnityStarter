@@ -178,6 +178,23 @@ func TestLiveInstalledTuanjieOfflineDocumentation(t *testing.T) {
 	}
 }
 
+func TestLiveInstalledUnityOfflineDocumentation(t *testing.T) {
+	root := os.Getenv("UNITYSTARTER_LIVE_UNITY_MODULES_ROOT")
+	if root == "" {
+		t.Skip("set UNITYSTARTER_LIVE_UNITY_MODULES_ROOT to an editor with documentation")
+	}
+	editors := scanEditorsIn([]string{root})
+	if len(editors) != 1 || editors[0].Kind != kindUnity || editors[0].OfflineDocs == "" {
+		t.Fatalf("installed Unity offline documentation not discovered: %+v", editors)
+	}
+	for _, section := range []string{"Manual", "ScriptReference"} {
+		info, err := os.Stat(offlineDocumentationEntry(editors[0], section))
+		if err != nil || !info.Mode().IsRegular() || info.Size() == 0 {
+			t.Fatalf("Unity %s entry missing: %v", section, err)
+		}
+	}
+}
+
 func TestLiveTuanjieDocumentationInstall(t *testing.T) {
 	archive := os.Getenv("UNITYSTARTER_LIVE_DOCUMENTATION")
 	if archive == "" {

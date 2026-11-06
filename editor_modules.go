@@ -109,7 +109,7 @@ func standaloneModule(m editorModule) bool {
 }
 
 func moduleInstallSpec(e editorInstall, m editorModule) (integrity, player, extension string, ok bool) {
-	if _, valid := tuanjieLanguageModule(m); valid && e.Kind == kindTuanjie {
+	if _, kind, valid := editorLanguageModule(m); valid && e.Kind == kind {
 		return "", languageModule, ".po", true
 	}
 	if standaloneModule(m) {
@@ -209,7 +209,7 @@ func (a *app) installEditorModule(e editorInstall, m editorModule) {
 		var language []byte
 		var err error
 		if player == languageModule {
-			language, err = downloadTuanjieLanguage(ctx, m, progress)
+			language, err = downloadEditorLanguage(ctx, m, progress)
 		} else {
 			err = downloadFileVerifiedSize(ctx, m.URL, path, integrity, expectedSize, progress)
 		}
@@ -237,7 +237,7 @@ func (a *app) installEditorModule(e editorInstall, m editorModule) {
 				err = context.Canceled
 			} else {
 				if player == languageModule {
-					err = installTuanjieLanguage(e.Root, m, language)
+					err = installEditorLanguage(e.Root, m, language)
 				} else if player == documentationModule {
 					err = installTuanjieDocumentation(e.Root, path, integrity)
 				} else if player != "" {

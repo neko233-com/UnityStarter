@@ -258,6 +258,23 @@ func TestModuleCatalogOfflineNoticeAndRefresh(t *testing.T) {
 	}
 }
 
+func TestUnityLanguageModuleDisplayed(t *testing.T) {
+	a := fixture()
+	a.manageOpen, a.manageModules = true, true
+	m := unityLanguageFixture("zh-hans")
+	m.Name, m.Visible = "简体中文", true
+	a.manageEditor = editorInstall{Version: "2022.3.51f1", Kind: kindUnity, Modules: []editorModule{m}}
+	tt := ui.NewTester(a.view, 900, 560)
+	if !tt.HasText(m.Name) || !tt.HasText(locales.ActionInstall()) || !tt.HasText(locales.InstallModuleHint()) {
+		t.Fatalf("Unity language module missing from dialog: %q", tt.Texts())
+	}
+	if path := os.Getenv("UNITY_LANGUAGE_SNAPSHOT"); path != "" {
+		if err := writePNG(path, tt.Image()); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
 func TestModuleDialogLabelsUnverifiedHubState(t *testing.T) {
 	a := fixture()
 	a.manageOpen, a.manageModules = true, true

@@ -274,11 +274,11 @@ func (msgs Messages) InstallModules() string {
 	return Catalog.Format(msgs.locale, "installModules", nil)
 }
 
-// InstallModuleHint says "Supports standalone modules, OpenJDK, Tuanjie documentation and language packs, and some Unity Android SDK/NDK releas…"
+// InstallModuleHint says "Supports standalone modules, OpenJDK, Unity and Tuanjie language packs, Tuanjie documentation, and some Android SDK/N…"
 // in the language the app shows.
 func InstallModuleHint() string { return In(i18n.Locale()).InstallModuleHint() }
 
-// InstallModuleHint says "Supports standalone modules, OpenJDK, Tuanjie documentation and language packs, and some Unity Android SDK/NDK releas…"
+// InstallModuleHint says "Supports standalone modules, OpenJDK, Unity and Tuanjie language packs, Tuanjie documentation, and some Android SDK/N…"
 // in the language of msgs.
 func (msgs Messages) InstallModuleHint() string {
 	return Catalog.Format(msgs.locale, "installModuleHint", nil)

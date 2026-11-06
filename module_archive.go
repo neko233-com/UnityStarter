@@ -69,7 +69,7 @@ func moduleFilesVerifiable(m editorModule) bool {
 	if moduleOutput(m) != "" {
 		return true
 	}
-	if _, ok := tuanjieLanguageModule(m); ok {
+	if _, _, ok := editorLanguageModule(m); ok {
 		return true
 	}
 	if _, _, ok := tuanjieDocumentationArchive(m); ok {
@@ -93,7 +93,7 @@ func moduleFilesPresent(root string, m editorModule) bool {
 		}
 		return true
 	}
-	if language, ok := tuanjieLanguageModule(m); ok {
+	if language, _, ok := editorLanguageModule(m); ok {
 		file := filepath.Join(root, "Editor", "Data", "Localization", language+".po")
 		info, err := os.Lstat(file)
 		if err != nil || !info.Mode().IsRegular() || info.Size() > maxLanguageBytes {

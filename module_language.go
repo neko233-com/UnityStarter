@@ -13,7 +13,7 @@ import (
 	"unicode/utf8"
 )
 
-const languageModule = "tuanjie-language"
+const languageModule = "editor-language"
 const maxLanguageBytes = 10 << 20
 
 var languageURL = regexp.MustCompile(`^/v1/live/[0-9]+/[0-9]+\.[0-9]+/(ja|ko|zh-hans|zh-hant)$`)
@@ -33,22 +33,30 @@ func (r *languageProgressReader) Read(p []byte) (int, error) {
 	return n, err
 }
 
-// Official Tuanjie Hub copies the redirected .po filename into Localization.
+// Both official Hubs place the .po file in Localization.
 // These endpoints do not publish a checksum; TLS and PO validation provide
 // transport and format checks, not cryptographic authenticity of the file.
-func tuanjieLanguageModule(m editorModule) (string, bool) {
+func editorLanguageModule(m editorModule) (language, kind string, ok bool) {
 	if m.Parent != "" || m.Command != "" || m.EULA != "" || m.EULA2 != "" || m.Checksum != "" || m.Integrity != "" || m.RenameFrom != "" || m.RenameTo != "" || m.Destination != "{UNITY_PATH}/Editor/Data/Localization" {
-		return "", false
+		return "", "", false
 	}
 	u, err := url.Parse(m.URL)
-	if err != nil || u.Scheme != "https" || u.Host != "new-translate.cdn.unity.cn" || u.User != nil || u.RawPath != "" || u.RawQuery != "" || u.Fragment != "" {
-		return "", false
+	if err != nil || u.Scheme != "https" || u.User != nil || u.RawPath != "" || u.RawQuery != "" || u.Fragment != "" {
+		return "", "", false
+	}
+	switch u.Host {
+	case "new-translate.cdn.unity.cn":
+		kind = kindTuanjie
+	case "new-translate.unity3d.jp":
+		kind = kindUnity
+	default:
+		return "", "", false
 	}
 	match := languageURL.FindStringSubmatch(u.Path)
 	if len(match) != 2 || m.ID != "language-"+match[1] {
-		return "", false
+		return "", "", false
 	}
-	return match[1], true
+	return match[1], kind, true
 }
 
 func validLanguagePO(data []byte, language string) bool {
@@ -62,15 +70,15 @@ func validLanguagePO(data []byte, language string) bool {
 	return strings.HasPrefix(header, "msgid \"\"\nmsgstr \"\"\n") && strings.Contains(header, `"Language: `+language+`\n"`)
 }
 
-func downloadTuanjieLanguage(ctx context.Context, m editorModule, progress func(int64, int64)) ([]byte, error) {
-	language, ok := tuanjieLanguageModule(m)
+func downloadEditorLanguage(ctx context.Context, m editorModule, progress func(int64, int64)) ([]byte, error) {
+	language, _, ok := editorLanguageModule(m)
 	if !ok {
 		return nil, fmt.Errorf("unsupported language metadata")
 	}
 	source, _ := url.Parse(m.URL)
 	sourceParts := strings.Split(source.Path, "/")
 	client := &http.Client{CheckRedirect: func(req *http.Request, via []*http.Request) error {
-		if len(via) > 3 || req.URL.Scheme != "https" || req.URL.Host != "new-translate.cdn.unity.cn" || req.URL.User != nil || req.URL.RawPath != "" || req.URL.RawQuery != "" || req.URL.Fragment != "" {
+		if len(via) > 3 || req.URL.Scheme != "https" || req.URL.Host != source.Host || req.URL.User != nil || req.URL.RawPath != "" || req.URL.RawQuery != "" || req.URL.Fragment != "" {
 			return fmt.Errorf("unsafe language redirect")
 		}
 		parts := strings.Split(req.URL.Path, "/")
@@ -102,8 +110,8 @@ func downloadTuanjieLanguage(ctx context.Context, m editorModule, progress func(
 	return data, nil
 }
 
-func installTuanjieLanguage(root string, m editorModule, data []byte) error {
-	language, ok := tuanjieLanguageModule(m)
+func installEditorLanguage(root string, m editorModule, data []byte) error {
+	language, _, ok := editorLanguageModule(m)
 	if !ok || !validLanguagePO(data, language) {
 		return fmt.Errorf("invalid language module")
 	}
