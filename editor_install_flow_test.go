@@ -129,6 +129,64 @@ func TestEditorDownloadTransitionsAndCancellation(t *testing.T) {
 	}
 }
 
+func TestEditorDownloadRetryKeepsOriginalLocation(t *testing.T) {
+	for _, status := range []string{"failedDownload", "failedInstall"} {
+		if root, ok := editorDownloadRoot(&downloadJob{Status: status, Root: "original"}, "new default"); !ok || root != "original" {
+			t.Fatalf("%s retry changed install location: %q %v", status, root, ok)
+		}
+	}
+	for _, status := range []string{"downloading", "downloaded", "installing", "installed", "clearing"} {
+		if _, ok := editorDownloadRoot(&downloadJob{Status: status}, "new default"); ok {
+			t.Fatalf("%s job was replaced", status)
+		}
+	}
+	if root, ok := editorDownloadRoot(nil, "new default"); !ok || root != "new default" {
+		t.Fatalf("new job did not use default: %q %v", root, ok)
+	}
+}
+
+func TestFailedEditorInstallOffersDownloadRecovery(t *testing.T) {
+	a := fixture()
+	a.page = pageDownloads
+	e := editorInstallFixture([]byte("fixture"))
+	a.downloads = []downloadEntry{e}
+	a.jobs = map[string]*downloadJob{jobKey(e): {Entry: e, Status: "failedInstall", Err: "invalid installer"}}
+	tt := ui.NewTester(a.view, 900, 560)
+	if !tt.HasText(locales.ActionInstall()) || !tt.HasText(locales.ActionRetryDownloadInstall()) {
+		t.Fatalf("install recovery actions missing: %q", tt.Texts())
+	}
+	if path := os.Getenv("INSTALL_RECOVERY_SNAPSHOT"); path != "" {
+		tt.Frame()
+		if err := writePNG(path, tt.Image()); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+func TestUninstalledEditorCanBeInstalledAgain(t *testing.T) {
+	a := fixture()
+	a.page = pageDownloads
+	e := editorInstallFixture([]byte("fixture"))
+	a.downloads = []downloadEntry{e}
+	key := jobKey(e)
+	a.jobs = map[string]*downloadJob{key: {Entry: e, Status: "installed"}}
+	a.editors = []editorInstall{{Kind: e.Engine, Version: e.Version}}
+	a.clearConfirmedDownloadJobs()
+	if _, exists := a.jobs[key]; exists {
+		t.Fatal("completed job was not cleared after the installation was found")
+	}
+	a.editors = nil // A later uninstall is reflected by the next scan.
+	tt := ui.NewTester(a.view, 900, 560)
+	if !tt.HasText(locales.DownloadAndInstall()) {
+		t.Fatalf("reinstall action missing after uninstall: %q", tt.Texts())
+	}
+	a.jobs[key] = &downloadJob{Entry: e, Status: "installed"}
+	a.clearConfirmedDownloadJobs()
+	if a.jobs[key] == nil {
+		t.Fatal("unconfirmed completed job was cleared before the scan found it")
+	}
+}
+
 func TestEditorInstallReverifiesBeforeLaunching(t *testing.T) {
 	body := []byte("verified installer")
 	e := editorInstallFixture(body)
@@ -159,8 +217,10 @@ func TestEditorInstallReverifiesBeforeLaunching(t *testing.T) {
 	if _, err := os.Stat(dest); !os.IsNotExist(err) {
 		t.Fatal("failed verification created an install directory")
 	}
-	if err := os.WriteFile(installer, body, 0o600); err != nil {
-		t.Fatal(err)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write(body) }))
+	defer server.Close()
+	if err := downloadFileVerifiedSize(context.Background(), server.URL, installer, e.Integrity, e.Size, func(int64, int64) {}); err != nil {
+		t.Fatalf("corrupt installer recovery failed: %v", err)
 	}
 	if err := installVerifiedEditorWith(e, installer, dest, run, verify); err != nil || called != 1 {
 		t.Fatalf("verified installation failed: %v", err)

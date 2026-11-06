@@ -167,6 +167,7 @@
   "downloadsArchive": "All versions",
   "actionDownload": "Download",
   "actionRetryDownload": "Retry / resume",
+  "actionRetryDownloadInstall": "Check download and retry",
   "actionDiscardDownload": "Discard progress",
   "downloadClearing": "Discarding download progress…",
   "pipelineBuiltin": "Built-in",

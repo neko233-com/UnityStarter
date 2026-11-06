@@ -79,6 +79,23 @@ func (a *app) installingEditor() bool {
 	return false
 }
 
+// Once the scanner sees a completed installation, the installed-editor list
+// is authoritative. Keeping the finished job forever would make a later
+// uninstall look installed on the downloads page.
+func (a *app) clearConfirmedDownloadJobs() {
+	for key, job := range a.jobs {
+		if job == nil || job.Status != "installed" {
+			continue
+		}
+		for _, editor := range a.editors {
+			if !editor.Simulated && editor.Kind == job.Entry.Engine && editor.Version == job.Entry.Version {
+				delete(a.jobs, key)
+				break
+			}
+		}
+	}
+}
+
 func (a *app) discardDownload(e downloadEntry, job *downloadJob) {
 	key := jobKey(e)
 	if a.jobs[key] != job || job.Status != "failedDownload" {
@@ -113,6 +130,19 @@ func (a *app) installRoot() string {
 	return defaultInstallRoot()
 }
 
+func editorDownloadRoot(job *downloadJob, defaultRoot string) (string, bool) {
+	if job == nil {
+		return defaultRoot, true
+	}
+	if job.Status != "failedDownload" && job.Status != "failedInstall" {
+		return "", false
+	}
+	if job.Root != "" {
+		return job.Root, true
+	}
+	return defaultRoot, true
+}
+
 // startDownload fetches an installer off the main thread, reporting how much
 // arrived.
 func (a *app) startDownload(e downloadEntry) {
@@ -128,7 +158,10 @@ func (a *app) startDownload(e downloadEntry) {
 		return
 	}
 	key := jobKey(e)
-	if job, ok := a.jobs[key]; ok && (job.Status == "downloading" || job.Status == "installing") {
+	// A retry belongs to the original operation, even if the default
+	// installation directory changed while it was running.
+	root, allowed := editorDownloadRoot(a.jobs[key], a.installRoot())
+	if !allowed {
 		return
 	}
 	name := filepath.Base(strings.Split(e.URL, "?")[0])
@@ -136,7 +169,7 @@ func (a *app) startDownload(e downloadEntry) {
 		name = e.Engine + "-" + e.Version + ".exe"
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	job := &downloadJob{Entry: e, Path: filepath.Join(downloadsDir(), name), Root: a.installRoot(), Status: "downloading", cancel: cancel}
+	job := &downloadJob{Entry: e, Path: filepath.Join(downloadsDir(), name), Root: root, Status: "downloading", cancel: cancel}
 	if a.jobs == nil {
 		a.jobs = map[string]*downloadJob{}
 	}

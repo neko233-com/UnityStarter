@@ -1356,6 +1356,16 @@ func (msgs Messages) ActionRetryDownload() string {
 	return Catalog.Format(msgs.locale, "actionRetryDownload", nil)
 }
 
+// ActionRetryDownloadInstall says "Check download and retry"
+// in the language the app shows.
+func ActionRetryDownloadInstall() string { return In(i18n.Locale()).ActionRetryDownloadInstall() }
+
+// ActionRetryDownloadInstall says "Check download and retry"
+// in the language of msgs.
+func (msgs Messages) ActionRetryDownloadInstall() string {
+	return Catalog.Format(msgs.locale, "actionRetryDownloadInstall", nil)
+}
+
 // ActionDiscardDownload says "Discard progress"
 // in the language the app shows.
 func ActionDiscardDownload() string { return In(i18n.Locale()).ActionDiscardDownload() }

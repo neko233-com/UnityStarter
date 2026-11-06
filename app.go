@@ -187,6 +187,7 @@ func (a *app) refresh() {
 				return
 			}
 			a.editors, a.projects, a.hubs = editors, projects, hubs
+			a.clearConfirmedDownloadJobs()
 			a.scanning = false
 			if a.scanAgain {
 				a.scanAgain = false

@@ -367,9 +367,12 @@ func (a *app) downloadAction(c *ui.Context, e downloadEntry) {
 		ui.Spinner(c)
 		ui.Text(c, locales.DownloadClearing()).FontSize(11).TextColor(t.TextMuted)
 	case job.Status == "failedInstall":
-		ui.Text(c, locales.DownloadsInstallFailed(job.Err)).FontSize(11).TextColor(t.Danger).MaxWidth(220).Clip()
+		ui.Text(c, locales.DownloadsInstallFailed(job.Err)).FontSize(11).TextColor(t.Danger).MaxWidth(220).Clip().Tooltip(job.Err)
 		if ui.PrimaryButton(c, locales.ActionInstall()).Clicked() {
 			a.installJob(job)
+		}
+		if ui.Button(c, locales.ActionRetryDownloadInstall()).Clicked() {
+			a.startDownload(e)
 		}
 	default:
 		ui.Badge(c, locales.DownloadsInstalled())
