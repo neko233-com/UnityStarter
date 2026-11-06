@@ -1,6 +1,7 @@
 {
   "@@locale": "zh-Hans",
   "alertTitle": "提示",
+  "statusDetails": "详情",
   "templateChooseFirst": "请先选择并下载模板，再创建项目。",
   "templateTermsRequired": "请先阅读并接受此模板的使用条款。",
   "templateCatalogFailed": "官方模板清单暂不可用，仍可使用本地与缓存模板。{error}",

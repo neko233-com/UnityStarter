@@ -92,7 +92,7 @@ func (a *app) hiddenProjectsSection(c *ui.Context) {
 			path := path
 			c.Key(path)
 			ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-				ui.Text(c, path).Grow(1).FontSize(12).TextColor(c.Theme().TextMuted).Clip().Tooltip(path)
+				ui.Text(c, path).Grow(1).MinWidth(0).FontSize(12).TextColor(c.Theme().TextMuted).SingleLine().Clip().Tooltip(path)
 				ui.Button(c, locales.ProjectRestore()).OnClick(func() { a.setProjectHidden(path, false) })
 			})
 		}

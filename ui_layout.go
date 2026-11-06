@@ -40,7 +40,7 @@ func tableHeading(c *ui.Context, label, sort string, active bool, reverse bool, 
 		}
 	}
 	c.Key(sort)
-	b := ui.Button(c, text).Label(label).Tooltip(label).Height(30).Padding(0, 8).
+	b := ui.Button(c, text).Label(label).Tooltip(label).Height(30).Padding(0, 0).
 		Background(ui.Color{}).Border(0, ui.Color{}).FontSize(12).TextColor(t.TextMuted).OnClick(choose)
 	if sort != "favorite" {
 		b.Justify(ui.Start)

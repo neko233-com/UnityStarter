@@ -128,7 +128,7 @@ func (a *app) uninstallGuardDialog(c *ui.Context) {
 				if label == "" {
 					label = locales.UninstallGuardUnreadable() + " · " + g.file
 				}
-				ui.Text(c, label).FontSize(12).Clip().Tooltip(label)
+				ui.Text(c, label).FontSize(12).SingleLine().Clip().Tooltip(label)
 				ui.Row(c).Gap(8).Justify(ui.End).Children(func() {
 					ui.Button(c, locales.ActionCancel()).OnClick(func() { a.uninstallGuardConfirm = false })
 					ui.PrimaryButton(c, locales.UninstallGuardConfirm()).OnClick(func() {
@@ -155,7 +155,7 @@ func (a *app) uninstallGuardDialog(c *ui.Context) {
 							if label == "" {
 								label = locales.UninstallGuardUnreadable() + " · " + g.file
 							}
-							ui.Text(c, label).Grow(1).FontSize(12).Clip().Tooltip(label)
+							ui.Text(c, label).Grow(1).MinWidth(0).FontSize(12).SingleLine().Clip().Tooltip(label)
 							ui.Button(c, locales.UninstallGuardRelease()).OnClick(func() { a.uninstallGuardSelected, a.uninstallGuardConfirm = g, true })
 						})
 					}

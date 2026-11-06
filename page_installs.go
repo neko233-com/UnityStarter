@@ -23,7 +23,7 @@ func (a *app) installsPage(c *ui.Context) {
 	})
 	ui.Row(c).Padding(0, 24, 10, 24).Gap(8).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, locales.SettingsInstallRoot()+":").FontSize(12).TextColor(t.TextMuted)
-		ui.Text(c, a.installRoot()).Grow(1).FontSize(12).TextColor(t.TextMuted).Clip().Tooltip(a.installRoot())
+		ui.Text(c, a.installRoot()).Grow(1).MinWidth(0).FontSize(12).TextColor(t.TextMuted).SingleLine().Clip().Tooltip(a.installRoot())
 		ui.Button(c, locales.InstallChooseLocation()).OnClick(a.chooseInstallRoot)
 	})
 	ui.Row(c).Padding(0, 24, 0, 24).Gap(6).Wrap().AlignItems(ui.Center).Children(func() {

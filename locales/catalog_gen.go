@@ -44,6 +44,16 @@ func (msgs Messages) AlertTitle() string {
 	return Catalog.Format(msgs.locale, "alertTitle", nil)
 }
 
+// StatusDetails says "Details"
+// in the language the app shows.
+func StatusDetails() string { return In(i18n.Locale()).StatusDetails() }
+
+// StatusDetails says "Details"
+// in the language of msgs.
+func (msgs Messages) StatusDetails() string {
+	return Catalog.Format(msgs.locale, "statusDetails", nil)
+}
+
 // TemplateChooseFirst says "Select and download a template before creating the project."
 // in the language the app shows.
 func TemplateChooseFirst() string { return In(i18n.Locale()).TemplateChooseFirst() }

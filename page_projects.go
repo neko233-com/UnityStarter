@@ -299,8 +299,9 @@ func (a *app) projectVersionDialog(c *ui.Context) {
 			if a.versionConfirm {
 				ui.Text(c, locales.ProjectVersionConfirm()).FontSize(18).Bold()
 				e := a.versionConfirmedEditor
-				ui.Text(c, a.versionProject.Name+" · "+a.versionProject.Version+" → "+e.Version).FontSize(14).Bold()
-				ui.Text(c, e.Exe).FontSize(11).TextColor(t.TextMuted).Clip().Tooltip(e.Exe)
+				label := a.versionProject.Name + " · " + a.versionProject.Version + " → " + e.Version
+				ui.Text(c, label).FontSize(14).Bold().SingleLine().Clip().Tooltip(label)
+				ui.Text(c, e.Exe).FontSize(11).TextColor(t.TextMuted).SingleLine().Clip().Tooltip(e.Exe)
 				ui.Text(c, locales.ProjectVersionWarning()).FontSize(12).TextColor(t.TextMuted)
 				ui.Row(c).Gap(8).Justify(ui.End).Children(func() {
 					ui.Button(c, locales.ActionCancel()).OnClick(func() { a.versionConfirm = false })
@@ -309,7 +310,7 @@ func (a *app) projectVersionDialog(c *ui.Context) {
 				return
 			}
 			ui.Text(c, locales.ProjectVersionTitle()).FontSize(18).Bold()
-			ui.Text(c, a.versionProject.Name+" · "+a.versionProject.Version).FontSize(13)
+			ui.Text(c, a.versionProject.Name+" · "+a.versionProject.Version).FontSize(13).SingleLine().Clip().Tooltip(a.versionProject.Name)
 			ui.Text(c, locales.ProjectVersionHint()).FontSize(12).TextColor(t.TextMuted)
 			editors := a.projectEditors(a.versionProject)
 			if len(editors) == 0 {
@@ -326,7 +327,7 @@ func (a *app) projectVersionDialog(c *ui.Context) {
 							} else {
 								ui.Button(c, displayVersion(e.Version, e.DisplayVersion)).Width(200).OnClick(func() { a.versionEditor = e.Exe })
 							}
-							ui.Text(c, e.Exe).FontSize(11).TextColor(t.TextMuted).Grow(1).Clip()
+							ui.Text(c, e.Exe).FontSize(11).TextColor(t.TextMuted).Grow(1).MinWidth(0).SingleLine().Clip().Tooltip(e.Exe)
 						})
 					}
 				})

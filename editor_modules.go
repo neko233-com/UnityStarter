@@ -435,9 +435,9 @@ func (a *app) editorManageDialog(c *ui.Context) {
 		listHeight = min(float32(500), max(float32(180), windowHeight-310))
 	}
 	ui.Modal(c, &a.manageOpen, func() {
-		ui.Column(c).Width(width).Gap(12).Children(func() {
-			ui.Text(c, displayVersion(e.Version, e.DisplayVersion)+" · "+channelName(e.Kind)).FontSize(18).Bold()
-			ui.Text(c, e.Exe).FontSize(12).TextColor(t.TextMuted).Clip()
+		ui.Column(c).Width(width).MaxHeight(windowHeight - 80).Gap(12).Children(func() {
+			ui.Text(c, displayVersion(e.Version, e.DisplayVersion)+" · "+channelName(e.Kind)).FontSize(18).Bold().SingleLine().Shrink(0)
+			ui.Text(c, e.Exe).FontSize(12).TextColor(t.TextMuted).SingleLine().Clip().Tooltip(e.Exe).Shrink(0)
 			if a.manageUninstall {
 				ui.Text(c, locales.InstallUninstallWarning()).FontSize(12).TextColor(t.TextMuted)
 				if a.uninstallStatus != "" {
@@ -445,10 +445,10 @@ func (a *app) editorManageDialog(c *ui.Context) {
 						if a.uninstallBusy {
 							ui.Spinner(c)
 						}
-						ui.Text(c, a.uninstallStatus).FontSize(12).TextColor(t.TextMuted).Grow(1)
+						ui.Text(c, a.uninstallStatus).FontSize(12).TextColor(t.TextMuted).Grow(1).MinWidth(0).SingleLine().Clip().Tooltip(a.uninstallStatus)
 					})
 				}
-				ui.Row(c).Gap(8).Justify(ui.End).Children(func() {
+				ui.Row(c).Gap(8).Wrap().Shrink(0).Justify(ui.End).Children(func() {
 					if a.uninstallBusy {
 						ui.Button(c, locales.InstallUninstallHide()).OnClick(func() { a.manageOpen = false })
 						return
@@ -496,10 +496,10 @@ func (a *app) editorManageDialog(c *ui.Context) {
 						ui.Text(c, locales.AndroidRecoveryPending()).FontSize(12).TextColor(t.TextMuted)
 					}
 					if a.moduleStatus != "" {
-						ui.Text(c, a.moduleStatus).FontSize(12).TextColor(t.TextMuted)
+						a.statusMessage(c, a.moduleStatus)
 					}
-					ui.Scroll(c).Height(240).Children(func() { ui.Text(c, plan.License).Width(510).FontSize(12) })
-					ui.Row(c).Gap(8).Justify(ui.End).Children(func() {
+					ui.Scroll(c).Height(240).MinHeight(70).Shrink(1).Children(func() { ui.Text(c, plan.License).FontSize(12) })
+					ui.Row(c).Gap(8).Wrap().Shrink(0).Justify(ui.End).Children(func() {
 						if plan.CachedBytes > 0 && !plan.RecoveryPending {
 							ui.Button(c, locales.AndroidDiscardCache()).Disabled(a.moduleLoading).OnClick(func() { a.discardAndroidCache(e, a.androidPlan) })
 						}
@@ -547,7 +547,7 @@ func (a *app) editorManageDialog(c *ui.Context) {
 					ui.Text(c, locales.InstallModuleLoading()).FontSize(12).TextColor(t.TextMuted)
 				}
 				if a.moduleStatus != "" {
-					ui.Text(c, a.moduleStatus).FontSize(12).TextColor(t.TextMuted)
+					a.statusMessage(c, a.moduleStatus)
 				}
 				if a.moduleSelectionRestored && len(a.moduleSelection) > 0 {
 					ui.Text(c, locales.ModuleSelectionRestored()).FontSize(12).TextColor(t.TextMuted)
@@ -558,7 +558,7 @@ func (a *app) editorManageDialog(c *ui.Context) {
 				if a.moduleBusy {
 					a.moduleProgressView(c)
 				}
-				ui.Scroll(c).Height(listHeight).Children(func() {
+				ui.Scroll(c).Height(listHeight).MinHeight(70).Shrink(1).Children(func() {
 					ui.Column(c).Gap(10).Children(func() {
 						for _, group := range moduleLayout(e.Modules) {
 							if len(group.Rows) == 0 {
@@ -645,7 +645,7 @@ func (a *app) editorManageDialog(c *ui.Context) {
 						}
 					})
 				})
-				ui.Row(c).Gap(8).Justify(ui.End).Children(func() {
+				ui.Row(c).Gap(8).Wrap().Shrink(0).Justify(ui.End).Children(func() {
 					if a.moduleBusy || a.moduleLoading || len(a.moduleQueue) > 0 {
 						ui.Button(c, locales.ActionBackground()).OnClick(func() { a.manageOpen = false; a.page = pageActivity })
 					}

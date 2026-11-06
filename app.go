@@ -37,7 +37,7 @@ const (
 
 	// appVersion is what the CLI prints and what the window shows when MyGo
 	// does not know the packaged version.
-	appVersion = "1.6.23"
+	appVersion = "1.6.24"
 	// appName is the name of the executable and of the app's data folder, as
 	// mygo.json names the app; the window shows a name with a space.
 	appName = "UnityStarter"
@@ -315,39 +315,32 @@ func (a *app) view(c *ui.Context) {
 				ui.Sidebar(c, &a.page, func() {
 					projects, installs, downloads, favorites := enginePages(a.activeEngine)
 					a.engineNavigation(c, a.activeEngine, projects, installs, downloads, favorites)
-					ui.SidebarSection(c, locales.SidebarServices(), nil, func() {
-						ui.SidebarItem(c, pageStore, iconStore, locales.PageStore())
-						ui.SidebarItem(c, pagePublish, iconPublish, locales.PagePublish())
-						ui.SidebarItem(c, pageLicense, iconLicense, locales.PageLicense())
+					sidebarSection(c, locales.SidebarServices(), nil, func() {
+						sidebarItem(c, pageStore, iconStore, locales.PageStore())
+						sidebarItem(c, pagePublish, iconPublish, locales.PagePublish())
+						sidebarItem(c, pageLicense, iconLicense, locales.PageLicense())
 					})
-					ui.SidebarSection(c, locales.SidebarHelp(), nil, func() {
-						ui.SidebarItem(c, pageDocs, iconDocs, locales.PageDocs())
-						ui.SidebarItem(c, pageLearn, iconLearn, locales.PageLearn())
-						ui.SidebarItem(c, pageFeedback, iconFeedback, locales.PageFeedback())
+					sidebarSection(c, locales.SidebarHelp(), nil, func() {
+						sidebarItem(c, pageDocs, iconDocs, locales.PageDocs())
+						sidebarItem(c, pageLearn, iconLearn, locales.PageLearn())
+						sidebarItem(c, pageFeedback, iconFeedback, locales.PageFeedback())
 					})
 				}).Grow(1).Shrink(1).MinHeight(0)
 				ui.Divider(c)
 				ui.Sidebar(c, &a.page, func() {
-					ui.SidebarItem(c, pageActivity, iconDownload, locales.ActivityTitle()).Children(func() {
-						n := len(a.activityJobs(true))
-						if a.templateJob != nil && a.templateJob.Busy {
-							n++
-						}
+					sidebarItem(c, pageActivity, iconDownload, locales.ActivityTitle()).Children(func() {
+						n := a.workspaceTaskCount()
 						if n > 0 {
 							ui.Badge(c, fmt.Sprint(n))
 						}
 					})
-					ui.SidebarItem(c, pageSettings, iconSettings, locales.SidebarSettings())
+					sidebarItem(c, pageSettings, iconSettings, locales.SidebarSettings())
 				}).Height(88).Shrink(0)
 			})
 			ui.Column(c).Grow(1).MinWidth(0).MinHeight(0).Fill().Children(func() {
 				a.unityLicenseBanner(c)
 				a.uninstallGuardBanner(c)
-				a.uninstallActivityBanner(c)
-				a.moduleActivityBanner(c)
-				a.visualStudioActivityBanner(c)
-				a.templateActivityBanner(c)
-				a.editorActivityBanner(c)
+				a.workspaceActivityBanner(c)
 				a.updateBanner(c)
 				switch a.page {
 				case pageProjects, pageFavorites, pageTuanjieProjects, pageTuanjieFavorites:
@@ -449,8 +442,8 @@ func engineForPage(page string) string {
 func favoritesPage(page string) bool { return page == pageFavorites || page == pageTuanjieFavorites }
 
 func (a *app) engineNavigation(c *ui.Context, engine, projects, installs, downloads, favorites string) {
-	ui.SidebarSection(c, locales.SidebarWorkspace(), nil, func() {
-		ui.SidebarItem(c, projects, iconProjects, locales.SidebarProjects()).Children(func() {
+	sidebarSection(c, locales.SidebarWorkspace(), nil, func() {
+		sidebarItem(c, projects, iconProjects, locales.SidebarProjects()).Children(func() {
 			count := 0
 			for _, p := range a.projects {
 				if p.Kind == engine && !a.projectHidden(p.Path) {
@@ -459,7 +452,7 @@ func (a *app) engineNavigation(c *ui.Context, engine, projects, installs, downlo
 			}
 			ui.Badge(c, fmt.Sprint(count))
 		})
-		ui.SidebarItem(c, installs, iconInstalls, locales.SidebarInstalls()).Children(func() {
+		sidebarItem(c, installs, iconInstalls, locales.SidebarInstalls()).Children(func() {
 			count := 0
 			for _, e := range a.editors {
 				if e.Kind == engine {
@@ -468,30 +461,23 @@ func (a *app) engineNavigation(c *ui.Context, engine, projects, installs, downlo
 			}
 			ui.Badge(c, fmt.Sprint(count))
 		})
-		ui.SidebarItem(c, downloads, iconDownload, locales.SidebarDownloads())
-		ui.SidebarItem(c, favorites, iconFavorite, locales.SidebarFavorites())
+		sidebarItem(c, downloads, iconDownload, locales.SidebarDownloads())
+		sidebarItem(c, favorites, iconFavorite, locales.SidebarFavorites())
 	})
 }
 
 // header is the title of a page, with its count and its actions.
 func (a *app) header(c *ui.Context, title, subtitle string, actions func()) {
 	t := c.Theme()
-	width, _ := c.Size()
-	compact := width < 1100
-	ui.Column(c).Padding(24, 24, 18, 24).Gap(14).Shrink(0).Children(func() {
+	ui.Column(c).Padding(24, 24, 18, 24).Gap(5).Shrink(0).Children(func() {
 		ui.Row(c).Gap(16).AlignItems(ui.Center).Children(func() {
-			ui.Column(c).Grow(1).MinWidth(0).Gap(5).Children(func() {
-				ui.Text(c, title).FontSize(24).Bold().SingleLine().Clip()
-				if subtitle != "" {
-					ui.Text(c, subtitle).FontSize(12).TextColor(t.TextMuted)
-				}
-			})
-			if !compact && actions != nil {
+			ui.Text(c, title).Grow(1).MinWidth(0).FontSize(24).Bold().SingleLine().Clip().Tooltip(title)
+			if actions != nil {
 				ui.Row(c).Gap(8).Shrink(0).Children(actions)
 			}
 		})
-		if compact && actions != nil {
-			ui.Row(c).Gap(8).Wrap().Children(actions)
+		if subtitle != "" {
+			ui.Text(c, subtitle).FontSize(12).TextColor(t.TextMuted).SingleLine().Clip().Tooltip(subtitle)
 		}
 	})
 }
@@ -546,10 +532,11 @@ func (a *app) alertDialog(c *ui.Context) {
 	if !a.alertOpen {
 		return
 	}
+	_, height := c.Size()
 	ui.Modal(c, &a.alertOpen, func() {
 		ui.Column(c).Width(460).Gap(16).Children(func() {
 			ui.Text(c, locales.AlertTitle()).FontSize(18).Bold()
-			ui.Text(c, a.alertMessage).FontSize(13).MaxWidth(460)
+			ui.Scroll(c).MaxHeight(max(100, height-220)).Children(func() { ui.Text(c, a.alertMessage).FontSize(13).MaxWidth(460) })
 			ui.Row(c).Justify(ui.End).Children(func() {
 				ui.PrimaryButton(c, locales.DialogOK()).OnClick(func() { a.alertOpen = false })
 			})

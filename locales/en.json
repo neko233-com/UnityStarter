@@ -1,5 +1,6 @@
 {
   "alertTitle": "Notice",
+  "statusDetails": "Details",
   "templateChooseFirst": "Select and download a template before creating the project.",
   "templateTermsRequired": "Read and accept this template's terms before continuing.",
   "templateCatalogFailed": "Official templates unavailable; local and cached templates remain usable. {error}",

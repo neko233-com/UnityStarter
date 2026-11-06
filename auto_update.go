@@ -255,18 +255,27 @@ func (a *app) updateBanner(c *ui.Context) {
 		return
 	}
 	t := c.Theme()
-	busy := a.moduleBusy || a.installingEditor() || a.uninstallBusy
+	busy := a.editorWorkActive()
 	ui.Row(c).Padding(10, 24).Gap(12).AlignItems(ui.Center).Background(t.Surface).Children(func() {
 		status := a.updateStatus
 		if busy {
 			status = locales.UpdateInstallWait()
 		}
-		ui.Text(c, status).Grow(1).FontSize(12)
+		ui.Text(c, status).Grow(1).MinWidth(0).FontSize(12).SingleLine().Clip().Tooltip(status)
 		ui.PrimaryButton(c, locales.UpdateRestart()).Disabled(busy).OnClick(a.applyUpdateNow)
 	})
 }
 
 func (a *app) applyUpdateNow() {
+	if a.templateWorkBusy() {
+		a.updateStatus = locales.UpdateInstallWait()
+		if a.newCreating {
+			a.newOpen = true
+		} else {
+			a.page = pageActivity
+		}
+		return
+	}
 	if a.uninstallBusy {
 		a.alert(locales.InstallUninstallBusy())
 		return

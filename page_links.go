@@ -223,7 +223,7 @@ func (a *app) offlineDocsGroup(c *ui.Context) {
 			ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
 				ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
 					ui.Text(c, displayVersion(e.Version, e.DisplayVersion)).FontSize(13)
-					ui.Text(c, e.OfflineDocs).FontSize(11).TextColor(t.TextMuted).Clip()
+					ui.Text(c, e.OfflineDocs).FontSize(11).TextColor(t.TextMuted).SingleLine().Clip().Tooltip(e.OfflineDocs)
 				})
 				for _, item := range []struct{ label, rel string }{{locales.OfflineDocsManual(), "Manual"}, {locales.OfflineDocsAPI(), "ScriptReference"}} {
 					item := item
