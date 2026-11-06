@@ -533,7 +533,7 @@ func downloadAndInstall(entry downloadEntry, root string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Hour)
 	defer cancel()
 	last := -1
-	err := downloadFileVerified(ctx, entry.URL, path, entry.Integrity, func(done, total int64) {
+	err := downloadFileVerifiedSize(ctx, entry.URL, path, entry.Integrity, editorDownloadExpectedSize(entry), func(done, total int64) {
 		if total <= 0 {
 			return
 		}

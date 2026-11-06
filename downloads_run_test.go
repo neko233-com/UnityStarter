@@ -44,6 +44,62 @@ func TestDownloadFile(t *testing.T) {
 	}
 }
 
+func TestEditorDownloadExpectedSize(t *testing.T) {
+	if got := editorDownloadExpectedSize(downloadEntry{Engine: kindUnity, Size: 123}); got != 123 {
+		t.Fatalf("Unity size: %d", got)
+	}
+	if got := editorDownloadExpectedSize(downloadEntry{Engine: kindTuanjie, Size: 123}); got != 0 {
+		t.Fatalf("Tuanjie estimate treated as exact: %d", got)
+	}
+}
+
+func TestVerifiedExistingDownloadCanBeReusedOffline(t *testing.T) {
+	payload := []byte("already verified installer")
+	sum := sha256.Sum256(payload)
+	dest := filepath.Join(t.TempDir(), "editor.exe")
+	if err := os.WriteFile(dest, payload, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	var progress int64
+	err := downloadFileVerifiedSize(context.Background(), "http://127.0.0.1:1/unavailable", dest, "sha256-"+base64.StdEncoding.EncodeToString(sum[:]), int64(len(payload)), func(done, total int64) { progress = done })
+	if err != nil || progress != int64(len(payload)) {
+		t.Fatalf("verified reuse failed: progress=%d err=%v", progress, err)
+	}
+}
+
+func TestInvalidExistingDownloadIsReplacedOnlyAfterVerification(t *testing.T) {
+	payload := []byte("official installer bytes")
+	sum := sha256.Sum256(payload)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write(payload) }))
+	defer server.Close()
+	dest := filepath.Join(t.TempDir(), "editor.exe")
+	if err := os.WriteFile(dest, bytes.Repeat([]byte("x"), len(payload)), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := downloadFileVerifiedSize(context.Background(), server.URL, dest, "sha256-"+base64.StdEncoding.EncodeToString(sum[:]), int64(len(payload)), func(int64, int64) {}); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := os.ReadFile(dest); err != nil || !bytes.Equal(got, payload) {
+		t.Fatalf("replacement mismatch: %q %v", got, err)
+	}
+}
+
+func TestFailedReplacementPreservesExistingFile(t *testing.T) {
+	old := []byte("existing file")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte("bad new file!")) }))
+	defer server.Close()
+	dest := filepath.Join(t.TempDir(), "editor.exe")
+	if err := os.WriteFile(dest, old, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := downloadFileVerified(context.Background(), server.URL, dest, "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", func(int64, int64) {}); err == nil {
+		t.Fatal("invalid replacement accepted")
+	}
+	if got, err := os.ReadFile(dest); err != nil || !bytes.Equal(got, old) {
+		t.Fatalf("existing file was changed: %q %v", got, err)
+	}
+}
+
 func TestParallelDownloadAndIntegrity(t *testing.T) {
 	payload := bytes.Repeat([]byte("unity-range-data"), (parallelMinimumSize/16)+1)
 	var mu sync.Mutex

@@ -144,22 +144,26 @@ func (a *app) downloadGroup(c *ui.Context, title, engine string, entries []downl
 		})
 		for _, e := range entries {
 			e := e
-			ui.Row(c).Gap(12).AlignItems(ui.Center).Padding(7, 0).Children(func() {
-				ui.Row(c).Gap(8).AlignItems(ui.Center).Width(260).Children(func() {
-					ui.Text(c, e.Version).FontSize(14).Bold()
-					if e.LTS {
-						ui.Badge(c, "LTS")
-					} else if e.Stream == "ALPHA" || e.Stream == "BETA" {
-						ui.Badge(c, e.Stream)
-					}
-					if installed[engine+" "+e.Version] {
-						ui.Badge(c, locales.DownloadsInstalled())
-					}
+			job := a.jobs[jobKey(e)]
+			ui.Column(c).Padding(7, 0).Gap(5).Children(func() {
+				ui.Row(c).Gap(12).AlignItems(ui.Center).Children(func() {
+					ui.Row(c).Gap(8).AlignItems(ui.Center).Width(260).Children(func() {
+						ui.Text(c, e.Version).FontSize(14).Bold()
+						if e.LTS {
+							ui.Badge(c, "LTS")
+						} else if e.Stream == "ALPHA" || e.Stream == "BETA" {
+							ui.Badge(c, e.Stream)
+						}
+						if installed[engine+" "+e.Version] {
+							ui.Badge(c, locales.DownloadsInstalled())
+						}
+					})
+					ui.Text(c, a.formatTime(e.Date)).FontSize(11).TextColor(t.TextMuted).Width(96)
+					ui.Text(c, humanSize(e.Size)).FontSize(11).TextColor(t.TextMuted).Width(80)
 				})
-				ui.Text(c, a.formatTime(e.Date)).FontSize(11).TextColor(t.TextMuted).Width(96)
-				ui.Text(c, humanSize(e.Size)).FontSize(11).TextColor(t.TextMuted).Width(80)
-				ui.Spacer(c)
-				a.downloadAction(c, e)
+				if !installed[engine+" "+e.Version] || (job != nil && job.Status != "installed") {
+					ui.Row(c).Gap(8).AlignItems(ui.Center).Justify(ui.End).Children(func() { a.downloadAction(c, e) })
+				}
 			})
 		}
 	})
@@ -204,7 +208,14 @@ func (a *app) downloadAction(c *ui.Context, e downloadEntry) {
 			fraction = float64(job.Done) / float64(job.Total)
 		}
 		ui.Progress(c, fraction).Width(150)
-		ui.Textf(c, "%d%%", int(fraction*100)).FontSize(11).TextColor(t.TextMuted).Width(40)
+		if job.Total > 0 {
+			ui.Textf(c, "%d%%", int(fraction*100)).FontSize(11).TextColor(t.TextMuted).Width(40)
+		} else {
+			ui.Text(c, humanSize(job.Done)).FontSize(11).TextColor(t.TextMuted)
+		}
+		if job.Speed > 0 {
+			ui.Text(c, humanSize(job.Speed)+"/s").FontSize(11).TextColor(t.TextMuted).NoWrap()
+		}
 		if ui.Button(c, locales.ActionCancel()).Clicked() && job.cancel != nil {
 			job.cancel()
 		}
@@ -216,10 +227,16 @@ func (a *app) downloadAction(c *ui.Context, e downloadEntry) {
 		ui.Spinner(c)
 		ui.Text(c, locales.DownloadsInstalling()).FontSize(11).TextColor(t.TextMuted)
 	case job.Status == "failedDownload":
-		ui.Text(c, locales.DownloadsFailed(job.Err)).FontSize(11).TextColor(t.Danger).MaxWidth(220).Clip()
-		if ui.Button(c, locales.ActionDownload()).Clicked() {
+		ui.Text(c, locales.DownloadsFailed(job.Err)).FontSize(11).TextColor(t.Danger).NoWrap().Grow(1).Clip().Tooltip(job.Err)
+		if ui.Button(c, locales.ActionRetryDownload()).Clicked() {
 			a.startDownload(e)
 		}
+		ui.Button(c, locales.ActionDiscardDownload()).OnClick(func() {
+			a.discardDownload(e, job)
+		})
+	case job.Status == "clearing":
+		ui.Spinner(c)
+		ui.Text(c, locales.DownloadClearing()).FontSize(11).TextColor(t.TextMuted)
 	case job.Status == "failedInstall":
 		ui.Text(c, locales.DownloadsInstallFailed(job.Err)).FontSize(11).TextColor(t.Danger).MaxWidth(220).Clip()
 		if ui.PrimaryButton(c, locales.ActionInstall()).Clicked() {

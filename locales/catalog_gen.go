@@ -852,6 +852,36 @@ func (msgs Messages) ActionDownload() string {
 	return Catalog.Format(msgs.locale, "actionDownload", nil)
 }
 
+// ActionRetryDownload says "Retry / resume"
+// in the language the app shows.
+func ActionRetryDownload() string { return In(i18n.Locale()).ActionRetryDownload() }
+
+// ActionRetryDownload says "Retry / resume"
+// in the language of msgs.
+func (msgs Messages) ActionRetryDownload() string {
+	return Catalog.Format(msgs.locale, "actionRetryDownload", nil)
+}
+
+// ActionDiscardDownload says "Discard progress"
+// in the language the app shows.
+func ActionDiscardDownload() string { return In(i18n.Locale()).ActionDiscardDownload() }
+
+// ActionDiscardDownload says "Discard progress"
+// in the language of msgs.
+func (msgs Messages) ActionDiscardDownload() string {
+	return Catalog.Format(msgs.locale, "actionDiscardDownload", nil)
+}
+
+// DownloadClearing says "Discarding download progress…"
+// in the language the app shows.
+func DownloadClearing() string { return In(i18n.Locale()).DownloadClearing() }
+
+// DownloadClearing says "Discarding download progress…"
+// in the language of msgs.
+func (msgs Messages) DownloadClearing() string {
+	return Catalog.Format(msgs.locale, "downloadClearing", nil)
+}
+
 // PipelineBuiltin says "Built-in"
 // in the language the app shows.
 func PipelineBuiltin() string { return In(i18n.Locale()).PipelineBuiltin() }

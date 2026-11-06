@@ -15,6 +15,10 @@ import (
 const parallelMinimumSize = 8 << 20
 const parallelWorkers = 6
 
+func downloadSegmentBoundary(total int64, index int) int64 {
+	return (total/parallelWorkers)*int64(index) + (total%parallelWorkers)*int64(index)/parallelWorkers
+}
+
 // parallelDownload uses only the original URL. A strong validator and byte
 // ranges are required, so different versions of an object cannot be mixed.
 // handled=false leaves servers without range support to the streaming path.
@@ -51,21 +55,66 @@ func parallelDownload(ctx context.Context, from, to, integrity string, expectedS
 	if err := os.MkdirAll(filepath.Dir(to), 0o755); err != nil {
 		return true, err
 	}
-	file, err := os.CreateTemp(filepath.Dir(to), "."+filepath.Base(to)+"-*.part")
+	resumable := integrity != ""
+	var file *os.File
+	var part, statePath string
+	var state resumeState
+	var release func()
+	if resumable {
+		file, part, statePath, state, release, err = openResume(to, from, integrity, validator, total)
+	} else {
+		file, err = os.CreateTemp(filepath.Dir(to), "."+filepath.Base(to)+"-*.part")
+		if err == nil {
+			part = file.Name()
+			err = file.Truncate(total)
+		}
+	}
 	if err != nil {
+		if file != nil {
+			file.Close()
+			os.Remove(part)
+		}
 		return true, err
 	}
-	part := file.Name()
-	defer func() { file.Close(); os.Remove(part) }()
-	if err := file.Truncate(total); err != nil {
-		return true, err
+	if release != nil {
+		defer release()
 	}
+	cleanup := true
+	defer func() {
+		file.Close()
+		if cleanup {
+			if resumable {
+				_ = removeResumeFiles(part, statePath)
+			} else {
+				_ = os.Remove(part)
+			}
+		}
+	}()
 	workCtx, cancelWork := context.WithCancel(ctx)
 	defer cancelWork()
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 	var firstErr error
 	done := make([]int64, parallelWorkers)
+	if resumable {
+		copy(done, state.Completed)
+	}
+	initial := append([]int64(nil), done...)
+	saved := append([]int64(nil), done...)
+	lastSaved := time.Now()
+	var checkpointErr error
+	checkpoint := func() error {
+		if err := file.Sync(); err != nil {
+			return err
+		}
+		state.Completed = append(state.Completed[:0], done...)
+		if err := writeResumeState(statePath, state); err != nil {
+			return err
+		}
+		copy(saved, done)
+		lastSaved = time.Now()
+		return nil
+	}
 	report := func(i int, n int64) {
 		mu.Lock()
 		defer mu.Unlock()
@@ -75,17 +124,41 @@ func parallelDownload(ctx context.Context, from, to, integrity string, expectedS
 			sum += value
 		}
 		progress(sum, total)
+		if resumable && checkpointErr == nil && (n-saved[i] >= 8<<20 || time.Since(lastSaved) >= 5*time.Second) {
+			if checkpointErr = checkpoint(); checkpointErr != nil {
+				cancelWork()
+			}
+		}
+	}
+	if resumable {
+		var resumed int64
+		for _, n := range initial {
+			resumed += n
+		}
+		if resumed > 0 {
+			progress(resumed, total)
+		}
 	}
 	for i := 0; i < parallelWorkers; i++ {
-		start, end := total*int64(i)/parallelWorkers, total*int64(i+1)/parallelWorkers-1
+		start, end := downloadSegmentBoundary(total, i), downloadSegmentBoundary(total, i+1)-1
 		wg.Add(1)
 		go func(i int, start, end int64) {
 			defer wg.Done()
 			var chunkErr error
+			completed := initial[i]
 			for attempt := 0; attempt < 3; attempt++ {
-				report(i, 0)
-				chunkErr = downloadRange(workCtx, from, file, start, end, total, validator, func(n int64) { report(i, n) })
+				if start+completed > end {
+					break
+				}
+				base := completed
+				received, rangeErr := downloadRange(workCtx, from, file, start+base, end, total, validator, func(n int64) { report(i, base+n) })
+				completed = base + received
+				report(i, completed)
+				chunkErr = rangeErr
 				if chunkErr == nil || workCtx.Err() != nil {
+					break
+				}
+				if attempt == 2 {
 					break
 				}
 				select {
@@ -104,7 +177,22 @@ func parallelDownload(ctx context.Context, from, to, integrity string, expectedS
 		}(i, start, end)
 	}
 	wg.Wait()
+	if checkpointErr != nil {
+		return true, checkpointErr
+	}
 	if firstErr != nil {
+		if resumable && ctx.Err() == nil {
+			var retained int64
+			for _, n := range done {
+				retained += n
+			}
+			if retained > 0 {
+				if err := checkpoint(); err != nil {
+					return true, err
+				}
+				cleanup = false
+			}
+		}
 		return true, firstErr
 	}
 	if err := ctx.Err(); err != nil {
@@ -115,17 +203,35 @@ func parallelDownload(ctx context.Context, from, to, integrity string, expectedS
 		if err != nil {
 			return true, err
 		}
-		if _, err := io.Copy(hash, io.NewSectionReader(file, 0, total)); err != nil {
+		if _, err := io.Copy(hash, &cancelableReader{ctx: ctx, reader: io.NewSectionReader(file, 0, total)}); err != nil {
 			return true, err
 		}
 		if err := verifyIntegrity(hash, expected); err != nil {
 			return true, err
 		}
 	}
+	if err := ctx.Err(); err != nil {
+		return true, err
+	}
 	if err := file.Close(); err != nil {
 		return true, err
 	}
-	return true, os.Rename(part, to)
+	if err := os.Rename(part, to); err != nil {
+		return true, err
+	}
+	return true, nil
+}
+
+type cancelableReader struct {
+	ctx    context.Context
+	reader io.Reader
+}
+
+func (r *cancelableReader) Read(p []byte) (int, error) {
+	if err := r.ctx.Err(); err != nil {
+		return 0, err
+	}
+	return r.reader.Read(p)
 }
 
 type rangeProgressWriter struct {
@@ -141,37 +247,37 @@ func (w *rangeProgressWriter) Write(p []byte) (int, error) {
 	return n, err
 }
 
-func downloadRange(ctx context.Context, from string, file *os.File, start, end, total int64, validator string, report func(int64)) error {
+func downloadRange(ctx context.Context, from string, file *os.File, start, end, total int64, validator string, report func(int64)) (int64, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, from, nil)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", start, end))
 	req.Header.Set("If-Range", validator)
 	req.Header.Set("Accept-Encoding", "identity")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer resp.Body.Close()
 	want := fmt.Sprintf("bytes %d-%d/%d", start, end, total)
 	if resp.StatusCode != http.StatusPartialContent || resp.Header.Get("Content-Range") != want {
-		return fmt.Errorf("invalid range response: %s, %q", resp.Status, resp.Header.Get("Content-Range"))
+		return 0, fmt.Errorf("invalid range response: %s, %q", resp.Status, resp.Header.Get("Content-Range"))
 	}
 	if strings.HasPrefix(validator, `"`) && resp.Header.Get("ETag") != "" && resp.Header.Get("ETag") != validator {
-		return fmt.Errorf("installer changed during download")
+		return 0, fmt.Errorf("installer changed during download")
 	}
 	length := end - start + 1
 	if resp.ContentLength >= 0 && resp.ContentLength != length {
-		return fmt.Errorf("invalid range length")
+		return 0, fmt.Errorf("invalid range length")
 	}
 	w := &rangeProgressWriter{w: io.NewOffsetWriter(file, start), report: report}
 	if _, err := io.CopyN(w, resp.Body, length); err != nil {
-		return err
+		return w.n, err
 	}
 	var extra [1]byte
 	if n, err := resp.Body.Read(extra[:]); n != 0 || err != io.EOF {
-		return fmt.Errorf("range response exceeded expected length")
+		return 0, fmt.Errorf("range response exceeded expected length")
 	}
-	return nil
+	return w.n, nil
 }

@@ -149,6 +149,59 @@ func TestAndroidLicenseSnapshot(t *testing.T) {
 	}
 }
 
+func TestDownloadFailureCanDiscardSavedProgress(t *testing.T) {
+	a := fixture()
+	a.page = pageDownloads
+	e := a.downloads[0]
+	dir := t.TempDir()
+	dest := filepath.Join(dir, "editor.exe")
+	file, _, _, _, release, err := openResume(dest, e.URL, "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", `"stable"`, parallelMinimumSize)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := file.Close(); err != nil {
+		release()
+		t.Fatal(err)
+	}
+	release()
+	a.jobs[jobKey(e)] = &downloadJob{Entry: e, Path: dest, Status: "failedDownload", Err: "network interrupted"}
+	tt := ui.NewTester(a.view, 1180, 760)
+	if !tt.HasText(locales.ActionRetryDownload()) || !tt.HasText(locales.ActionDiscardDownload()) {
+		t.Fatalf("download recovery controls missing: %q", tt.Texts())
+	}
+	if err := tt.Click(locales.ActionDiscardDownload()); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := a.jobs[jobKey(e)]; ok {
+		t.Fatal("failed job not cleared")
+	}
+	if entries, err := os.ReadDir(dir); err != nil || len(entries) != 0 {
+		t.Fatalf("progress not removed: %v %v", entries, err)
+	}
+}
+
+func TestDownloadRecoverySnapshot(t *testing.T) {
+	path := os.Getenv("DOWNLOAD_RECOVERY_SNAPSHOT")
+	if path == "" {
+		t.Skip("set DOWNLOAD_RECOVERY_SNAPSHOT to inspect download controls")
+	}
+	a := fixture()
+	a.page = pageDownloads
+	e := a.downloads[0]
+	a.jobs[jobKey(e)] = &downloadJob{Entry: e, Path: filepath.Join(t.TempDir(), "editor.exe"), Status: "failedDownload", Err: "network interrupted; resume available"}
+	a.jobs[jobKey(a.downloads[1])].Speed = 15 << 20
+	tt := ui.NewTester(a.view, 1180, 760)
+	tt.Frame()
+	if err := writePNG(path, tt.Image()); err != nil {
+		t.Fatal(err)
+	}
+	small := ui.NewTester(a.view, 900, 560)
+	small.Frame()
+	if err := writePNG(path+".small.png", small.Image()); err != nil {
+		t.Fatal(err)
+	}
+}
+
 // The view runs without a window in tests, which click as a user would.
 func TestView(t *testing.T) {
 	a := fixture()

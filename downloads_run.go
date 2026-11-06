@@ -3,12 +3,15 @@ package main
 import (
 	"context"
 	"fmt"
+	"hash"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"unitystarter/locales"
 )
 
 // downloadJob is an editor being downloaded or installed, as the downloads
@@ -16,9 +19,10 @@ import (
 type downloadJob struct {
 	Entry  downloadEntry
 	Path   string
-	Status string // downloading, downloaded, installing, installed, failedDownload, failedInstall
+	Status string // downloading, downloaded, installing, installed, clearing, failedDownload, failedInstall
 	Done   int64
 	Total  int64
+	Speed  int64
 	Err    string
 	cancel context.CancelFunc
 }
@@ -26,6 +30,40 @@ type downloadJob struct {
 func jobKey(e downloadEntry) string { return e.Engine + " " + e.Version }
 
 func downloadsDir() string { return filepath.Join(userDataDir(), "downloads") }
+
+// Unity's release API supplies an exact byte count. Tuanjie Hub's legacy
+// catalog contains rounded estimates, so it must not be used as a hard limit.
+func editorDownloadExpectedSize(e downloadEntry) int64 {
+	if e.Engine == kindUnity && e.Size > 0 {
+		return e.Size
+	}
+	return 0
+}
+
+func (a *app) discardDownload(e downloadEntry, job *downloadJob) {
+	key := jobKey(e)
+	if a.jobs[key] != job || job.Status != "failedDownload" {
+		return
+	}
+	job.Status = "clearing"
+	finish := func(err error) {
+		if a.jobs[key] != job {
+			return
+		}
+		if err != nil {
+			job.Status = "failedDownload"
+			a.alert(locales.OpenFailed(err.Error()))
+			return
+		}
+		delete(a.jobs, key)
+	}
+	if a.win == nil {
+		finish(discardResume(job.Path))
+		return
+	}
+	win := a.win
+	go func() { err := discardResume(job.Path); win.Update(func() { finish(err) }) }()
+}
 
 // installRoot is where downloaded editors go, a folder per version, as the
 // hubs do.
@@ -60,13 +98,22 @@ func (a *app) startDownload(e downloadEntry) {
 	logger.Printf("download: %s %s from %s", e.Engine, e.Version, e.URL)
 	go func() {
 		last := time.Now()
-		err := downloadFileVerified(ctx, e.URL, job.Path, e.Integrity, func(done, total int64) {
+		started := time.Now()
+		base := int64(-1)
+		err := downloadFileVerifiedSize(ctx, e.URL, job.Path, e.Integrity, editorDownloadExpectedSize(e), func(done, total int64) {
+			if base < 0 || done < base {
+				base, started = done, time.Now()
+			}
 			if time.Since(last) < 150*time.Millisecond {
 				return
 			}
 			last = time.Now()
+			var speed int64
+			if elapsed := time.Since(started).Seconds(); elapsed > 0 {
+				speed = int64(float64(done-base) / elapsed)
+			}
 			win.Update(func() {
-				job.Done, job.Total = done, total
+				job.Done, job.Total, job.Speed = done, total, speed
 			})
 		})
 		win.Update(func() {
@@ -103,6 +150,14 @@ func downloadFileVerifiedSize(ctx context.Context, from, to, integrity string, e
 	digest, expected, err := integrityHasher(integrity)
 	if err != nil {
 		return err
+	}
+	if digest != nil {
+		if reused, err := reuseVerifiedDownload(ctx, to, expectedSize, digest, expected, progress); err != nil {
+			return err
+		} else if reused {
+			return nil
+		}
+		digest.Reset()
 	}
 	if handled, err := parallelDownload(ctx, from, to, integrity, expectedSize, progress); handled {
 		return err
@@ -172,7 +227,43 @@ func downloadFileVerifiedSize(ctx context.Context, from, to, integrity string, e
 		os.Remove(part)
 		return err
 	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	return os.Rename(part, to)
+}
+
+func reuseVerifiedDownload(ctx context.Context, to string, expectedSize int64, digest hash.Hash, expected []byte, progress func(int64, int64)) (bool, error) {
+	info, err := os.Lstat(to)
+	if err != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 || (expectedSize > 0 && info.Size() != expectedSize) {
+		return false, nil
+	}
+	file, err := os.Open(to)
+	if err != nil {
+		return false, nil
+	}
+	defer file.Close()
+	opened, err := file.Stat()
+	if err != nil || !os.SameFile(info, opened) {
+		return false, nil
+	}
+	if _, err := io.Copy(digest, &cancelableReader{ctx: ctx, reader: file}); err != nil {
+		if ctx.Err() != nil {
+			return false, ctx.Err()
+		}
+		return false, nil
+	}
+	if err := verifyIntegrity(digest, expected); err != nil {
+		return false, nil
+	}
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
+	progress(info.Size(), info.Size())
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 // installerArgs are the arguments the hubs pass to an editor's installer:
