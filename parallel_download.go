@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,6 +17,8 @@ import (
 const parallelMinimumSize = 8 << 20
 const parallelWorkers = 6
 const downloadUserAgent = "UnityStarter/1.0"
+
+var errRangeIgnored = errors.New("server ignored download range")
 
 func downloadSegmentBoundary(total int64, index int) int64 {
 	return (total/parallelWorkers)*int64(index) + (total%parallelWorkers)*int64(index)/parallelWorkers
@@ -214,7 +217,7 @@ func parallelDownload(ctx context.Context, from, to, integrity string, expectedS
 				completed = base + received
 				report(i, completed)
 				chunkErr = rangeErr
-				if chunkErr == nil || workCtx.Err() != nil {
+				if chunkErr == nil || errors.Is(chunkErr, errRangeIgnored) || workCtx.Err() != nil {
 					break
 				}
 				if attempt == 2 {
@@ -240,6 +243,13 @@ func parallelDownload(ctx context.Context, from, to, integrity string, expectedS
 		return true, checkpointErr
 	}
 	if firstErr != nil {
+		// A CDN may claim range support yet answer a range request with 200,
+		// including when its If-Range validator has changed. Discard all
+		// partial ranges and let the caller start a fresh streaming download.
+		if errors.Is(firstErr, errRangeIgnored) && ctx.Err() == nil {
+			progress(0, 0)
+			return false, nil
+		}
 		if resumable && ctx.Err() == nil {
 			var retained int64
 			for _, n := range done {
@@ -326,6 +336,9 @@ func downloadRangeWithIdle(ctx context.Context, from string, file *os.File, star
 		return 0, err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusOK {
+		return 0, errRangeIgnored
+	}
 	want := fmt.Sprintf("bytes %d-%d/%d", start, end, total)
 	if resp.StatusCode != http.StatusPartialContent || resp.Header.Get("Content-Range") != want {
 		return 0, fmt.Errorf("invalid range response: %s, %q", resp.Status, resp.Header.Get("Content-Range"))

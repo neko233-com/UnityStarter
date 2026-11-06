@@ -170,6 +170,89 @@ func TestRangeProbeFallsBackSafely(t *testing.T) {
 	}
 }
 
+func TestAdvertisedRangeIgnoredFallsBackToVerifiedStream(t *testing.T) {
+	oldPayload := bytes.Repeat([]byte("a"), parallelMinimumSize+4096)
+	newPayload := bytes.Repeat([]byte("b"), len(oldPayload))
+	for _, changed := range []bool{false, true} {
+		t.Run(fmt.Sprintf("changed=%v", changed), func(t *testing.T) {
+			var segments, streams atomic.Int32
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("ETag", `"first"`)
+				w.Header().Set("Accept-Ranges", "bytes")
+				w.Header().Set("Content-Length", fmt.Sprint(len(oldPayload)))
+				if r.Method == http.MethodHead {
+					return
+				}
+				if r.Header.Get("Range") != "" {
+					segments.Add(1)
+					// A changed If-Range or a misbehaving CDN can return 200.
+					w.WriteHeader(http.StatusOK)
+					return
+				}
+				streams.Add(1)
+				if changed {
+					_, _ = w.Write(newPayload)
+				} else {
+					_, _ = w.Write(oldPayload)
+				}
+			}))
+			defer server.Close()
+			sum := sha256.Sum256(oldPayload)
+			dir := t.TempDir()
+			dest := filepath.Join(dir, "editor.exe")
+			err := downloadFileVerifiedSize(context.Background(), server.URL, dest, "sha256-"+base64.StdEncoding.EncodeToString(sum[:]), int64(len(oldPayload)), func(int64, int64) {})
+			if changed {
+				if err == nil {
+					t.Fatal("changed content passed its original checksum")
+				}
+				if _, statErr := os.Stat(dest); !os.IsNotExist(statErr) {
+					t.Fatalf("unverified file was published: %v", statErr)
+				}
+			} else {
+				got, readErr := os.ReadFile(dest)
+				if err != nil || readErr != nil || !bytes.Equal(got, oldPayload) {
+					t.Fatalf("fallback failed: download=%v read=%v", err, readErr)
+				}
+			}
+			if segments.Load() < 1 || segments.Load() > parallelWorkers || streams.Load() != 1 {
+				t.Fatalf("unexpected requests: segments=%d streams=%d", segments.Load(), streams.Load())
+			}
+			entries, readErr := os.ReadDir(dir)
+			if readErr != nil || len(entries) != map[bool]int{false: 1, true: 0}[changed] {
+				t.Fatalf("partial files remained: %v, %v", entries, readErr)
+			}
+		})
+	}
+}
+
+func TestCancelAtRangeFallbackDoesNotStartStream(t *testing.T) {
+	var streams atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("ETag", `"stable"`)
+		w.Header().Set("Accept-Ranges", "bytes")
+		w.Header().Set("Content-Length", fmt.Sprint(parallelMinimumSize))
+		if r.Method != http.MethodHead && r.Header.Get("Range") == "" {
+			streams.Add(1)
+		}
+	}))
+	defer server.Close()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	dir := t.TempDir()
+	dest := filepath.Join(dir, "editor.exe")
+	err := downloadFile(ctx, server.URL, dest, func(done, total int64) {
+		if done == 0 && total == 0 {
+			cancel()
+		}
+	})
+	if err == nil || streams.Load() != 0 {
+		t.Fatalf("cancellation should stop fallback: err=%v streams=%d", err, streams.Load())
+	}
+	if entries, readErr := os.ReadDir(dir); readErr != nil || len(entries) != 0 {
+		t.Fatalf("cancellation left files: %v, %v", entries, readErr)
+	}
+}
+
 func TestOfficialUnityDirectParallelProbe(t *testing.T) {
 	if os.Getenv("UNITYSTARTER_OFFICIAL_PROBE") != "1" {
 		t.Skip("set UNITYSTARTER_OFFICIAL_PROBE=1 for a direct network check")
