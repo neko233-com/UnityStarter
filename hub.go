@@ -115,8 +115,11 @@ func (h hub) addProject(p projectEntry) error {
 		return errNoRegistry
 	}
 	doc, data := readRegistry(h.Registry)
-	if _, ok := data[p.Path]; ok {
-		return nil
+	key := localProjectKey(p.Path)
+	for path := range data {
+		if localProjectKey(path) == key {
+			return nil
+		}
 	}
 	entry := map[string]any{
 		"title":                p.Name,
@@ -149,8 +152,9 @@ func (h hub) addProject(p projectEntry) error {
 func (h hub) setFavorite(path string, on bool) error {
 	paths := h.favorites()
 	next := make([]string, 0, len(paths)+1)
+	key := localProjectKey(path)
 	for _, p := range paths {
-		if p != path {
+		if localProjectKey(p) != key {
 			next = append(next, p)
 		}
 	}
@@ -163,15 +167,22 @@ func (h hub) setFavorite(path string, on bool) error {
 	}
 	if h.writable() {
 		doc, data := readRegistry(h.Registry)
-		if raw, ok := data[path]; ok {
+		changed := false
+		for storedPath, raw := range data {
+			if localProjectKey(storedPath) != key {
+				continue
+			}
 			var entry map[string]any
 			if json.Unmarshal(raw, &entry) == nil {
 				entry["isFavorite"] = on
 				if b, err := json.Marshal(entry); err == nil {
-					data[path] = b
-					return writeRegistry(h.Registry, doc, data)
+					data[storedPath] = b
+					changed = true
 				}
 			}
+		}
+		if changed {
+			return writeRegistry(h.Registry, doc, data)
 		}
 	}
 	return nil
@@ -295,8 +306,13 @@ func randomID() string {
 // lists reports whether the hub's project list already holds a path.
 func (h hub) lists(path string) bool {
 	_, data := readRegistry(h.Registry)
-	_, ok := data[path]
-	return ok
+	key := localProjectKey(path)
+	for stored := range data {
+		if localProjectKey(stored) == key {
+			return true
+		}
+	}
+	return false
 }
 
 // exportProjects adds projects to the hubs that own their engine, where those

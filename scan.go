@@ -365,10 +365,24 @@ func scanProjectsInMode(p prefs, editors []editorInstall, hubs []hub, roots []st
 	found := map[string]projectEntry{}
 	add := func(dir string, hint projectHint) {
 		dir = filepath.Clean(dir)
-		if _, hidden := p.HiddenProjects[localProjectKey(dir)]; hidden {
+		key := localProjectKey(dir)
+		if _, hidden := p.HiddenProjects[key]; hidden {
 			return
 		}
-		if _, ok := found[dir]; ok {
+		if existing, ok := found[key]; ok {
+			if _, overridden := p.LocalFavorites[key]; !overridden && hint.Favorite {
+				existing.Favorite = true
+			}
+			if hint.Hub == existing.Kind {
+				existing.Hub = hint.Hub
+			}
+			if hint.Title != "" && existing.Name == filepath.Base(existing.Path) {
+				existing.Name = hint.Title
+			}
+			if hint.Modified.After(existing.Modified) {
+				existing.Modified = hint.Modified
+			}
+			found[key] = existing
 			return
 		}
 		version, info, ok := readProject(dir)
@@ -393,10 +407,10 @@ func scanProjectsInMode(p prefs, editors []editorInstall, hubs []hub, roots []st
 			vcs = detectVSCCached(dir)
 		}
 		favorite := hint.Favorite
-		if local, ok := p.LocalFavorites[localProjectKey(dir)]; ok {
+		if local, ok := p.LocalFavorites[key]; ok {
 			favorite = local
 		}
-		found[dir] = projectEntry{
+		found[key] = projectEntry{
 			Path:     dir,
 			Name:     name,
 			Version:  version,
