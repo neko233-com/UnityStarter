@@ -224,11 +224,11 @@ func (msgs Messages) InstallModules() string {
 	return Catalog.Format(msgs.locale, "installModules", nil)
 }
 
-// InstallModuleHint says "Installed modules come from the Editor's modules.json. Verified standalone official installers without extra licenses…"
+// InstallModuleHint says "Verified standalone platform modules and OpenJDK are supported. Modules with licenses or multiple dependencies, such …"
 // in the language the app shows.
 func InstallModuleHint() string { return In(i18n.Locale()).InstallModuleHint() }
 
-// InstallModuleHint says "Installed modules come from the Editor's modules.json. Verified standalone official installers without extra licenses…"
+// InstallModuleHint says "Verified standalone platform modules and OpenJDK are supported. Modules with licenses or multiple dependencies, such …"
 // in the language of msgs.
 func (msgs Messages) InstallModuleHint() string {
 	return Catalog.Format(msgs.locale, "installModuleHint", nil)
@@ -242,6 +242,16 @@ func InstallModuleUnavailable() string { return In(i18n.Locale()).InstallModuleU
 // in the language of msgs.
 func (msgs Messages) InstallModuleUnavailable() string {
 	return Catalog.Format(msgs.locale, "installModuleUnavailable", nil)
+}
+
+// InstallModuleNeedsParent says "Install the corresponding platform module first."
+// in the language the app shows.
+func InstallModuleNeedsParent() string { return In(i18n.Locale()).InstallModuleNeedsParent() }
+
+// InstallModuleNeedsParent says "Install the corresponding platform module first."
+// in the language of msgs.
+func (msgs Messages) InstallModuleNeedsParent() string {
+	return Catalog.Format(msgs.locale, "installModuleNeedsParent", nil)
 }
 
 // InstallModuleProgress says "Downloading or installing module…"
@@ -272,6 +282,26 @@ func InstallModuleDone() string { return In(i18n.Locale()).InstallModuleDone() }
 // in the language of msgs.
 func (msgs Messages) InstallModuleDone() string {
 	return Catalog.Format(msgs.locale, "installModuleDone", nil)
+}
+
+// InstallModuleLocalOnly says "Module installed and recorded locally, but the official Hub's module list could not be updated."
+// in the language the app shows.
+func InstallModuleLocalOnly() string { return In(i18n.Locale()).InstallModuleLocalOnly() }
+
+// InstallModuleLocalOnly says "Module installed and recorded locally, but the official Hub's module list could not be updated."
+// in the language of msgs.
+func (msgs Messages) InstallModuleLocalOnly() string {
+	return Catalog.Format(msgs.locale, "installModuleLocalOnly", nil)
+}
+
+// InstallModuleRecordFailed says "Module files were installed, but their status could not be saved; check permissions or the official Hub's module list"
+// in the language the app shows.
+func InstallModuleRecordFailed() string { return In(i18n.Locale()).InstallModuleRecordFailed() }
+
+// InstallModuleRecordFailed says "Module files were installed, but their status could not be saved; check permissions or the official Hub's module list"
+// in the language of msgs.
+func (msgs Messages) InstallModuleRecordFailed() string {
+	return Catalog.Format(msgs.locale, "installModuleRecordFailed", nil)
 }
 
 // InstallUninstall says "Uninstall Editor"

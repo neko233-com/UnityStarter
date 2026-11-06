@@ -32,7 +32,7 @@ func TestUnityModuleCatalogAndOwnedState(t *testing.T) {
 	if err := markModuleInstalled(root, modules[0]); err != nil {
 		t.Fatal(err)
 	}
-	if !readModuleState(root)["webgl"] {
+	if !readModuleState(root)["webgl"].Installed {
 		t.Fatal("owned state not saved")
 	}
 	if _, err := os.Stat(filepath.Join(root, "modules.json")); !os.IsNotExist(err) {
@@ -84,6 +84,40 @@ func TestModuleMetadataValidationAndPreservation(t *testing.T) {
 	}
 	if rows[0]["selected"] != true || rows[1]["selected"] != false || rows[0]["unknown"].(map[string]any)["keep"] != float64(42) {
 		t.Fatalf("metadata lost: %s", out)
+	}
+}
+
+func TestOwnedModuleStateRequiresMatchingMetadataAndFiles(t *testing.T) {
+	t.Setenv("APPDATA", t.TempDir())
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	root := t.TempDir()
+	m := editorModule{ID: "webgl", Name: "Web", URL: "https://download.unity3d.com/a.exe", Checksum: strings.Repeat("a", 32), Destination: "{UNITY_PATH}"}
+	data, err := json.Marshal([]editorModule{m})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "modules.json"), data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := markOwnedModuleInstalled(root, m); err != nil {
+		t.Fatal(err)
+	}
+	if got := readEditorModules(root); len(got) != 1 || got[0].Selected {
+		t.Fatalf("missing files marked installed: %+v", got)
+	}
+	if err := os.MkdirAll(filepath.Join(root, "Editor", "Data", "PlaybackEngines", "WebGLSupport"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if got := readEditorModules(root); len(got) != 1 || !got[0].Selected {
+		t.Fatalf("owned state not restored: %+v", got)
+	}
+	m.URL = "https://download.unity3d.com/changed.exe"
+	data, _ = json.Marshal([]editorModule{m})
+	if err := os.WriteFile(filepath.Join(root, "modules.json"), data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := readEditorModules(root); len(got) != 1 || got[0].Selected {
+		t.Fatalf("changed metadata accepted: %+v", got)
 	}
 }
 

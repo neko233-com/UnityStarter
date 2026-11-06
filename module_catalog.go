@@ -130,17 +130,44 @@ func moduleStatePath(root string) string {
 	return filepath.Join(userDataDir(), "modules", hex.EncodeToString(digest[:])+".json")
 }
 
-func readModuleState(root string) map[string]bool {
-	state := map[string]bool{}
-	if data, err := os.ReadFile(moduleStatePath(root)); err == nil {
-		_ = json.Unmarshal(data, &state)
+type ownedModuleState struct {
+	Installed   bool   `json:"installed"`
+	Fingerprint string `json:"fingerprint,omitempty"`
+}
+
+func moduleFingerprint(m editorModule) string {
+	sum := sha256.Sum256([]byte(m.ID + "\x00" + m.URL + "\x00" + m.Checksum + "\x00" + m.Destination))
+	return hex.EncodeToString(sum[:])
+}
+
+func readModuleState(root string) map[string]ownedModuleState {
+	state := map[string]ownedModuleState{}
+	var raw map[string]json.RawMessage
+	if data, err := os.ReadFile(moduleStatePath(root)); err != nil || json.Unmarshal(data, &raw) != nil {
+		return state
+	}
+	for id, value := range raw {
+		var record ownedModuleState
+		if json.Unmarshal(value, &record) == nil {
+			state[id] = record
+			continue
+		}
+		var legacy bool
+		if json.Unmarshal(value, &legacy) == nil && legacy {
+			state[id] = ownedModuleState{Installed: true}
+		}
 	}
 	return state
 }
 
-func markOwnedModuleInstalled(root, id string) error {
+func moduleStateMatches(state map[string]ownedModuleState, m editorModule) bool {
+	record, ok := state[m.ID]
+	return ok && record.Installed && (record.Fingerprint == "" || record.Fingerprint == moduleFingerprint(m))
+}
+
+func markOwnedModuleInstalled(root string, module editorModule) error {
 	state := readModuleState(root)
-	state[id] = true
+	state[module.ID] = ownedModuleState{Installed: true, Fingerprint: moduleFingerprint(module)}
 	data, err := json.Marshal(state)
 	if err != nil {
 		return err
@@ -164,10 +191,8 @@ func moduleCatalog(ctx context.Context, e editorInstall) ([]editorModule, error)
 	}
 	state := readModuleState(e.Root)
 	for i := range modules {
-		if state[modules[i].ID] && moduleOutput(modules[i]) != "" {
-			if info, err := os.Stat(filepath.Join(e.Root, "Editor", "Data", "PlaybackEngines", moduleOutput(modules[i]))); err == nil && info.IsDir() {
-				modules[i].Selected = true
-			}
+		if moduleStateMatches(state, modules[i]) && moduleFilesPresent(e.Root, modules[i]) {
+			modules[i].Selected = true
 		}
 	}
 	return modules, nil

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/md5"
+	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -78,6 +79,39 @@ func TestParallelDownloadAndIntegrity(t *testing.T) {
 	defer mu.Unlock()
 	if ranges != parallelWorkers || maxActive < 2 {
 		t.Fatalf("expected concurrent ranges, requests=%d maxActive=%d", ranges, maxActive)
+	}
+}
+
+func TestSHA256DownloadsVerifyAndCleanUp(t *testing.T) {
+	for _, size := range []int{1024, parallelMinimumSize + 1024} {
+		t.Run(fmt.Sprint(size), func(t *testing.T) {
+			payload := bytes.Repeat([]byte("a"), size)
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("ETag", `"stable"`)
+				http.ServeContent(w, r, "module.zip", time.Time{}, bytes.NewReader(payload))
+			}))
+			defer server.Close()
+			sum := sha256.Sum256(payload)
+			integrity := "sha256-" + base64.StdEncoding.EncodeToString(sum[:])
+			dir := t.TempDir()
+			dest := filepath.Join(dir, "module.zip")
+			if err := downloadFileVerified(context.Background(), server.URL, dest, integrity, func(int64, int64) {}); err != nil {
+				t.Fatal(err)
+			}
+			if got, err := os.ReadFile(dest); err != nil || !bytes.Equal(got, payload) {
+				t.Fatalf("download mismatch: %v", err)
+			}
+			if err := os.Remove(dest); err != nil {
+				t.Fatal(err)
+			}
+			bad := "sha256-" + base64.StdEncoding.EncodeToString(make([]byte, sha256.Size))
+			if err := downloadFileVerified(context.Background(), server.URL, dest, bad, func(int64, int64) {}); err == nil {
+				t.Fatal("bad SHA-256 accepted")
+			}
+			if entries, _ := os.ReadDir(dir); len(entries) != 0 {
+				t.Fatalf("partial files remain: %v", entries)
+			}
+		})
 	}
 }
 

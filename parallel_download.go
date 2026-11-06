@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/md5"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
@@ -110,12 +108,15 @@ func parallelDownload(ctx context.Context, from, to, integrity string, progress 
 		return true, err
 	}
 	if integrity != "" {
-		hash := md5.New() // Unity's release API supplies MD5.
+		hash, expected, err := integrityHasher(integrity)
+		if err != nil {
+			return true, err
+		}
 		if _, err := io.Copy(hash, io.NewSectionReader(file, 0, total)); err != nil {
 			return true, err
 		}
-		if "md5-"+base64.StdEncoding.EncodeToString(hash.Sum(nil)) != integrity {
-			return true, fmt.Errorf("installer integrity mismatch")
+		if err := verifyIntegrity(hash, expected); err != nil {
+			return true, err
 		}
 	}
 	if err := file.Close(); err != nil {

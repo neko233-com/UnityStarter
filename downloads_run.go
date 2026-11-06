@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/md5"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
@@ -95,8 +93,9 @@ func downloadFile(ctx context.Context, from, to string, progress func(done, tota
 }
 
 func downloadFileVerified(ctx context.Context, from, to, integrity string, progress func(done, total int64)) error {
-	if integrity != "" && !strings.HasPrefix(integrity, "md5-") {
-		return fmt.Errorf("unsupported installer integrity: %s", integrity)
+	digest, expected, err := integrityHasher(integrity)
+	if err != nil {
+		return err
 	}
 	if handled, err := parallelDownload(ctx, from, to, integrity, progress); handled {
 		return err
@@ -124,7 +123,6 @@ func downloadFileVerified(ctx context.Context, from, to, integrity string, progr
 	defer os.Remove(part)
 	total := resp.ContentLength
 	var done int64
-	digest := md5.New() // Unity's release API supplies an MD5 integrity value.
 	buf := make([]byte, 1<<20)
 	for {
 		n, readErr := resp.Body.Read(buf)
@@ -135,7 +133,9 @@ func downloadFileVerified(ctx context.Context, from, to, integrity string, progr
 				return err
 			}
 			done += int64(n)
-			_, _ = digest.Write(buf[:n])
+			if digest != nil {
+				_, _ = digest.Write(buf[:n])
+			}
 			progress(done, total)
 		}
 		if readErr == io.EOF {
@@ -151,9 +151,9 @@ func downloadFileVerified(ctx context.Context, from, to, integrity string, progr
 		os.Remove(part)
 		return err
 	}
-	if integrity != "" && "md5-"+base64.StdEncoding.EncodeToString(digest.Sum(nil)) != integrity {
+	if err := verifyIntegrity(digest, expected); err != nil {
 		os.Remove(part)
-		return fmt.Errorf("installer integrity mismatch")
+		return err
 	}
 	return os.Rename(part, to)
 }

@@ -40,6 +40,12 @@ func readEditorModules(root string) []editorModule {
 	if err != nil || json.Unmarshal(data, &modules) != nil {
 		return nil
 	}
+	state := readModuleState(root)
+	for i := range modules {
+		if moduleStateMatches(state, modules[i]) && moduleFilesPresent(root, modules[i]) {
+			modules[i].Selected = true
+		}
+	}
 	return modules
 }
 
@@ -53,10 +59,9 @@ func installedModuleNames(modules []editorModule) []string {
 	return names
 }
 
-// The Hub metadata also describes ZIPs, dependent components, external tools
-// and licenses. Only standalone, checksummed official NSIS modules can be
-// safely handled by this installer.
-var moduleIDPattern = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]*$`)
+// The Hub metadata also describes dependent components, external tools and
+// licenses. Only explicitly validated installers and OpenJDK archives are handled.
+var moduleIDPattern = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._+\-]*$`)
 
 func moduleOutput(m editorModule) string {
 	switch m.ID {
@@ -90,13 +95,26 @@ func standaloneModule(m editorModule) bool {
 	return err == nil && len(digest) == 16 && strings.HasSuffix(strings.ToLower(u.Path), ".exe") && m.Command == "" && m.Parent == "" && m.EULA == "" && m.EULA2 == "" && m.Destination == "{UNITY_PATH}" && moduleIDPattern.MatchString(m.ID) && moduleOutput(m) != ""
 }
 
+func moduleInstallSpec(e editorInstall, m editorModule) (integrity, player, extension string, ok bool) {
+	if standaloneModule(m) {
+		digest, _ := hex.DecodeString(m.Checksum)
+		return "md5-" + base64.StdEncoding.EncodeToString(digest), "", ".exe", true
+	}
+	if sum, player, valid := openJDKArchive(m); valid && parentModuleSelected(e.Modules, m.Parent) {
+		return sum, player, ".zip", true
+	}
+	return "", "", "", false
+}
+
 // Update only the selected field and retain all metadata the official Hub
 // uses. Re-read after the installer exits so unrelated edits are not lost.
+var errModuleMetadataChanged = errors.New("module metadata changed during installation")
+
 func markModuleInstalled(root string, module editorModule) error {
 	path := filepath.Join(root, "modules.json")
 	data, err := os.ReadFile(path)
 	if os.IsNotExist(err) {
-		return markOwnedModuleInstalled(root, module.ID)
+		return markOwnedModuleInstalled(root, module)
 	}
 	if err != nil {
 		return err
@@ -113,7 +131,7 @@ func markModuleInstalled(root string, module editorModule) error {
 			var current editorModule
 			encoded, err := json.Marshal(row)
 			if err != nil || json.Unmarshal(encoded, &current) != nil || current.URL != module.URL || current.Checksum != module.Checksum {
-				return fmt.Errorf("module metadata changed during installation")
+				return errModuleMetadataChanged
 			}
 			row["selected"] = json.RawMessage("true")
 			found = true
@@ -131,7 +149,8 @@ func markModuleInstalled(root string, module editorModule) error {
 }
 
 func (a *app) installEditorModule(e editorInstall, m editorModule) {
-	if a.win == nil || a.moduleBusy || e.Simulated || m.Selected || !standaloneModule(m) {
+	integrity, player, extension, supported := moduleInstallSpec(e, m)
+	if a.win == nil || a.moduleBusy || e.Simulated || m.Selected || !supported {
 		return
 	}
 	ctx, cancel := context.WithCancel(context.Background())
@@ -139,10 +158,9 @@ func (a *app) installEditorModule(e editorInstall, m editorModule) {
 	win := a.win
 	go func() {
 		defer cancel()
-		digest, _ := hex.DecodeString(m.Checksum)
-		path := filepath.Join(downloadsDir(), "module-"+e.Version+"-"+m.ID+".exe")
+		path := filepath.Join(downloadsDir(), "module-"+e.Version+"-"+m.ID+extension)
 		last := time.Now()
-		err := downloadFileVerified(ctx, m.URL, path, "md5-"+base64.StdEncoding.EncodeToString(digest), func(done, total int64) {
+		err := downloadFileVerified(ctx, m.URL, path, integrity, func(done, total int64) {
 			if time.Since(last) < 200*time.Millisecond {
 				return
 			}
@@ -169,17 +187,29 @@ func (a *app) installEditorModule(e editorInstall, m editorModule) {
 			if !<-ready {
 				err = context.Canceled
 			} else {
-				err = runEditorInstaller(path, e.Kind, e.Root)
+				if player != "" {
+					err = installOpenJDK(e.Root, path, player, integrity)
+				} else {
+					err = runEditorInstaller(path, e.Kind, e.Root)
+				}
 			}
 		}
-		if err == nil {
+		if err == nil && player == "" {
 			output := filepath.Join(e.Root, "Editor", "Data", "PlaybackEngines", moduleOutput(m))
 			if info, statErr := os.Stat(output); statErr != nil || !info.IsDir() {
 				err = fmt.Errorf("module installation completed but expected files were not found")
 			}
 		}
+		physicalDone := err == nil
+		localOnly := false
 		if err == nil {
 			err = markModuleInstalled(e.Root, m)
+			if err != nil && !errors.Is(err, errModuleMetadataChanged) {
+				if localErr := markOwnedModuleInstalled(e.Root, m); localErr == nil {
+					localOnly = true
+					err = nil
+				}
+			}
 		}
 		win.Update(func() {
 			a.moduleBusy = false
@@ -190,10 +220,17 @@ func (a *app) installEditorModule(e editorInstall, m editorModule) {
 				return
 			}
 			if err != nil {
-				a.moduleStatus = locales.OpenFailed(err.Error())
+				if physicalDone {
+					a.moduleStatus = locales.InstallModuleRecordFailed() + ": " + err.Error()
+				} else {
+					a.moduleStatus = locales.OpenFailed(err.Error())
+				}
 				return
 			}
 			a.moduleStatus = locales.InstallModuleDone()
+			if localOnly {
+				a.moduleStatus = locales.InstallModuleLocalOnly()
+			}
 			modules := readEditorModules(e.Root)
 			if len(modules) == 0 {
 				modules = append([]editorModule(nil), e.Modules...)
@@ -264,9 +301,14 @@ func (a *app) editorManageDialog(c *ui.Context) {
 								if m.Selected {
 									ui.Badge(c, locales.DownloadsInstalled())
 								} else {
-									button := ui.Button(c, locales.ActionInstall()).Disabled(a.moduleBusy || !standaloneModule(m)).OnClick(func() { a.installEditorModule(e, m) })
-									if !standaloneModule(m) {
-										button.Tooltip(locales.InstallModuleUnavailable())
+									_, _, _, supported := moduleInstallSpec(e, m)
+									button := ui.Button(c, locales.ActionInstall()).Disabled(a.moduleBusy || !supported).OnClick(func() { a.installEditorModule(e, m) })
+									if !supported {
+										if _, _, archive := openJDKArchive(m); archive && !parentModuleSelected(e.Modules, m.Parent) {
+											button.Tooltip(locales.InstallModuleNeedsParent())
+										} else {
+											button.Tooltip(locales.InstallModuleUnavailable())
+										}
 									}
 								}
 							})
