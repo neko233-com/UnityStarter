@@ -523,6 +523,62 @@ func TestView(t *testing.T) {
 	}
 }
 
+func TestTitleBarViewRespectsWindowControlInsets(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		width       int
+		left, right float32
+	}{
+		{"minimum windows", 900, 0, 138},
+		{"large windows", 1180, 0, 138},
+		{"left controls", 900, 78, 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			tt := ui.NewTester(fixture().view, tc.width, 560)
+			tt.SetTitleBar(ui.TitleBar{Height: 36, Left: tc.left, Right: tc.right})
+			bounds, ok := tt.Find(locales.AppTitle())
+			if !ok || bounds.X < tc.left || bounds.X+bounds.W > float32(tc.width)-tc.right || bounds.Y < 0 || bounds.Y+bounds.H > 36 {
+				t.Fatalf("title overlaps window controls or leaves title bar: %+v, found=%v", bounds, ok)
+			}
+			pixel := tt.Image().RGBAAt(tc.width/2, 18)
+			if pixel.R > 80 || pixel.G > 80 || pixel.B > 80 || pixel.A != 255 {
+				t.Fatalf("title bar background is not opaque dark: %+v", pixel)
+			}
+		})
+	}
+}
+
+func TestDownloadNavigationDistinguishesVersionsAndTasks(t *testing.T) {
+	a := fixture()
+	tt := ui.NewTester(a.view, 1180, 760)
+	if locales.SidebarDownloads() == locales.ActivityTitle() {
+		t.Fatal("download versions and tasks have identical labels")
+	}
+	if err := tt.Click(locales.ActivityTitle()); err != nil {
+		t.Fatal(err)
+	}
+	if a.page != pageActivity {
+		t.Fatalf("task navigation opened %q", a.page)
+	}
+	if err := tt.Click(locales.SidebarDownloads()); err != nil {
+		t.Fatal(err)
+	}
+	if a.page != pageDownloads {
+		t.Fatalf("download navigation opened %q", a.page)
+	}
+	a.switchEngine(kindTuanjie)
+	tt.Frame()
+	if a.page != pageTuanjieDownloads {
+		t.Fatalf("engine switch opened %q", a.page)
+	}
+	if err := tt.Click(locales.ActivityTitle()); err != nil {
+		t.Fatal(err)
+	}
+	if a.page != pageActivity {
+		t.Fatalf("task navigation after engine switch opened %q", a.page)
+	}
+}
+
 func TestNativeAlertAndUpdateDialogs(t *testing.T) {
 	a := fixture()
 	a.alert("a specific problem")
@@ -921,6 +977,7 @@ func TestSnapshot(t *testing.T) {
 	for _, page := range []string{pageProjects, pageInstalls, pageDownloads, pageStore, pagePublish, pageLicense, pageDocs, pageFeedback, pageSettings} {
 		a.page = page
 		tt := ui.NewTester(a.view, 1180, 760)
+		tt.SetTitleBar(ui.TitleBar{Height: 36, Right: 138})
 		tt.Frame()
 		name := filepath.Join(dir, "page"+page[1:]+".png")
 		if err := writePNG(name, tt.Image()); err != nil {

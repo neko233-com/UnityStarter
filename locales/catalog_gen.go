@@ -366,11 +366,11 @@ func (msgs Messages) ModuleDiskAvailable(size string) string {
 	return Catalog.Format(msgs.locale, "moduleDiskAvailable", map[string]any{"size": size})
 }
 
-// ActivityTitle says "Downloads"
+// ActivityTitle says "Download tasks"
 // in the language the app shows.
 func ActivityTitle() string { return In(i18n.Locale()).ActivityTitle() }
 
-// ActivityTitle says "Downloads"
+// ActivityTitle says "Download tasks"
 // in the language of msgs.
 func (msgs Messages) ActivityTitle() string {
 	return Catalog.Format(msgs.locale, "activityTitle", nil)

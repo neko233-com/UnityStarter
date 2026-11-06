@@ -34,7 +34,7 @@
   "@moduleSelectedDownload": { "placeholders": { "size": { "type": "String", "example": "1.2 GB" } } },
   "moduleDiskAvailable": "Available: {size}",
   "@moduleDiskAvailable": { "placeholders": { "size": { "type": "String", "example": "100 GB" } } },
-  "activityTitle": "Downloads",
+  "activityTitle": "Download tasks",
   "visualStudioWorkloadMissing": "Workload missing",
   "visualStudioModify": "Add components",
   "visualStudioInstallerOpened": "Installer launch requested. Complete the operation in Visual Studio Installer; components are checked automatically while this app is open.",
