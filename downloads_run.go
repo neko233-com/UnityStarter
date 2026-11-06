@@ -294,7 +294,8 @@ func (a *app) installJob(job *downloadJob) {
 	if a.win == nil {
 		return
 	}
-	dest := filepath.Join(a.installRoot(), job.Entry.Version)
+	root := a.installRoot()
+	dest := filepath.Join(root, job.Entry.Version)
 	if err := prepareEditorInstall(dest); err != nil {
 		job.Status, job.Err = "failedInstall", err.Error()
 		return
@@ -318,7 +319,7 @@ func (a *app) installJob(job *downloadJob) {
 				return
 			}
 			job.Status = "installed"
-			a.prefs.EditorRoots = dedupe(append(a.prefs.EditorRoots, a.installRoot()))
+			a.prefs.EditorRoots = dedupe(append(a.prefs.EditorRoots, root))
 			a.save()
 			a.refresh()
 		})

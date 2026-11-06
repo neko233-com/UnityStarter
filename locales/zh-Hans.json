@@ -80,6 +80,7 @@
   "downloadsInstallFailed": "安装失败：{error}",
   "actionInstall": "安装",
   "settingsInstallRoot": "安装目录",
+  "installChooseLocation": "选择安装位置",
   "settingsInstallRootHint": "下载的编辑器安装到这里，每个版本一个子目录。",
   "settingsDownloadCache": "下载缓存",
   "settingsDownloadCacheHint": "中断的下载保存在这里；旧版本缓存可在文件管理器中查看。",

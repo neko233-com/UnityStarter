@@ -156,14 +156,24 @@ func (a *app) installRootSection(c *ui.Context) {
 				_ = mygo.Shell.OpenPath(root)
 			}
 			if ui.Button(c, locales.ActionChoose()).Clicked() {
-				a.pickFolder(locales.DialogChooseFolder(), func(dir string) {
-					a.prefs.InstallRoot = dir
-					a.save()
-					a.refresh()
-				})
+				a.chooseInstallRoot()
 			}
 		})
 	})
+}
+
+func (a *app) chooseInstallRoot() {
+	a.pickFolder(locales.DialogChooseFolder(), func(dir string) {
+		a.setInstallRoot(dir)
+		a.save()
+		a.refresh()
+	})
+}
+
+func (a *app) setInstallRoot(dir string) {
+	previous := a.installRoot()
+	a.prefs.EditorRoots = dedupe(append(a.prefs.EditorRoots, previous))
+	a.prefs.InstallRoot = dir
 }
 
 // demoSection turns installs into stand-ins, for trying the flow.

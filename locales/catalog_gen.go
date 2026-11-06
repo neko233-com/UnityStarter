@@ -800,6 +800,16 @@ func (msgs Messages) SettingsInstallRoot() string {
 	return Catalog.Format(msgs.locale, "settingsInstallRoot", nil)
 }
 
+// InstallChooseLocation says "Choose install location"
+// in the language the app shows.
+func InstallChooseLocation() string { return In(i18n.Locale()).InstallChooseLocation() }
+
+// InstallChooseLocation says "Choose install location"
+// in the language of msgs.
+func (msgs Messages) InstallChooseLocation() string {
+	return Catalog.Format(msgs.locale, "installChooseLocation", nil)
+}
+
 // SettingsInstallRootHint says "Downloaded editors are installed here, one folder per version."
 // in the language the app shows.
 func SettingsInstallRootHint() string { return In(i18n.Locale()).SettingsInstallRootHint() }

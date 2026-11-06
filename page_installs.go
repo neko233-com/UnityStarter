@@ -20,6 +20,11 @@ func (a *app) installsPage(c *ui.Context) {
 		ui.Button(c, locales.ActionAddFolder()).OnClick(a.addEditorRoot)
 		ui.PrimaryButton(c, locales.InstallEditor()).OnClick(func() { _, _, page, _ := enginePages(engine); a.page = page })
 	})
+	ui.Row(c).Padding(0, 22, 10, 22).Gap(8).AlignItems(ui.Center).Children(func() {
+		ui.Text(c, locales.SettingsInstallRoot()+":").FontSize(12).TextColor(t.TextMuted)
+		ui.Text(c, a.installRoot()).Grow(1).FontSize(12).TextColor(t.TextMuted).Clip().Tooltip(a.installRoot())
+		ui.Button(c, locales.InstallChooseLocation()).OnClick(a.chooseInstallRoot)
+	})
 	ui.Row(c).Padding(0, 22, 14, 22).Gap(8).AlignItems(ui.Center).Children(func() {
 		for _, tab := range []struct{ id, label string }{{"", locales.InstallAll()}, {"official", locales.InstallOfficial()}, {"preview", locales.InstallPreview()}} {
 			tab := tab
