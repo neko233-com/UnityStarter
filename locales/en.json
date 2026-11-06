@@ -18,7 +18,7 @@
   "installEditor": "Install Editor",
   "installManage": "Manage",
   "installModules": "Add modules",
-  "installModuleHint": "Supports official standalone modules, OpenJDK, Tuanjie offline documentation, and some Unity Android SDK/NDK releases. Other modules require the official Hub.",
+  "installModuleHint": "Supports standalone modules, OpenJDK, Tuanjie documentation and language packs, and some Unity Android SDK/NDK releases. Language packs have no official checksum; other modules require the official Hub.",
   "offlineDocsTitle": "Offline documentation",
   "offlineDocsManual": "Manual",
   "offlineDocsAPI": "Scripting API",

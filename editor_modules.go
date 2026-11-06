@@ -102,6 +102,9 @@ func standaloneModule(m editorModule) bool {
 }
 
 func moduleInstallSpec(e editorInstall, m editorModule) (integrity, player, extension string, ok bool) {
+	if _, valid := tuanjieLanguageModule(m); valid && e.Kind == kindTuanjie {
+		return "", languageModule, ".po", true
+	}
 	if standaloneModule(m) {
 		digest, _ := hex.DecodeString(m.Checksum)
 		return "md5-" + base64.StdEncoding.EncodeToString(digest), "", ".exe", true
@@ -173,7 +176,7 @@ func (a *app) installEditorModule(e editorInstall, m editorModule) {
 		if player == documentationModule {
 			expectedSize = m.DownloadSize
 		}
-		err := downloadFileVerifiedSize(ctx, m.URL, path, integrity, expectedSize, func(done, total int64) {
+		progress := func(done, total int64) {
 			if time.Since(last) < 200*time.Millisecond {
 				return
 			}
@@ -183,7 +186,14 @@ func (a *app) installEditorModule(e editorInstall, m editorModule) {
 					a.moduleStatus = fmt.Sprintf("%s %d%%", locales.InstallModuleProgress(), done*100/total)
 				}
 			})
-		})
+		}
+		var language []byte
+		var err error
+		if player == languageModule {
+			language, err = downloadTuanjieLanguage(ctx, m, progress)
+		} else {
+			err = downloadFileVerifiedSize(ctx, m.URL, path, integrity, expectedSize, progress)
+		}
 		if err != nil && !errors.Is(err, context.Canceled) {
 			err = fmt.Errorf("module download failed")
 		}
@@ -200,7 +210,9 @@ func (a *app) installEditorModule(e editorInstall, m editorModule) {
 			if !<-ready {
 				err = context.Canceled
 			} else {
-				if player == documentationModule {
+				if player == languageModule {
+					err = installTuanjieLanguage(e.Root, m, language)
+				} else if player == documentationModule {
 					err = installTuanjieDocumentation(e.Root, path, integrity)
 				} else if player != "" {
 					err = installOpenJDK(e.Root, path, player, integrity)

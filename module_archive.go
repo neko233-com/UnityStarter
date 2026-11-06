@@ -64,6 +64,15 @@ func parentModuleSelected(modules []editorModule, parent string) bool {
 }
 
 func moduleFilesPresent(root string, m editorModule) bool {
+	if language, ok := tuanjieLanguageModule(m); ok {
+		file := filepath.Join(root, "Editor", "Data", "Localization", language+".po")
+		info, err := os.Lstat(file)
+		if err != nil || !info.Mode().IsRegular() || info.Size() > maxLanguageBytes {
+			return false
+		}
+		data, err := os.ReadFile(file)
+		return err == nil && validLanguagePO(data, language)
+	}
 	if _, _, ok := tuanjieDocumentationArchive(m); ok {
 		return documentationFilesPresent(filepath.Join(root, "Editor", "Data", "Documentation"))
 	}
