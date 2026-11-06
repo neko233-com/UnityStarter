@@ -31,7 +31,9 @@ try {
     }
     $notes = Join-Path $dir 'release-notes.txt'
     @'
-UnityStarter 使用原生界面，Unity 与团结引擎分别管理。MSI 版本支持校验下载的自动更新。
+UnityStarter 使用原生界面，左侧切换 Unity 与团结引擎；项目可以选择已安装的同类编辑器版本，并在跨版本打开前确认。安装页支持搜索、筛选、模块清单和编辑器自带的卸载程序。MSI 版本支持校验下载的自动更新。
+
+模块安装支持有官方校验值且无需额外许可或依赖处理的受支持独立模块；其余模块请使用官方 Hub。安装需要管理员权限时由 Windows 提示授权。
 
 Unity Personal 首次激活需要登录 Unity Hub；请查看 README 中的已知限制。发布包未经代码签名，请使用 SHA256SUMS.txt 校验文件。
 '@ | Set-Content -LiteralPath $notes -Encoding utf8

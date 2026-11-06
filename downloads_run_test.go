@@ -230,7 +230,7 @@ func TestInstallerArgs(t *testing.T) {
 		t.Errorf("unity destination %q", unity[1])
 	}
 	tuanjie := installerArgs(kindTuanjie, `D:\Editors\2022.3.62t17`)
-	if tuanjie[1] != `/D="D:\Editors\2022.3.62t17"` {
+	if tuanjie[1] != `/D=D:\Editors\2022.3.62t17` {
 		t.Errorf("tuanjie destination %q", tuanjie[1])
 	}
 }

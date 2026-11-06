@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -162,9 +161,6 @@ func downloadFileVerified(ctx context.Context, from, to, integrity string, progr
 // installerArgs are the arguments the hubs pass to an editor's installer:
 // NSIS's silent switch, then the folder of the version, which must be last.
 func installerArgs(engine, dest string) []string {
-	if engine == kindTuanjie {
-		return []string{"/S", `/D="` + dest + `"`}
-	}
 	return []string{"/S", "/D=" + dest}
 }
 
@@ -179,14 +175,11 @@ func (a *app) installJob(job *downloadJob) {
 		job.Status, job.Err = "failedInstall", err.Error()
 		return
 	}
-	args := installerArgs(job.Entry.Engine, dest)
 	job.Status = "installing"
 	win := a.win
 	logger.Printf("install: %s %s to %s", job.Entry.Engine, job.Entry.Version, dest)
 	go func() {
-		cmd := exec.Command(job.Path, args...)
-		configureInstallerCmd(cmd, job.Entry.Engine, dest)
-		err := cmd.Run()
+		err := runEditorInstaller(job.Path, job.Entry.Engine, dest)
 		if err == nil {
 			err = verifyInstalledEditor(job.Entry.Engine, dest)
 		}

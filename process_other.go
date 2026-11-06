@@ -22,3 +22,7 @@ func startHiddenDetached(exe string, args []string, dir string) error {
 }
 
 func configureInstallerCmd(cmd *exec.Cmd, engine, dest string) {}
+
+func runEditorInstaller(exe, engine, dest string) error {
+	return exec.Command(exe, installerArgs(engine, dest)...).Run()
+}

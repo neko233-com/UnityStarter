@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -170,9 +169,7 @@ func (a *app) installEditorModule(e editorInstall, m editorModule) {
 			if !<-ready {
 				err = context.Canceled
 			} else {
-				cmd := exec.Command(path, installerArgs(e.Kind, e.Root)...)
-				configureInstallerCmd(cmd, e.Kind, e.Root)
-				err = cmd.Run()
+				err = runEditorInstaller(path, e.Kind, e.Root)
 			}
 		}
 		if err == nil {
