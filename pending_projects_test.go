@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 	"unitystarter/locales"
@@ -139,5 +140,29 @@ func TestForgetProjectCreationKeepsFiles(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(path, "keep.txt")); err != nil {
 		t.Fatal("project data was removed")
+	}
+}
+
+func TestPendingProjectDelayedStatusAndEditorLog(t *testing.T) {
+	t.Setenv("LOCALAPPDATA", t.TempDir())
+	now := time.Now()
+	p := pendingProject{Path: `C:\Projects\Game`, Kind: kindUnity, CreatedAt: now.Add(-3 * time.Minute)}
+	if !pendingProjectDelayed(p, now) || pendingProjectDelayed(p, p.CreatedAt.Add(time.Minute)) {
+		t.Fatal("pending delay threshold is incorrect")
+	}
+	a := newApp()
+	a.pendingProjectList = []pendingProject{p}
+	tt := ui.NewTester(a.view, 1180, 760)
+	if !strings.Contains(strings.Join(tt.Texts(), "\n"), locales.NewProjectWaitingLong()) || !tt.HasText(locales.NewProjectEditorLog()) {
+		t.Fatalf("delayed state or log action missing: %q", tt.Texts())
+	}
+	if err := tt.Click(locales.NewProjectEditorLog()); err != nil {
+		t.Fatal(err)
+	}
+	if !a.alertOpen || a.alertMessage != locales.NewProjectLogMissing() {
+		t.Fatal("missing editor log was not reported")
+	}
+	if got := editorLogPath(kindTuanjie); got != filepath.Join(os.Getenv("LOCALAPPDATA"), "Tuanjie", "Editor", "Editor.log") {
+		t.Fatalf("wrong Tuanjie log path: %s", got)
 	}
 }

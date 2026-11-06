@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
@@ -41,11 +42,30 @@ func (a *app) projectsPage(c *ui.Context) {
 		ui.Row(c).Padding(8, 22).Gap(10).AlignItems(ui.Center).Background(c.Theme().Surface).Children(func() {
 			label := locales.NewProjectWaiting() + " · " + p.Path
 			color := c.Theme().TextMuted
+			if pendingProjectDelayed(p, time.Now()) {
+				label = locales.NewProjectWaitingLong() + " · " + p.Path
+			}
 			if err := a.pendingProjectErrors[p.file]; err != "" {
 				label = locales.NewProjectRegisterFailed() + " · " + p.Path + ": " + err
 				color = c.Theme().Danger
 			}
 			ui.Text(c, label).Grow(1).FontSize(12).TextColor(color).Clip().Tooltip(label)
+			if pendingProjectDelayed(p, time.Now()) {
+				ui.Button(c, locales.NewProjectEditorLog()).OnClick(func() {
+					path := editorLogPath(p.Kind)
+					if path == "" {
+						a.alert(locales.NewProjectLogMissing())
+						return
+					}
+					if info, err := os.Stat(path); err != nil || !info.Mode().IsRegular() {
+						a.alert(locales.NewProjectLogMissing())
+						return
+					}
+					if err := mygo.Shell.OpenPath(path); err != nil {
+						a.alert(err.Error())
+					}
+				})
+			}
 			ui.Button(c, locales.NewProjectForget()).OnClick(func() { a.forgetPendingProject(p) })
 		})
 	}
@@ -489,7 +509,7 @@ func (a *app) createProject() {
 		return
 	}
 	if abs, err := filepath.Abs(dir); err == nil {
-		a.pendingProjectList = append(a.pendingProjectList, pendingProject{Path: abs, Version: editor.Version, Kind: editor.Kind, file: pendingProjectFile(abs)})
+		a.pendingProjectList = append(a.pendingProjectList, pendingProject{Path: abs, Version: editor.Version, Kind: editor.Kind, CreatedAt: time.Now(), file: pendingProjectFile(abs)})
 	}
 	a.newOpen = false
 }

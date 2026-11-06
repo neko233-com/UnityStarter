@@ -14,10 +14,11 @@ import (
 
 // A creation request survives app/CLI exit without touching shared settings.
 type pendingProject struct {
-	Path    string `json:"path"`
-	Version string `json:"version"`
-	Kind    string `json:"kind"`
-	file    string
+	Path      string    `json:"path"`
+	Version   string    `json:"version"`
+	Kind      string    `json:"kind"`
+	CreatedAt time.Time `json:"createdAt,omitempty"`
+	file      string
 }
 
 func pendingProjectFile(dir string) string {
@@ -36,7 +37,7 @@ func startProjectCreation(dir string, editor editorInstall, launch func(string, 
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
-	intent := pendingProject{Path: dir, Version: editor.Version, Kind: editor.Kind}
+	intent := pendingProject{Path: dir, Version: editor.Version, Kind: editor.Kind, CreatedAt: time.Now()}
 	file := pendingProjectFile(dir)
 	if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
 		return err
@@ -84,9 +85,30 @@ func pendingProjects() []pendingProject {
 			continue
 		}
 		p.file = file
+		if p.CreatedAt.IsZero() {
+			if info, err := entry.Info(); err == nil {
+				p.CreatedAt = info.ModTime()
+			}
+		}
 		pending = append(pending, p)
 	}
 	return pending
+}
+
+func pendingProjectDelayed(p pendingProject, now time.Time) bool {
+	return !p.CreatedAt.IsZero() && !now.Before(p.CreatedAt) && now.Sub(p.CreatedAt) >= 2*time.Minute
+}
+
+func editorLogPath(kind string) string {
+	base := os.Getenv("LOCALAPPDATA")
+	if base == "" {
+		return ""
+	}
+	name := "Unity"
+	if kind == kindTuanjie {
+		name = "Tuanjie"
+	}
+	return filepath.Join(base, name, "Editor", "Editor.log")
 }
 
 // A version file alone can appear while the editor is still creating files.

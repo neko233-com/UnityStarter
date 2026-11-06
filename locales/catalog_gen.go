@@ -2614,6 +2614,36 @@ func (msgs Messages) NewProjectWaiting() string {
 	return Catalog.Format(msgs.locale, "newProjectWaiting", nil)
 }
 
+// NewProjectWaitingLong says "Still waiting; check the editor for sign-in, licensing or errors"
+// in the language the app shows.
+func NewProjectWaitingLong() string { return In(i18n.Locale()).NewProjectWaitingLong() }
+
+// NewProjectWaitingLong says "Still waiting; check the editor for sign-in, licensing or errors"
+// in the language of msgs.
+func (msgs Messages) NewProjectWaitingLong() string {
+	return Catalog.Format(msgs.locale, "newProjectWaitingLong", nil)
+}
+
+// NewProjectEditorLog says "Editor log"
+// in the language the app shows.
+func NewProjectEditorLog() string { return In(i18n.Locale()).NewProjectEditorLog() }
+
+// NewProjectEditorLog says "Editor log"
+// in the language of msgs.
+func (msgs Messages) NewProjectEditorLog() string {
+	return Catalog.Format(msgs.locale, "newProjectEditorLog", nil)
+}
+
+// NewProjectLogMissing says "The editor log was not found."
+// in the language the app shows.
+func NewProjectLogMissing() string { return In(i18n.Locale()).NewProjectLogMissing() }
+
+// NewProjectLogMissing says "The editor log was not found."
+// in the language of msgs.
+func (msgs Messages) NewProjectLogMissing() string {
+	return Catalog.Format(msgs.locale, "newProjectLogMissing", nil)
+}
+
 // NewProjectRegisterFailed says "Project registration failed; retrying"
 // in the language the app shows.
 func NewProjectRegisterFailed() string { return In(i18n.Locale()).NewProjectRegisterFailed() }
