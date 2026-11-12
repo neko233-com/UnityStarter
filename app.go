@@ -316,10 +316,13 @@ func (a *app) view(c *ui.Context) {
 				a.engineTab(c, kindTuanjie)
 			})
 			ui.Column(c).Fill().Width(220).MinHeight(0).Background(t.Surface).Children(func() {
-				ui.Row(c).Padding(20, 16, 16, 16).Gap(10).AlignItems(ui.Center).Children(func() {
-					ui.Icon(c, iconBrand).Size(24, 24).TextColor(t.Text)
-					ui.Text(c, channelName(a.activeEngine)).FontSize(15).Bold()
-				})
+				{
+					s := a.engineStrategy()
+					ui.Row(c).Padding(20, 16, 16, 16).Gap(10).AlignItems(ui.Center).Children(func() {
+						ui.Icon(c, s.Icon).Size(24, 24).TextColor(s.Accent)
+						ui.Text(c, channelName(a.activeEngine)).FontSize(15).Bold()
+					})
+				}
 				ui.Sidebar(c, &a.page, func() {
 					projects, installs, downloads, favorites := enginePages(a.activeEngine)
 					a.engineNavigation(c, a.activeEngine, projects, installs, downloads, favorites)
@@ -390,29 +393,39 @@ func (a *app) view(c *ui.Context) {
 }
 
 func enginePages(engine string) (string, string, string, string) {
-	if engine == kindTuanjie {
-		return pageTuanjieProjects, pageTuanjieInstalls, pageTuanjieDownloads, pageTuanjieFavorites
-	}
-	return pageProjects, pageInstalls, pageDownloads, pageFavorites
+	s := engineStrategyFor(engine)
+	return s.Pages.Projects, s.Pages.Installs, s.Pages.Downloads, s.Pages.Favorites
 }
 
 func (a *app) engineTab(c *ui.Context, engine string) {
-	label := "U"
-	if engine == kindTuanjie {
-		label = "T"
-	}
-	ui.Column(c).Gap(3).AlignItems(ui.Center).Children(func() {
-		if engine == a.activeEngine {
-			ui.PrimaryButton(c, label).Width(60).Tooltip(channelName(engine)).OnClick(func() { a.switchEngine(engine) })
-		} else {
-			ui.Button(c, label).Width(60).Tooltip(channelName(engine)).OnClick(func() { a.switchEngine(engine) })
+	s := engineStrategyFor(engine)
+	active := engine == a.activeEngine
+	t := c.Theme()
+
+	ui.Column(c).Gap(4).AlignItems(ui.Center).Padding(2).Children(func() {
+		if ui.Button(c, s.ShortName).Size(56, 56).Padding(0).Tooltip(s.Name).Children(func() {
+			color := t.TextMuted
+			bg := ui.Hex("#1a1b1e")
+			if active {
+				color = ui.Hex("#ffffff")
+				bg = s.BgActive
+			}
+			ui.Box(c).Size(48, 48).Radius(12).Background(bg).Center().Children(func() {
+				ui.Icon(c, s.Icon).Size(28, 28).TextColor(color)
+			})
+		}).Clicked() {
+			a.switchEngine(engine)
 		}
-		ui.Text(c, channelName(engine)).Width(60).FontSize(10).TextColor(c.Theme().TextMuted).TextAlign(ui.Center).Clip()
+		labelColor := t.TextMuted
+		if active {
+			labelColor = ui.Hex("#ffffff")
+		}
+		ui.Text(c, s.ShortName).FontSize(9).TextColor(labelColor).TextAlign(ui.Center)
 	})
 }
 
 func (a *app) switchEngine(engine string) {
-	if engine != kindUnity && engine != kindTuanjie {
+	if !engineValid(engine) {
 		return
 	}
 	if engine == a.activeEngine {

@@ -2,9 +2,14 @@ package main
 
 import "github.com/egoist/mygo/ui"
 
-// The sidebar's icons, drawn in the color of the text.
+// Engine-specific brand SVGs. Each engine tab owns its own identity:
+// iconUnity   — Unity hexagon with red corner badge (currentColor, so tints).
+// iconTuanjie — Tuanjie hexagon rotated + blue corner badge (currentColor).
+// iconBrand   — Shared Unity+X mark used in header / empty states / install list.
 var (
-	iconBrand    = ui.MustParseSVG([]byte(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M12 1 22 6.5v11L12 23 2 17.5v-11L12 1zm0 3.1L5 8v8l7 3.9 7-3.9V8l-7-3.9zM9 7.5v9l7-4.5-7-4.5z"/></svg>`))
+	iconUnity = ui.MustParseSVG([]byte(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="currentColor"><path d="M12 1 22 6.5v11L12 23 2 17.5v-11L12 1zm0 3.1L5 8v8l7 3.9 7-3.9V8l-7-3.9z"/><path d="M9 7.5v9l7-4.5-7-4.5z"/></g></svg>`))
+	iconTuanjie = ui.MustParseSVG([]byte(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="currentColor"><path d="M12 1 22 6.5v11L12 23 2 17.5v-11L12 1zm0 3.1L5 8v8l7 3.9 7-3.9V8l-7-3.9z"/><path d="M9 7.5v9l7-4.5-7-4.5z"/><circle cx="20" cy="4" r="2" fill="currentColor"/></g></svg>`))
+	iconBrand = ui.MustParseSVG([]byte(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M12 1 22 6.5v11L12 23 2 17.5v-11L12 1zm0 3.1L5 8v8l7 3.9 7-3.9V8l-7-3.9zM9 7.5v9l7-4.5-7-4.5z"/><path fill="currentColor" d="M17.4 1.5h5.1c.6 0 1 .4 1 1v4.5c0 .6-.4 1-1 1h-5.1c-.6 0-1-.4-1-1V2.5c0-.6.4-1 1-1zm.4 1.7l-.8.8 1.2 1.2-1.2 1.2.8.8 1.2-1.2 1.2 1.2.8-.8-1.2-1.2 1.2-1.2-.8-.8-1.2 1.2-1.2-1.2z"/></svg>`))
 	iconFavorite = ui.MustParseSVG([]byte(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="m12 2 3 6.2 6.8 1-4.9 4.8 1.2 6.8-6.1-3.2-6.1 3.2 1.2-6.8-4.9-4.8 6.8-1L12 2z"/></svg>`))
 	iconLearn    = ui.MustParseSVG([]byte(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M12 3 1 9l11 6 9-4.9V17h2V9L12 3zm-7 9v5l7 4 7-4v-5l-7 3.8L5 12z"/></svg>`))
 	iconProjects = ui.MustParseSVG([]byte(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M4 5h6l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zm0 5v8h16v-8H4z"/></svg>`))
